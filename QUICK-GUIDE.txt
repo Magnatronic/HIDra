@@ -13,11 +13,6 @@ GETTING STARTED
 2. Double-click aXXess.UI.exe
 3. The app connects automatically - you're ready to go!
 
-NO CONFIGURATION NEEDED!
-------------------------
-Everything is built-in and optimized for accessibility.
-You cannot accidentally break it by changing settings.
-All buttons work the same way every time!
 
 ESSENTIAL CONTROLS
 ------------------
@@ -151,13 +146,5 @@ Need help?
 
 VERSION INFORMATION
 -------------------
-aXXess v1.0.0 – Minimal, student‑proof edition
-Optimized for accessibility deployments
-All settings hardcoded for reliability
+aXXess v1.0.0 
 
-For technical support, contact your IT department.
-
-========================================
-© 2025 Magnatronic
-Built for accessibility
-========================================
