@@ -47,6 +47,10 @@ Control Windows with an Xbox controller. Simple, reliable, zero‑config.
 3) Move the cursor with the Left Stick; scroll with the Right Stick
 4) Press X to toggle the on‑screen keyboard; use D‑Pad Up/Down to maximize/minimize the active window
 
+## Distribution
+- Default release is self‑contained, single‑file for Windows x64 (~150 MB). It includes the .NET and WPF runtimes so it “just runs.”
+- Advanced users may build a framework‑dependent variant (~1.5 MB EXE) but must pre‑install the .NET Desktop Runtime.
+
 ## License
 MIT — see `LICENSE`.
 
