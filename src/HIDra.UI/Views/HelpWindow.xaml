@@ -1,0 +1,193 @@
+<Window x:Class="HIDra.UI.Views.HelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HIDra Help" 
+        Height="550" Width="500"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="#2C2C2C">
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,25">
+            <TextBlock Text="HIDra Help" 
+                       FontSize="24" 
+                       FontWeight="Bold" 
+                       Foreground="White"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Help Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer.Resources>
+                <Style TargetType="ScrollBar">
+                    <Setter Property="Background" Value="#2C2C2C"/>
+                    <Setter Property="BorderBrush" Value="#555555"/>
+                </Style>
+            </ScrollViewer.Resources>
+            <StackPanel>
+                <!-- Basic Controls -->
+                <TextBlock Text="BASIC CONTROLS" 
+                           FontSize="14" 
+                           FontWeight="Bold" 
+                           Foreground="#4CAF50"
+                           Margin="0,0,0,10"/>
+                <Border Background="#383838" 
+                        BorderBrush="#555555" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="15"
+                        Margin="0,0,0,20">
+                    <TextBlock TextWrapping="Wrap" 
+                               FontSize="12" 
+                               Foreground="#CCCCCC"
+                               LineHeight="22">
+                        <Run Text="• Left Stick:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Move mouse cursor"/>
+                        <LineBreak/>
+                        <Run Text="• Right Stick:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Scroll pages"/>
+                        <LineBreak/>
+                        <Run Text="• A Button:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Left click"/>
+                        <LineBreak/>
+                        <Run Text="• B Button:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Right click"/>
+                        <LineBreak/>
+                        <Run Text="• Left Trigger:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Hold for precise cursor control"/>
+                        <LineBreak/>
+                        <Run Text="• Right Trigger:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Hold to drag (click and drag)"/>
+                    </TextBlock>
+                </Border>
+
+                <!-- Accessibility Features -->
+                <TextBlock Text="ACCESSIBILITY FEATURES" 
+                           FontSize="14" 
+                           FontWeight="Bold" 
+                           Foreground="#4CAF50"
+                           Margin="0,0,0,10"/>
+                <Border Background="#383838" 
+                        BorderBrush="#555555" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="15"
+                        Margin="0,0,0,20">
+                    <TextBlock TextWrapping="Wrap" 
+                               FontSize="12" 
+                               Foreground="#CCCCCC"
+                               LineHeight="22">
+                        <Run Text="• Y Button:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Swap stick modes (switch cursor/scroll between left/right sticks)"/>
+                        <LineBreak/>
+                        <Run Text="• X Button:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Toggle on-screen keyboard (for typing emails, URLs, etc.)"/>
+                    </TextBlock>
+                </Border>
+
+                <!-- Window Management -->
+                <TextBlock Text="WINDOW MANAGEMENT" 
+                           FontSize="14" 
+                           FontWeight="Bold" 
+                           Foreground="#4CAF50"
+                           Margin="0,0,0,10"/>
+                <Border Background="#383838" 
+                        BorderBrush="#555555" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="15"
+                        Margin="0,0,0,20">
+                    <TextBlock TextWrapping="Wrap" 
+                               FontSize="12" 
+                               Foreground="#CCCCCC"
+                               LineHeight="22">
+                        <Run Text="• LB (Left Bumper):" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Alt+Tab (switch to next app)"/>
+                        <LineBreak/>
+                        <Run Text="• RB (Right Bumper):" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Alt+Shift+Tab (previous app)"/>
+                        <LineBreak/>
+                        <Run Text="• Start:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Task View (Win+Tab)"/>
+                        <LineBreak/>
+                        <Run Text="• Back:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Start Menu (Win key)"/>
+                    </TextBlock>
+                </Border>
+
+                <!-- Advanced Modifiers -->
+                <TextBlock Text="ADVANCED MODIFIERS" 
+                           FontSize="14" 
+                           FontWeight="Bold" 
+                           Foreground="#4CAF50"
+                           Margin="0,0,0,10"/>
+                <Border Background="#383838" 
+                        BorderBrush="#555555" 
+                        BorderThickness="1" 
+                        CornerRadius="4" 
+                        Padding="15"
+                        Margin="0,0,0,0">
+                    <TextBlock TextWrapping="Wrap" 
+                               FontSize="12" 
+                               Foreground="#CCCCCC"
+                               LineHeight="22">
+                        <Run Text="• L3 (Click Left Stick):" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Hold for Ctrl mode"/>
+                        <LineBreak/>
+                        <Run Text="  - A: Copy  •  B: Paste  •  X: Undo  •  Y: Redo" Foreground="#999999"/>
+                        <LineBreak/>
+                        <Run Text="• R3 (Click Right Stick):" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Hold for Shift mode"/>
+                        <LineBreak/>
+                        <Run Text="  - Start: Close window (Alt+F4)" Foreground="#999999"/>
+                    </TextBlock>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Close Button -->
+        <Button Grid.Row="2" 
+                Content="Close" 
+                Width="100" 
+                Height="40"
+                HorizontalAlignment="Center"
+                Margin="0,20,0,0"
+                Click="CloseButton_Click"
+                Background="#3C3C3C"
+                Foreground="White"
+                BorderBrush="#555555"
+                FontSize="13">
+            <Button.Style>
+                <Style TargetType="Button">
+                    <Setter Property="Background" Value="#3C3C3C"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderBrush" Value="#555555"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                    VerticalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#4C4C4C"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
+    </Grid>
+</Window>

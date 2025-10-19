@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\HIDra.Core\HIDra.Core.csproj" />
+    <ProjectReference Include="..\HIDra.Models\HIDra.Models.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <!-- aXXess v1.0.0 branding -->
+    <AssemblyName>aXXess.UI</AssemblyName>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Product>aXXess - Controller Accessibility Tool</Product>
+    <Company>Magnatronic</Company>
+    <Copyright>MIT License</Copyright>
+    <Description>Control Windows with an Xbox controller for accessibility</Description>
+  </PropertyGroup>
+
+</Project>

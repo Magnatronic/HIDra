@@ -1,0 +1,163 @@
+========================================
+aXXess v1.0 - Quick Reference Guide
+========================================
+
+WHAT IS THIS?
+-------------
+aXXess lets you control your computer with an Xbox controller.
+Perfect for users who cannot use a mouse or keyboard.
+
+GETTING STARTED
+---------------
+1. Plug in your Xbox controller (USB or wireless adapter)
+2. Double-click aXXess.UI.exe
+3. The app connects automatically - you're ready to go!
+
+NO CONFIGURATION NEEDED!
+------------------------
+Everything is built-in and optimized for accessibility.
+You cannot accidentally break it by changing settings.
+All buttons work the same way every time!
+
+ESSENTIAL CONTROLS
+------------------
+
+MOVING THE CURSOR:
+  Left Stick = Move mouse cursor
+  Left Trigger (hold) = Precision mode (slower, more accurate)
+
+CLICKING:
+  A Button = Left Click (select things)
+  B Button = Right Click (open menus)
+  
+SCROLLING:
+  Right Stick = Scroll up/down/left/right
+  
+SWAP MODES:
+  Y Button = Swap sticks (cursor ↔ scroll)
+  (Useful if you prefer right stick for cursor!)
+
+VIRTUAL KEYBOARD:
+  X Button = Open/close on-screen keyboard
+  (Big UK layout with visible shift symbols)
+
+SWITCHING BETWEEN PROGRAMS:
+  1. Tap Right Bumper (RB) - Opens window switcher
+  2. Keep tapping RB or Left Bumper (LB) to find your program
+  3. Release when you see the program you want
+  (It automatically switches after a brief delay)
+
+WINDOW MANAGEMENT (D-PAD)
+--------------------------
+
+D-Pad Up = MAXIMIZE WINDOW
+  Makes the current window full-screen
+
+D-Pad Down = MINIMIZE WINDOW
+  Sends the current window to the taskbar
+
+D-Pad Left = SNAP LEFT
+  Puts window on left half of screen
+
+D-Pad Right = SNAP RIGHT
+  Puts window on right half of screen
+
+  TIP: Use snap left/right to work with two programs side-by-side!
+
+COMMON TASKS
+------------
+
+Open Start Menu:
+  Press Back Button
+
+Open a Program:
+  1. Press Back (opens Start Menu)
+  2. Move Left Stick to the program
+  3. Press A to open it
+
+Type Text:
+  1. Press X Button (opens virtual keyboard)
+  2. Use Left Stick to select letters
+  3. Press A to type each letter
+  4. Press X again to close keyboard
+
+Work with Two Programs:
+  1. Open first program, press D-Pad Left (snap left)
+  2. Open second program, press D-Pad Right (snap right)
+  3. Now both programs are visible side-by-side!
+
+See All Open Programs:
+  Press Start Button (shows all windows)
+
+FULL BUTTON REFERENCE
+----------------------
+
+Left Stick:
+  Move = Mouse cursor
+  (Not mapped for simplicity)
+
+Right Stick:
+  Move = Scroll
+  (Not mapped for simplicity)
+
+Triggers:
+  Left Trigger (LT) = Precision mode (hold for slow, precise cursor)
+  Right Trigger (RT) = Click and hold (hold to drag things)
+
+Face Buttons:
+  A = Left Click (select/open)
+  B = Right Click (context menu)
+  X = Toggle Virtual Keyboard (UK layout, big letters)
+  Y = Swap Stick Modes (cursor ↔ scroll)
+
+Bumpers:
+  Right Bumper (RB) = Next Application (Alt+Tab forward)
+  Left Bumper (LB) = Previous Application (Alt+Tab backward)
+
+D-Pad:
+  Up = Maximize Window (full screen)
+  Down = Minimize Window (to taskbar)
+  Left = Snap Window Left (left half of screen)
+  Right = Snap Window Right (right half of screen)
+
+Back/Start:
+  Back = Windows Key (Start Menu)
+  Start = Task View (see all windows at once)
+
+VIRTUAL KEYBOARD TIPS
+----------------------
+- UK layout with " above 2 and £ above 3
+- Shift symbols are big and easy to see
+- Press Shift to use symbols (!, @, £, etc.)
+- Press Ctrl then another key for shortcuts
+- Press Caps Lock for ALL CAPS typing
+
+TROUBLESHOOTING
+---------------
+
+Controller not connecting?
+  - Make sure it's plugged in or paired
+  - Try a different USB port
+  - Restart the app
+
+Cursor moving too fast/slow?
+  - Use Left Trigger for precision mode
+  - Settings are optimized - cannot be changed
+
+Need help?
+  - All buttons are shown in this guide
+  - Everything works the same every time
+  - No configuration files to worry about!
+
+VERSION INFORMATION
+-------------------
+HIDra v1.2.0 - Simplified Edition
+Optimized for college accessibility deployment
+All settings hardcoded for reliability
+
+For technical support, contact your IT department.
+
+========================================
+© 2025 HIDra Project
+Built for accessibility
+========================================

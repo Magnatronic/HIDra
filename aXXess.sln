@@ -1,0 +1,33 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HIDra.Models", "src\HIDra.Models\HIDra.Models.csproj", "{4EA5FCBE-362A-414C-9817-4A0E501C2B99}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HIDra.Core", "src\HIDra.Core\HIDra.Core.csproj", "{BFF035C2-211C-46D8-A53E-D52D27F77D05}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HIDra.UI", "src\HIDra.UI\HIDra.UI.csproj", "{EE6ECD8F-CD5B-4C7D-B2A1-063461E773CA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4EA5FCBE-362A-414C-9817-4A0E501C2B99}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EA5FCBE-362A-414C-9817-4A0E501C2B99}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EA5FCBE-362A-414C-9817-4A0E501C2B99}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EA5FCBE-362A-414C-9817-4A0E501C2B99}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFF035C2-211C-46D8-A53E-D52D27F77D05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFF035C2-211C-46D8-A53E-D52D27F77D05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFF035C2-211C-46D8-A53E-D52D27F77D05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFF035C2-211C-46D8-A53E-D52D27F77D05}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE6ECD8F-CD5B-4C7D-B2A1-063461E773CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE6ECD8F-CD5B-4C7D-B2A1-063461E773CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE6ECD8F-CD5B-4C7D-B2A1-063461E773CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE6ECD8F-CD5B-4C7D-B2A1-063461E773CA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
