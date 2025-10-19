@@ -11,18 +11,25 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net7.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <!-- aXXess v1.0.0 branding -->
-    <AssemblyName>aXXess.UI</AssemblyName>
+    <!-- HIDra v1.0.0 branding -->
+    <AssemblyName>HIDra.UI</AssemblyName>
     <Version>1.0.0</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
-    <Product>aXXess - Controller Accessibility Tool</Product>
+    <Product>HIDra - Controller Accessibility Tool</Product>
     <Company>Magnatronic</Company>
     <Copyright>MIT License</Copyright>
     <Description>Control Windows with an Xbox controller for accessibility</Description>
+  </PropertyGroup>
+
+  <!-- Conditional publishing settings for self-contained builds -->
+  <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
 
 </Project>

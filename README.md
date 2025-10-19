@@ -1,56 +1,84 @@
-# aXXess – Controller Accessibility Tool (v1.0.0)
+﻿# HIDra  Controller Accessibility Tool
 
-Control Windows with an Xbox controller. Simple, reliable, zero‑config.
+Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
 
 ## Features
 - Mouse with Left Stick; LT = precision mode
 - Scroll with Right Stick
-- D‑Pad window management: Up = Maximize, Down = Minimize, Left/Right = Snap
-- X toggles on‑screen keyboard (UK layout, large keys)
+- DPad window management: Up = Maximize, Down = Minimize, Left/Right = Snap
+- X toggles onscreen keyboard (UK layout, large keys)
 - Y swaps cursor/scroll sticks
 - RB/LB task switcher (Alt+Tab forward/back)
 - Start opens Task View; Back opens Start menu
-- No configuration files — sensible defaults are baked in
+- No configuration files  sensible defaults are baked in
 
 ## Getting Started
 1) Plug in an Xbox controller (USB or Bluetooth)
 2) Launch the app
-3) It auto‑connects and you’re ready to go
+3) It autoconnects and you're ready to go
 
 ## Button Mapping
 - A: Left click
 - B: Right click
 - X: Toggle virtual keyboard
-- Y: Swap stick modes (cursor ↔ scroll)
+- Y: Swap stick modes (cursor  scroll)
 - RB/LB: Next/Previous app (Alt+Tab)
 - Back: Windows key, Start: Win+Tab
-- D‑Pad: Up = Maximize, Down = Minimize, Left = Win+Left, Right = Win+Right
+- DPad: Up = Maximize, Down = Minimize, Left = Win+Left, Right = Win+Right
 - LT: Precision mode, RT: Click & hold (drag)
 
 ## System Requirements
-- Windows 10/11 (x64)
-- Xbox One/Series controller
-- No .NET install required when using the published binary (self‑contained)
+- **Windows 10/11** (x64)
+- **Xbox One/Series controller** (USB or Bluetooth)
+- **For compact version**: .NET 8 Desktop Runtime
+- **For portable version**: No additional requirements
+
+## Distribution Options
+
+**Two versions available to suit different needs:**
+
+### Option 1: Compact Version (Recommended)
+- **Size**: ~148 KB
+- **Requirement**: .NET 8 Desktop Runtime
+- **Best for**: Regular users, faster downloads
+- **Download runtime**: [Microsoft .NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
+
+### Option 2: Portable Version  
+- **Size**: ~173 MB
+- **Requirement**: None - completely standalone
+- **Best for**: USB sticks, computers without admin rights, portable use
+- **Trade-off**: Larger download but runs anywhere
 
 ## Build and Publish (for developers)
-- Prerequisite: .NET 7 SDK
-- Build the solution: dotnet build aXXess.sln
-- Publish a Release, self‑contained, single‑file build:
-  - Project: `src/HIDra.UI/HIDra.UI.csproj`
-  - Runtime: `win-x64`
-  - Output: `publish/`
-  - Note: With WPF, a few native runtime DLLs are emitted alongside the EXE — this is expected.
+- **Prerequisite**: .NET 8 SDK
+- **Build the solution**: `dotnet build HIDra.sln`
+
+### Quick Build Scripts:
+- **Compact version**: Run `build-framework.bat`
+- **Portable version**: Run `build-portable.bat`  
+- **Both versions**: Run `build-both.bat`
+
+### Manual Build Commands:
+```bash
+# Framework-dependent (148 KB)
+dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -o publish-framework
+
+# Self-contained portable (173 MB)
+dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish-portable
+```
 
 ## Smoke Test
-1) After publishing, run `publish/aXXess.UI.exe`
-2) Confirm the window title reads: “aXXess - Controller to Mouse/Keyboard”
+1) After publishing, run the executable from the publish folder
+2) Confirm the window title reads: "HIDra - Controller to Mouse/Keyboard"
 3) Move the cursor with the Left Stick; scroll with the Right Stick
-4) Press X to toggle the on‑screen keyboard; use D‑Pad Up/Down to maximize/minimize the active window
+4) Press X to toggle the onscreen keyboard; use DPad Up/Down to maximize/minimize the active window
 
 ## Distribution
-- Default release is self‑contained, single‑file for Windows x64 (~150 MB). It includes the .NET and WPF runtimes so it “just runs.”
-- Advanced users may build a framework‑dependent variant (~1.5 MB EXE) but must pre‑install the .NET Desktop Runtime.
+Two deployment options are available to suit different environments and requirements:
+
+**Framework-dependent** (~148 KB): Professional deployment requiring .NET 8 Desktop Runtime pre-installation. Ideal for managed environments and regular users.
+
+**Self-contained portable** (~173 MB): Single executable with embedded runtime that runs anywhere on Windows x64 without dependencies. Perfect for portable use and environments without admin rights.
 
 ## License
-MIT — see `LICENSE`.
-
+MIT  see `LICENSE`.

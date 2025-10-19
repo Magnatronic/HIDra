@@ -1,7 +1,7 @@
 <Window x:Class="HIDra.UI.Views.HelpWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="aXXess Help" 
+    Title="HIDra Help" 
         Height="550" Width="500"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
@@ -15,7 +15,7 @@
 
         <!-- Title -->
         <StackPanel Grid.Row="0" Margin="0,0,0,25">
-            <TextBlock Text="aXXess Help" 
+            <TextBlock Text="HIDra Help" 
                        FontSize="24" 
                        FontWeight="Bold" 
                        Foreground="White"

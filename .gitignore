@@ -1,4 +1,4 @@
-# .NET Core
+﻿# .NET Core
 bin/
 obj/
 *.user
@@ -20,50 +20,25 @@ bld/
 
 # Visual Studio
 .vs/
-*.vsidx
-*.vspscc
-*.vspx
-*.sap
-
-# Rider
-.idea/
-*.sln.iml
+*.vscode/
 
 # User-specific files
 *.rsuser
+*.suo
 *.user
 *.userosscache
 *.sln.docstates
-
-# Test results
-TestResults/
-*.trx
-*.coverage
-
-# Publish profiles
-PublishProfiles/
-*.pubxml
-*.publishproj
-
-# NuGet
-*.nupkg
-*.snupkg
-packages/
-project.lock.json
-project.fragment.lock.json
-
-# Configuration (keep defaults)
-config/user-*.json
-*.local.json
 
 # Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-$RECYCLE.BIN/
+.BIN/
 
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
 
 # Temporary files
 *.tmp
@@ -76,3 +51,8 @@ $RECYCLE.BIN/
 # Publish outputs
 publish/
 publish-framework-dependent/
+publish-framework/
+publish-portable/
+
+# Tray project (unused)
+src/HIDra.Tray/

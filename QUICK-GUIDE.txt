@@ -1,16 +1,16 @@
 ========================================
-aXXess v1.0 - Quick Reference Guide
+HIDra v1.0 - Quick Reference Guide
 ========================================
 
 WHAT IS THIS?
 -------------
-aXXess lets you control your computer with an Xbox controller.
+HIDra lets you control your computer with an Xbox controller.
 Perfect for users who cannot use a mouse or keyboard.
 
 GETTING STARTED
 ---------------
 1. Plug in your Xbox controller (USB or wireless adapter)
-2. Double-click aXXess.UI.exe
+2. Double-click HIDra.UI.exe
 3. The app connects automatically - you're ready to go!
 
 
@@ -146,5 +146,5 @@ Need help?
 
 VERSION INFORMATION
 -------------------
-aXXess v1.0.0 
+HIDra v1.0.0 
 
