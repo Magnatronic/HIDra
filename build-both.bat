@@ -1,24 +1,15 @@
 @echo off
-setlocal enabledelayedexpansion
-echo Building HIDra - Both Versions
-echo ==============================
+echo Building HIDra - Both Single-File Versions
+echo ==========================================
 
 call build-framework.bat
-if %ERRORLEVEL% neq 0 exit /b 1
-
-echo.
-echo.
-
 call build-portable.bat
-if %ERRORLEVEL% neq 0 exit /b 1
 
 echo.
+echo 🎯 Both builds completed!
 echo.
-echo 🎉 Both builds completed successfully!
+echo 📦 Outputs:
+echo    • Framework-dependent: publish-framework\HIDra.UI.exe (requires .NET 8)
+echo    • Portable standalone:  publish-portable\HIDra.UI.exe  (no dependencies)
 echo.
-echo 📁 Outputs:
-echo    • Framework-dependent: publish-framework\HIDra.UI.exe (tiny, needs .NET 8)
-echo    • Portable standalone:  publish-portable\HIDra.UI.exe  (large, no dependencies)
-echo.
-
 pause
