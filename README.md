@@ -239,259 +239,45 @@ The portable executable will be in `publish/HIDra.UI.exe` (approximately 70 MB).
 
 - **Windows API Integration** - Direct maximize/minimize calls (always works)
 
-### Accessibility Optimizations
-
-### Current Status- **95% Linear Sensitivity Zone** - Predictable, forgiving mouse movement
-
-✅ **Production-Ready v1.2.0**- **Controller Calibration** - Compensates for worn controller sticks (90% max range)
-
-- Full Xbox controller support- **Low Deadzone (5%)** - Maximum usable stick range without drift
-
-- All button mappings hardcoded- **Smooth Scroll Accumulation** - Proportional scrolling without instant max speed
-
-- Task switcher with Alt+Tab integration- **Auto-Connect** - Automatically detects and connects to controller on startup
-
-- Virtual keyboard with UK layout- **No Admin Rights Required** - Runs in restricted environments (perfect for college/library computers)
-
-- Window management via D-Pad
-
-- Portable single-file deployment### Technical Features
-
-- Comprehensive documentation- **Self-Contained** - No .NET runtime installation needed
-
-- Student-proof configuration- **Portable** - Single executable that runs from USB stick
-
-- **Configurable** - JSON configuration files for customization
-
-## 📚 Documentation- **Visual Task Switcher** - Navigate windows with controller-only interface
-
-- **XInput Support** - Works with Xbox 360, Xbox One, Xbox Series controllers
-
-### For Users
-
-- `QUICK-GUIDE.txt` - Complete usage guide (print this!)### Current Status
-
-- `RELEASE-NOTES-v1.2.0.md` - What's new in this version✅ **Complete and Production-Ready**
-
-- `DEPLOYMENT.md` - How to deploy to multiple machines- Full Xbox controller support
-
-- All button mappings implemented
-
-### For Developers- Task switcher with visual navigation
-
-- `README.md` - This file (project overview)- Configuration system
-
-- `DEPLOYMENT.md` - Build and deployment instructions- Portable single-file deployment
-
-- `docs/` - Technical implementation details- Comprehensive documentation
-
-
-
-## 🔧 Hardcoded Settings (v1.2.0)## 🛠️ Technology Stack
-
-
-
-All settings are optimized for accessibility and cannot be changed:- **.NET 7.0** - Framework
-
-- **WPF** - Windows Presentation Foundation for UI
-
-```csharp- **SharpDX.XInput** - Xbox controller input detection
-
-CursorSensitivity = 0.5f           // Moderate speed- **InputSimulatorPlus** - Mouse and keyboard simulation
-
-ScrollSensitivity = 0.5f           // Smooth scrolling- **Newtonsoft.Json** - Configuration file handling
-
-PrecisionModeSensitivity = 0.3f    // Very slow for precision- **CommunityToolkit.Mvvm** - MVVM pattern support
-
-Deadzone = 0.05f                   // 5% deadzone (low for control)
-
-PollRateMs = 10                    // 100Hz polling rate## 📚 Documentation
-
-StickCalibrationMax = 0.90f        // Compensate for worn sticks
-
-TriggerThreshold = 0.3f            // 30% press to activate### For Users
-
-```- `publish/QUICK-GUIDE.txt` - Quick reference guide (comprehensive)
-
-- `publish/CONFIGURATION.md` - How to customize settings (optional)
-
-### Button Mappings (Hardcoded)
-
-```### For Developers
-
-A = Left Click- `README.md` - This file (project overview)
-
-B = Right Click- `DEPLOYMENT.md` - Build and deployment instructions
-
-X = Toggle Virtual Keyboard- `docs/task-switcher-implementation.md` - Technical implementation details
-
-Y = Swap Stick Modes
-
-LB = Previous App (Alt+Shift+Tab)## 📝 Configuration
-
-RB = Next App (Alt+Tab)
-
-Back = Windows Key (Start Menu)Configuration files use JSON format and are stored in the `config/` folder:
-
-Start = Task View (Win+Tab)- `default-mappings.json` - Default settings (read-only)
-
-D-Pad Up = Maximize Window (API call)- `user-mappings.json` - Your custom settings (auto-created when you customize)
-
-D-Pad Down = Minimize Window (API call)
-
-D-Pad Left = Snap Left (Win+Left)The app will use `user-mappings.json` if it exists, otherwise falls back to `default-mappings.json`.
-
-D-Pad Right = Snap Right (Win+Right)
-
-LT = Precision Mode (hold)**Portable Mode:** Keep the `config/` folder next to `HIDra.UI.exe` on your USB stick.
-
-RT = Click & Hold (hold)
-
-```See `publish/CONFIGURATION.md` for customization options.
-
-
-
-## 🧪 Testing## 🧪 Testing
-
-
-
-Run tests with:Run tests with:
-
-```powershell```powershell
-
-dotnet testdotnet test
-
-``````
-
-
-
-## 💡 Tips for Users## 💡 Tips for Users
-
-
-
-1. **Precision Mode**: Hold Left Trigger for slower, more precise cursor control1. **Precision Mode**: Hold Left Trigger for slower, more precise cursor control
-
-2. **Task Switcher**: Tap RB/LB to navigate windows, release to switch2. **Task Switcher**: Tap RB/LB to navigate windows, press A to select
-
-3. **Portable Setup**: Just copy `HIDra.UI.exe` to USB stick and run - no config files needed!3. **Portable Setup**: Just copy `HIDra.UI.exe` to USB stick and run
-
-4. **Window Snapping**: Use D-Pad Left/Right to work with two programs side-by-side4. **Auto-Connect**: The app automatically connects to your controller on startup
-
-5. **Virtual Keyboard**: Press X to open UK layout keyboard with big, clear letters5. **Stick Drift**: The app is calibrated for worn controllers (compensates for 90% max range)
-
-6. **Auto-Connect**: The app automatically connects to your controller on startup
-
-7. **Stick Drift**: The app is calibrated for worn controllers (compensates for 90% max range)---
-
-
-
-## 🎓 College Deployment**Built with ❤️ for accessibility**
-
-
-
-Perfect for accessibility in educational environments:##  Known Limitations
-
-
-
-✅ **Single file** - Just `HIDra.UI.exe`, nothing else needed  - May not work with anti-cheat software that blocks input simulation
-
-✅ **No installation** - Runs directly from USB or network drive  - Controller must be connected before launching the app
-
-✅ **No admin rights** - Works on locked-down college computers  - Some keyboard shortcuts may not work in apps running as Administrator
-
-✅ **Student-proof** - No config files to break  
-
-✅ **Consistent** - Works exactly the same on every machine  ##  Contributing
-
-✅ **UK layout** - Proper £ symbol and UK punctuation  
-
-✅ **Documentation** - Print `QUICK-GUIDE.txt` for reference  This project is designed for accessibility and welcomes contributions that improve usability for users with mobility challenges.
-
-
-
-See `DEPLOYMENT.md` for deployment strategies.##  License
-
-
-
----Open Source - See LICENSE file for details
-
-
-
-## 📦 Project Structure---
-
-
-
-```**Built with  for accessibility**
-
-HIDra/
-├── src/
-│   ├── HIDra.Core/              # Core business logic
-│   │   ├── Controllers/         # Xbox controller via XInput
-│   │   ├── Input/              # Input processing and debouncing
-│   │   ├── Actions/            # Button action execution
-│   │   └── Simulation/         # Mouse/keyboard simulation
-│   ├── HIDra.UI/               # WPF application
-│   │   ├── Views/              # XAML views and virtual keyboard
-│   │   ├── ViewModels/         # MVVM view models
-│   │   └── Resources/          # Images, styles
-│   └── HIDra.Models/           # Shared data models
-├── docs/                       # Technical documentation
-├── tests/                      # Unit tests
-├── QUICK-GUIDE.txt            # User reference guide
-├── README.md                  # This file
-└── DEPLOYMENT.md              # Deployment instructions
+```markdown
+# aXXess – Controller Accessibility Tool (v1.0.0)
+
+Control Windows with an Xbox controller. aXXess is a single‑file, student‑proof app designed for accessibility: no configuration files, simple controls, and reliable window management.
+
+## Features
+- Mouse control with Left Stick; hold LT for precision
+- Scroll with Right Stick
+- D‑Pad window management: Up=Maximize, Down=Minimize, Left/Right=Snap
+- X toggles on‑screen keyboard (UK layout, large keys)
+- Y swaps cursor/scroll sticks
+- RB/LB task switcher (Alt+Tab forward/back)
+- Start opens Task View; Back opens Start menu
+
+## Getting Started
+1) Plug in an Xbox controller
+2) Launch aXXess.UI.exe
+3) It auto‑connects and you’re ready to go
+
+## No Configuration Needed
+All settings are hardcoded for reliability. No JSON files. Behavior is consistent on every machine.
+
+## Button Mapping
+- A: Left click
+- B: Right click
+- X: Toggle virtual keyboard
+- Y: Swap stick modes (cursor ↔ scroll)
+- RB/LB: Next/Previous app (Alt+Tab)
+- Back: Windows key; Start: Win+Tab
+- D‑Pad: Up=Maximize, Down=Minimize, Left=Win+Left, Right=Win+Right
+- LT: Precision mode; RT: Click & hold (drag)
+
+## Build/Publish (optional)
+Published single‑file build will appear in the `publish/` folder.
+
+## License
+MIT – see LICENSE.
+
+## Notes
+This repository is intentionally minimal for a clean v1.0.0 start. See `QUICK-GUIDE.txt` for a printable reference.
 ```
 
-## 🚨 Known Limitations
-
-- May not work with anti-cheat software that blocks input simulation
-- Controller must be connected before launching the app
-- Some keyboard shortcuts may not work in apps running as Administrator
-- Windows-only (requires .NET 7.0 and Windows 10/11)
-- Ctrl+Alt+Delete cannot be simulated (Windows security restriction)
-
-## 🔄 Changelog
-
-### v1.2.0 (Current) - Simplified Edition
-- ✅ Removed all configuration files (hardcoded everything)
-- ✅ Removed L3/R3 modifier system (simplified)
-- ✅ Remapped D-Pad to window management (maximize/minimize/snap)
-- ✅ Windows API calls for reliable maximize/minimize
-- ✅ Updated virtual keyboard with UK layout
-- ✅ Made shift symbols highly visible (13px, light gray)
-- ✅ 14-column balanced keyboard layout
-- ✅ Fallback configuration if files missing
-- ✅ Student-proof deployment
-
-### v1.1.x - Enhanced Features
-- Virtual keyboard with shift symbol visibility
-- Task switcher improvements
-- Configuration system
-- UK keyboard layout
-
-### v1.0.x - Initial Release
-- Basic controller support
-- Mouse and keyboard simulation
-- Configurable mappings
-
----
-
-## 💡 Contributing
-
-This project is designed for accessibility and welcomes contributions that improve usability for users with mobility challenges.
-
-**Focus areas:**
-- Accessibility improvements
-- Bug fixes
-- Documentation
-- Testing on different controller types
-
-## 📄 License
-
-Open Source - See LICENSE file for details
-
----
-
-**Built with ❤️ for accessibility**  
-**Optimized for college accessibility deployment**  
-**v1.2.0 - Simplified Edition**

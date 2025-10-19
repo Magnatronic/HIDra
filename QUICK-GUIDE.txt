@@ -151,13 +151,13 @@ Need help?
 
 VERSION INFORMATION
 -------------------
-HIDra v1.2.0 - Simplified Edition
-Optimized for college accessibility deployment
+aXXess v1.0.0 – Minimal, student‑proof edition
+Optimized for accessibility deployments
 All settings hardcoded for reliability
 
 For technical support, contact your IT department.
 
 ========================================
-© 2025 HIDra Project
+© 2025 Magnatronic
 Built for accessibility
 ========================================
