@@ -9,6 +9,7 @@ REM Build framework-dependent single-file version
 dotnet publish src\HIDra.UI\HIDra.UI.csproj -c Release -o publish-framework ^
     -p:PublishSingleFile=true ^
     -p:SelfContained=false ^
+    -p:IncludeNativeLibrariesForSelfExtract=true ^
     -p:DebugType=None ^
     -p:DebugSymbols=false
 

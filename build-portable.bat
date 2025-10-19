@@ -9,6 +9,7 @@ REM Build self-contained single-file version
 dotnet publish src\HIDra.UI\HIDra.UI.csproj -c Release -r win-x64 -o publish-portable ^
     --self-contained ^
     -p:PublishSingleFile=true ^
+    -p:IncludeNativeLibrariesForSelfExtract=true ^
     -p:DebugType=None ^
     -p:DebugSymbols=false
 

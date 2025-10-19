@@ -38,7 +38,7 @@ Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
 **Two versions available to suit different needs:**
 
 ### Option 1: Compact Version (Recommended)
-- **Size**: ~1.5 MB
+- **Size**: ~3 MB
 - **Requirement**: .NET 8 Desktop Runtime
 - **Best for**: Regular users, faster downloads
 - **Download runtime**: [Microsoft .NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
@@ -60,11 +60,11 @@ Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
 
 ### Manual Build Commands:
 ```bash
-# Framework-dependent (1.5 MB single-file)
-dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -o publish-framework -p:PublishSingleFile=true -p:SelfContained=false -p:DebugType=None -p:DebugSymbols=false
+# Framework-dependent (3 MB single-file)
+dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -o publish-framework -p:PublishSingleFile=true -p:SelfContained=false -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false
 
 # Self-contained portable (173 MB single-file)
-dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o publish-portable
+dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o publish-portable
 ```
 
 ## Smoke Test
@@ -76,7 +76,7 @@ dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -r win-x64 --self-contain
 ## Distribution
 Two deployment options are available to suit different environments and requirements:
 
-**Framework-dependent** (~1.5 MB): Professional deployment requiring .NET 8 Desktop Runtime pre-installation. Ideal for managed environments and regular users.
+**Framework-dependent** (~3 MB): Professional deployment requiring .NET 8 Desktop Runtime pre-installation. Ideal for managed environments and regular users.
 
 **Self-contained portable** (~173 MB): Single executable with embedded runtime that runs anywhere on Windows x64 without dependencies. Perfect for portable use and environments without admin rights.
 
