@@ -11,6 +11,7 @@ namespace HIDra.Core.Controllers
         private Controller? _controller;
         private ControllerInfo? _controllerInfo;
         private CancellationTokenSource? _cts;
+        private Task? _readTask;
         private bool _isReading;
 
         public event EventHandler<ControllerState>? StateUpdated;
@@ -69,13 +70,23 @@ namespace HIDra.Core.Controllers
             _cts = new CancellationTokenSource();
             _isReading = true;
 
-            Task.Run(() => ReadLoop(pollRateMs, _cts.Token));
+            _readTask = Task.Run(() => ReadLoop(pollRateMs, _cts.Token));
         }
 
         public void StopPolling()
         {
             _isReading = false;
             _cts?.Cancel();
+            
+            // Wait for the read loop to finish (with timeout)
+            try
+            {
+                _readTask?.Wait(TimeSpan.FromSeconds(1));
+            }
+            catch (AggregateException)
+            {
+                // Task was cancelled, this is expected
+            }
         }
 
         private async Task ReadLoop(int pollRateMs, CancellationToken cancellationToken)
@@ -100,7 +111,7 @@ namespace HIDra.Core.Controllers
 
                     await Task.Delay(pollRateMs, cancellationToken);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Silent error handling - controller may have disconnected
                 }
@@ -151,6 +162,7 @@ namespace HIDra.Core.Controllers
         public void Dispose()
         {
             StopPolling();
+            _cts?.Dispose();
             _controller = null;
             _controllerInfo = null;
         }

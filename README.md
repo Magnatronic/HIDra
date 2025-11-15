@@ -21,11 +21,12 @@ Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
 - A: Left click
 - B: Right click
 - X: Toggle virtual keyboard
-- Y: Swap stick modes (cursor  scroll)
+- Y: Swap stick modes (cursor ↔ scroll)
 - RB/LB: Next/Previous app (Alt+Tab)
 - Back: Windows key, Start: Win+Tab
 - DPad: Up = Maximize, Down = Minimize, Left = Win+Left, Right = Win+Right
 - LT: Precision mode, RT: Click & hold (drag)
+- Left/Right Stick Click: Undo (Ctrl+Z)
 
 ## System Requirements
 - **Windows 10/11** (x64)

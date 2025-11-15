@@ -281,6 +281,8 @@ public class HIDraEngine : IDisposable
         ProcessButton("DpadDown", current.DpadDown, previous.DpadDown, activeModifier);
         ProcessButton("DpadLeft", current.DpadLeft, previous.DpadLeft, activeModifier);
         ProcessButton("DpadRight", current.DpadRight, previous.DpadRight, activeModifier);
+        ProcessButton("LeftStickClick", current.LeftStickClick, previous.LeftStickClick, activeModifier);
+        ProcessButton("RightStickClick", current.RightStickClick, previous.RightStickClick, activeModifier);
     }
 
     /// <summary>

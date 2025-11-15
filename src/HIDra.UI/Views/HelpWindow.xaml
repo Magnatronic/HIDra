@@ -64,6 +64,9 @@
                         <LineBreak/>
                         <Run Text="• Right Trigger:" FontWeight="Bold" Foreground="White"/>
                         <Run Text=" Hold to drag (click and drag)"/>
+                        <LineBreak/>
+                        <Run Text="• Left/Right Stick Click:" FontWeight="Bold" Foreground="White"/>
+                        <Run Text=" Undo (Ctrl+Z) - press down either thumbstick"/>
                     </TextBlock>
                 </Border>
 

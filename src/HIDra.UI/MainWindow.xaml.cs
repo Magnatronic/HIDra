@@ -101,6 +101,14 @@ namespace HIDra.UI
                         Keys = new System.Collections.Generic.List<string> { "LWin", "Right" },
                         Description = "Snap window to right half" 
                     }
+                },
+                ["LeftStickClick"] = new ButtonMapping
+                {
+                    Default = new ActionMapping { Action = "Undo", Description = "Undo (Ctrl+Z)" }
+                },
+                ["RightStickClick"] = new ButtonMapping
+                {
+                    Default = new ActionMapping { Action = "Undo", Description = "Undo (Ctrl+Z)" }
                 }
             };
 
@@ -395,6 +403,9 @@ namespace HIDra.UI
             _virtualKeyboard?.Close();
             _engine?.Stop();
             _engine?.Dispose();
+            
+            // Force application shutdown
+            Application.Current.Shutdown();
         }
     }
 }
