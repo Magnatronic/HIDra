@@ -5,6 +5,8 @@ using HIDra.Core.Simulation;
 using HIDra.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,6 +37,16 @@ public class HIDraEngine : IDisposable
     
     // Stick mode swap state
     private bool _useRightStickForCursor = false;
+    
+    // Grid 3 detection
+    private System.Timers.Timer? _grid3CheckTimer;
+    private bool _grid3Detected = false;
+    
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+    
+    [DllImport("user32.dll")]
+    private static extern int GetWindowThreadProcessId(IntPtr hWnd, out int processId);
 
     /// <summary>
     /// Event raised when controller connection changes
@@ -127,6 +139,11 @@ public class HIDraEngine : IDisposable
 
         _isRunning = true;
         _controllerService.StartPolling(_settings.PollRateMs);
+        
+        // Start checking for Grid 3 every 500ms
+        _grid3CheckTimer = new System.Timers.Timer(500);
+        _grid3CheckTimer.Elapsed += (s, e) => CheckForGrid3();
+        _grid3CheckTimer.Start();
     }
 
     /// <summary>
@@ -141,6 +158,14 @@ public class HIDraEngine : IDisposable
 
         _isRunning = false;
         _controllerService.StopPolling();
+        
+        // Stop Grid 3 detection
+        if (_grid3CheckTimer != null)
+        {
+            _grid3CheckTimer.Stop();
+            _grid3CheckTimer.Dispose();
+            _grid3CheckTimer = null;
+        }
         
         // Release all inputs
         _mouseSimulator.ReleaseAll();
@@ -182,6 +207,12 @@ public class HIDraEngine : IDisposable
     private void OnStateUpdated(object? sender, ControllerState state)
     {
         if (!_isRunning)
+        {
+            return;
+        }
+        
+        // Skip processing if Grid 3 is active
+        if (_grid3Detected)
         {
             return;
         }
@@ -381,6 +412,53 @@ public class HIDraEngine : IDisposable
             int scrollAmount = (int)Math.Round(_scrollAccumulatorX);
             _mouseSimulator.ScrollHorizontal(scrollAmount);
             _scrollAccumulatorX -= scrollAmount; // Keep remainder for next frame
+        }
+    }
+    
+    /// <summary>
+    /// Checks if Grid 3 is the active foreground window
+    /// </summary>
+    private void CheckForGrid3()
+    {
+        try
+        {
+            IntPtr foregroundWindow = GetForegroundWindow();
+            if (foregroundWindow == IntPtr.Zero)
+            {
+                _grid3Detected = false;
+                return;
+            }
+            
+            GetWindowThreadProcessId(foregroundWindow, out int processId);
+            
+            using (var process = Process.GetProcessById(processId))
+            {
+                // Check if the process name is Grid 3 or similar variants
+                // Known names: "Grid 3", "Grid3", "Communicator" (potential future versions)
+                string processName = process.ProcessName;
+                bool isGrid3 = processName.Equals("Grid 3", StringComparison.OrdinalIgnoreCase) ||
+                               processName.Equals("Grid3", StringComparison.OrdinalIgnoreCase) ||
+                               processName.StartsWith("Grid ", StringComparison.OrdinalIgnoreCase) ||
+                               processName.Contains("Communicator", StringComparison.OrdinalIgnoreCase);
+                
+                // Update detection state
+                if (isGrid3 != _grid3Detected)
+                {
+                    _grid3Detected = isGrid3;
+                    
+                    if (_grid3Detected)
+                    {
+                        // Release all inputs when Grid 3 is detected
+                        _mouseSimulator.ReleaseAll();
+                        _keyboardSimulator.ReleaseAll();
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors (process may have exited, etc.)
+            _grid3Detected = false;
         }
     }
 
