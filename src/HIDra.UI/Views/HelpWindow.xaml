@@ -125,7 +125,7 @@
                         <Run Text=" Alt+Shift+Tab (previous app)"/>
                         <LineBreak/>
                         <Run Text="• RB (Right Bumper):" FontWeight="Bold" Foreground="White"/>
-                        <Run Text=" Alt+Tab (next app)"/>
+                        <Run Text=" Double click"/>
                         <LineBreak/>
                         <Run Text="• Start:" FontWeight="Bold" Foreground="White"/>
                         <Run Text=" Task View (Win+Tab)"/>

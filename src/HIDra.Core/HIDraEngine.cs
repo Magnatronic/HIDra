@@ -40,13 +40,41 @@ public class HIDraEngine : IDisposable
     
     // Grid 3 detection
     private System.Timers.Timer? _grid3CheckTimer;
-    private bool _grid3Detected = false;
+    private volatile bool _grid3Detected = false;
+    private IntPtr _winEventHookHandle = IntPtr.Zero;
+    private WinEventDelegate? _winEventDelegate; // Keep reference to prevent GC
+    private POINT _cursorPositionBeforeHide;
+    
+    // Win32 API declarations for window event hooks
+    private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+    
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+    
+    [DllImport("user32.dll")]
+    private static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+    
+    private const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+    private const uint WINEVENT_OUTOFCONTEXT = 0x0000;
     
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
     
     [DllImport("user32.dll")]
     private static extern int GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+    
+    [DllImport("user32.dll")]
+    private static extern bool SetCursorPos(int X, int Y);
+    
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+    
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
 
     /// <summary>
     /// Event raised when controller connection changes
@@ -140,10 +168,24 @@ public class HIDraEngine : IDisposable
         _isRunning = true;
         _controllerService.StartPolling(_settings.PollRateMs);
         
-        // Start checking for Grid 3 every 500ms
-        _grid3CheckTimer = new System.Timers.Timer(500);
-        _grid3CheckTimer.Elapsed += (s, e) => CheckForGrid3();
-        _grid3CheckTimer.Start();
+        // Only enable Grid 3 detection if the setting is enabled
+        if (_settings.EnableGrid3AutoSuspend)
+        {
+            // Install window event hook for instant foreground window change detection
+            _winEventDelegate = new WinEventDelegate(WinEventCallback);
+            _winEventHookHandle = SetWinEventHook(
+                EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
+                IntPtr.Zero, _winEventDelegate,
+                0, 0, WINEVENT_OUTOFCONTEXT);
+            
+            // Keep timer as backup for reliability (rare cases where hook might miss)
+            _grid3CheckTimer = new System.Timers.Timer(100);
+            _grid3CheckTimer.Elapsed += (s, e) => CheckForGrid3();
+            _grid3CheckTimer.Start();
+            
+            // Initial check
+            CheckForGrid3();
+        }
     }
 
     /// <summary>
@@ -159,7 +201,15 @@ public class HIDraEngine : IDisposable
         _isRunning = false;
         _controllerService.StopPolling();
         
-        // Stop Grid 3 detection
+        // Stop Grid 3 detection if it was enabled
+        // Unhook window event
+        if (_winEventHookHandle != IntPtr.Zero)
+        {
+            UnhookWinEvent(_winEventHookHandle);
+            _winEventHookHandle = IntPtr.Zero;
+        }
+        
+        // Stop Grid 3 detection timer
         if (_grid3CheckTimer != null)
         {
             _grid3CheckTimer.Stop();
@@ -212,6 +262,7 @@ public class HIDraEngine : IDisposable
         }
         
         // Skip processing if Grid 3 is active
+        // (Grid 3 detection happens via window event hook + backup timer)
         if (_grid3Detected)
         {
             return;
@@ -225,6 +276,17 @@ public class HIDraEngine : IDisposable
         catch (Exception ex)
         {
             ErrorOccurred?.Invoke(this, $"Error processing input: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Called instantly when foreground window changes
+    /// </summary>
+    private void WinEventCallback(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+    {
+        if (eventType == EVENT_SYSTEM_FOREGROUND)
+        {
+            CheckForGrid3();
         }
     }
 
@@ -416,49 +478,81 @@ public class HIDraEngine : IDisposable
     }
     
     /// <summary>
-    /// Checks if Grid 3 is the active foreground window
+    /// Checks if Grid 3 process is running
     /// </summary>
     private void CheckForGrid3()
     {
         try
         {
-            IntPtr foregroundWindow = GetForegroundWindow();
-            if (foregroundWindow == IntPtr.Zero)
+            // If Grid 3 auto-suspend is disabled, make sure we're not in suspended state
+            if (!_settings.EnableGrid3AutoSuspend)
             {
-                _grid3Detected = false;
+                // If we were previously suspended, restore cursor and clear state
+                if (_grid3Detected)
+                {
+                    SetCursorPos(_cursorPositionBeforeHide.X, _cursorPositionBeforeHide.Y);
+                    _grid3Detected = false;
+                }
                 return;
             }
             
-            GetWindowThreadProcessId(foregroundWindow, out int processId);
+            // Check if Grid 3 process exists
+            // Once detected, HIDra stays suspended until Grid 3 is closed
+            var processes = Process.GetProcesses();
+            bool isGrid3Running = false;
             
-            using (var process = Process.GetProcessById(processId))
+            foreach (var process in processes)
             {
-                // Check if the process name is Grid 3 or similar variants
-                // Known names: "Grid 3", "Grid3", "Communicator" (potential future versions)
-                string processName = process.ProcessName;
-                bool isGrid3 = processName.Equals("Grid 3", StringComparison.OrdinalIgnoreCase) ||
-                               processName.Equals("Grid3", StringComparison.OrdinalIgnoreCase) ||
-                               processName.StartsWith("Grid ", StringComparison.OrdinalIgnoreCase) ||
-                               processName.Contains("Communicator", StringComparison.OrdinalIgnoreCase);
-                
-                // Update detection state
-                if (isGrid3 != _grid3Detected)
+                try
                 {
-                    _grid3Detected = isGrid3;
-                    
-                    if (_grid3Detected)
+                    string processName = process.ProcessName;
+                    if (processName.Equals("Grid 3", StringComparison.OrdinalIgnoreCase) ||
+                        processName.Equals("Grid3", StringComparison.OrdinalIgnoreCase) ||
+                        processName.StartsWith("Grid ", StringComparison.OrdinalIgnoreCase) ||
+                        processName.Contains("Communicator", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Release all inputs when Grid 3 is detected
-                        _mouseSimulator.ReleaseAll();
-                        _keyboardSimulator.ReleaseAll();
+                        isGrid3Running = true;
+                        break;
                     }
+                }
+                catch
+                {
+                    // Skip processes we can't access
+                    continue;
+                }
+            }
+            
+            // Update detection state
+            if (isGrid3Running != _grid3Detected)
+            {
+                _grid3Detected = isGrid3Running;
+                
+                if (_grid3Detected)
+                {
+                    // Release all inputs when Grid 3 is detected
+                    _mouseSimulator.ReleaseAll();
+                    _keyboardSimulator.ReleaseAll();
+                    
+                    // Save current cursor position before hiding it
+                    // This allows us to restore the exact position when Grid 3 closes
+                    GetCursorPos(out _cursorPositionBeforeHide);
+                    
+                    // Move cursor off-screen to top-left corner (-10, -10)
+                    // This prevents the cursor from highlighting cells in Grid 3, which can be
+                    // confusing when using the controller as a switch for navigation
+                    SetCursorPos(-10, -10);
+                }
+                else
+                {
+                    // Grid 3 has closed - restore cursor to its previous position
+                    // This returns control to the user exactly where they left off
+                    SetCursorPos(_cursorPositionBeforeHide.X, _cursorPositionBeforeHide.Y);
                 }
             }
         }
         catch
         {
-            // Ignore errors (process may have exited, etc.)
-            _grid3Detected = false;
+            // Ignore errors
         }
     }
 

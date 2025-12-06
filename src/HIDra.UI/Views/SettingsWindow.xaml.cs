@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using HIDra.Models;
 
@@ -13,10 +14,24 @@ public partial class SettingsWindow : Window
     public SettingsWindow(InputSettings settings)
     {
         InitializeComponent();
-        _settings = settings;
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
 
-        // Set initial value from current settings
+        // Set initial values from current settings
         UpdateValueDisplay();
+        
+        // Set checkbox state from settings (defaults to true if not set)
+        if (Grid3AutoSuspendCheckBox != null)
+        {
+            // Temporarily unhook events to avoid triggering during initialization
+            Grid3AutoSuspendCheckBox.Checked -= Grid3AutoSuspendCheckBox_Changed;
+            Grid3AutoSuspendCheckBox.Unchecked -= Grid3AutoSuspendCheckBox_Changed;
+            
+            Grid3AutoSuspendCheckBox.IsChecked = _settings.EnableGrid3AutoSuspend;
+            
+            // Re-hook events after setting initial value
+            Grid3AutoSuspendCheckBox.Checked += Grid3AutoSuspendCheckBox_Changed;
+            Grid3AutoSuspendCheckBox.Unchecked += Grid3AutoSuspendCheckBox_Changed;
+        }
     }
 
     private void UpButton_Click(object sender, RoutedEventArgs e)
@@ -52,5 +67,13 @@ public partial class SettingsWindow : Window
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void Grid3AutoSuspendCheckBox_Changed(object sender, RoutedEventArgs e)
+    {
+        // Guard against event firing during InitializeComponent before _settings is assigned
+        if (_settings == null) return;
+        
+        _settings.EnableGrid3AutoSuspend = Grid3AutoSuspendCheckBox.IsChecked == true;
     }
 }

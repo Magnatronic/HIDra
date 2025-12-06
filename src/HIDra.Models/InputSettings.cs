@@ -55,4 +55,9 @@ public class InputSettings
     /// Enable debug logging
     /// </summary>
     public bool EnableDebugLogging { get; set; } = false;
+
+    /// <summary>
+    /// Automatically suspend HIDra when Grid 3 is detected (enabled by default)
+    /// </summary>
+    public bool EnableGrid3AutoSuspend { get; set; } = true;
 }

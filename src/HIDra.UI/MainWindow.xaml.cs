@@ -38,7 +38,8 @@ namespace HIDra.UI
                 Deadzone = 0.05f,                   // Low deadzone (5%) for maximum control
                 PollRateMs = 10,                    // 100Hz polling rate
                 StickCalibrationMax = 0.90f,        // Compensate for worn controllers
-                TriggerThreshold = 0.3f             // 30% trigger press to activate
+                TriggerThreshold = 0.3f,            // 30% trigger press to activate
+                EnableGrid3AutoSuspend = true       // Grid 3 auto-suspend enabled by default
             };
 
             // Hardcoded button mappings - cannot be accidentally changed
@@ -66,7 +67,7 @@ namespace HIDra.UI
                 },
                 ["RightBumper"] = new ButtonMapping 
                 { 
-                    Default = new ActionMapping { Action = "TaskSwitcherForward", Description = "Next application" }
+                    Default = new ActionMapping { Action = "MouseDoubleClick", Description = "Double click" }
                 },
                 ["Back"] = new ButtonMapping 
                 { 

@@ -24,6 +24,7 @@ MOVING THE CURSOR:
 CLICKING:
   A Button = Left Click (select things)
   B Button = Right Click (open menus)
+  Right Bumper (RB) = Double Click (open files/folders)
   
 SCROLLING:
   Right Stick = Scroll up/down/left/right
@@ -41,8 +42,8 @@ VIRTUAL KEYBOARD:
   (Big UK layout with visible shift symbols)
 
 SWITCHING BETWEEN PROGRAMS:
-  1. Tap Right Bumper (RB) - Opens window switcher
-  2. Keep tapping RB or Left Bumper (LB) to find your program
+  1. Tap Left Bumper (LB) - Opens window switcher (Alt+Shift+Tab)
+  2. Keep tapping LB to find your program
   3. Release when you see the program you want
   (It automatically switches after a brief delay)
 

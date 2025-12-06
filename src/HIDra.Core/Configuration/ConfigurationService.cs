@@ -165,7 +165,7 @@ public class ConfigurationService
                 },
                 ["RightBumper"] = new ButtonMapping 
                 { 
-                    Default = new ActionMapping { Action = "TaskSwitcherForward", Description = "Switch to next app" }
+                    Default = new ActionMapping { Action = "MouseDoubleClick", Description = "Double click" }
                 },
                 ["Back"] = new ButtonMapping 
                 { 
