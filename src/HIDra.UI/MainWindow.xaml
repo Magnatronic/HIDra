@@ -47,12 +47,23 @@
             </StackPanel>
 
             <!-- Controller Info -->
-            <TextBlock x:Name="ControllerInfo" 
-                       Text="No controller detected" 
-                       FontSize="13" 
-                       TextAlignment="Center" 
+            <TextBlock x:Name="ControllerInfo"
+                       Text="No controller detected"
+                       FontSize="13"
+                       TextAlignment="Center"
                        Foreground="#CCCCCC"
+                       TextWrapping="Wrap"
                        Margin="0,0,0,0"/>
+
+            <!-- Battery state, so staff can see at the start of a session whether the
+                 controller will last, and so a low battery is visible before it fails. -->
+            <TextBlock x:Name="BatteryText"
+                       Text=""
+                       FontSize="13"
+                       TextAlignment="Center"
+                       Foreground="#CCCCCC"
+                       FontWeight="SemiBold"
+                       Margin="0,10,0,0"/>
         </StackPanel>
 
         <!-- Control Buttons -->

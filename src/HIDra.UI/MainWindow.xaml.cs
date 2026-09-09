@@ -15,6 +15,14 @@ namespace HIDra.UI
     {
         private HIDraEngine? _engine;
         private VirtualKeyboardWindow? _virtualKeyboard;
+        private TrayIcon? _trayIcon;
+
+        /// <summary>
+        /// Set only when the user genuinely chooses to exit. Until then, closing the
+        /// window hides it instead of shutting down - exiting would take away the only
+        /// pointing device the user has.
+        /// </summary>
+        private bool _exitConfirmed;
 
         public MainWindow()
         {
@@ -116,126 +124,75 @@ namespace HIDra.UI
             return (settings, buttonMappings);
         }
 
-        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            UpdateStatus(ConnectionStatus.Disconnected, "Searching for controller...");
-            
-            // Auto-connect on startup (accessibility feature - user can't click with mouse if they need controller to BE the mouse)
-            await AutoConnectAsync();
+            InitializeTrayIcon();
+            StartEngine();
         }
 
-        private async System.Threading.Tasks.Task AutoConnectAsync()
+        private void InitializeTrayIcon()
+        {
+            _trayIcon = new TrayIcon();
+            _trayIcon.ShowRequested += (_, _) => Dispatcher.Invoke(RestoreWindow);
+            _trayIcon.ExitRequested += (_, _) => Dispatcher.Invoke(ExitApplication);
+        }
+
+        /// <summary>
+        /// Create the engine and begin supervising the controller.
+        ///
+        /// This does not fail when no controller is plugged in. HIDra starts at logon,
+        /// which is routinely before a member of staff has connected the controller, so
+        /// "not there yet" is a normal state to sit in rather than an error to report.
+        /// </summary>
+        private void StartEngine()
         {
             try
             {
-                ConnectButton.IsEnabled = false;
-                UpdateStatus(ConnectionStatus.Connecting, "Auto-detecting controller...");
-
-                // Get hardcoded configuration (no files needed - student-proof!)
                 var (settings, buttonMappings) = CreateHardcodedConfiguration();
 
-                // Create engine with hardcoded settings and button mappings
                 _engine = new HIDraEngine(settings, buttonMappings);
                 _engine.ConnectionChanged += OnConnectionChanged;
                 _engine.ErrorOccurred += OnErrorOccurred;
                 _engine.VirtualKeyboardToggleRequested += OnVirtualKeyboardToggleRequested;
+                _engine.BatteryChanged += OnBatteryChanged;
+                _engine.ShowWindowRequested += OnShowWindowRequested;
 
-                // Initialize virtual keyboard window
                 InitializeVirtualKeyboard();
 
-                // Initialize and detect controller
-                bool initialized = await _engine.InitializeAsync();
+                _engine.Start();
 
-                if (initialized)
+                if (_engine.DetectController())
                 {
-                    // Start processing input immediately
-                    _engine.Start();
-                    
-                    var controller = _engine.Controller;
-                    if (controller != null)
-                    {
-                        UpdateStatus(ConnectionStatus.Connected, 
-                            $"{controller.Name} connected and active - Ready to use!");
-                    }
-
-                    StopButton.IsEnabled = true;
+                    UpdateStatus(ConnectionStatus.Connected, "Controller connected and active - ready to use");
                 }
                 else
                 {
-                    UpdateStatus(ConnectionStatus.Disconnected, 
-                        "No Xbox controller found. Please connect one and click 'Connect'.");
-                    ConnectButton.IsEnabled = true;
+                    UpdateStatus(ConnectionStatus.Connecting,
+                        "Waiting for a controller - plug one in and it will connect on its own");
                 }
+
+                StopButton.IsEnabled = true;
+                ConnectButton.IsEnabled = false;
+                _trayIcon?.UpdateStatus(_engine.Controller?.IsConnected == true, _engine.Battery);
             }
             catch (Exception ex)
             {
-                UpdateStatus(ConnectionStatus.Disconnected, 
-                    $"Auto-connect failed: {ex.Message}. Click 'Connect' to retry.");
+                UpdateStatus(ConnectionStatus.Error, $"Could not start: {ex.Message}");
                 ConnectButton.IsEnabled = true;
             }
         }
 
-        private async void ConnectButton_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// Manual restart of the engine. Rarely needed now that reconnection is
+        /// automatic, but kept so staff have a way to reset things.
+        /// </summary>
+        private void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                ConnectButton.IsEnabled = false;
-                UpdateStatus(ConnectionStatus.Connecting, "Searching for controller...");
+            _engine?.Stop();
+            _engine?.Dispose();
+            _engine = null;
 
-                // Clean up existing engine if any
-                if (_engine != null)
-                {
-                    _engine.Stop();
-                    _engine.Dispose();
-                    _engine = null;
-                }
-
-                // Get hardcoded configuration (no files needed - student-proof!)
-                var (settings, buttonMappings) = CreateHardcodedConfiguration();
-
-                // Create engine with hardcoded settings and button mappings
-                _engine = new HIDraEngine(settings, buttonMappings);
-                _engine.ConnectionChanged += OnConnectionChanged;
-                _engine.ErrorOccurred += OnErrorOccurred;
-                _engine.VirtualKeyboardToggleRequested += OnVirtualKeyboardToggleRequested;
-
-                // Initialize virtual keyboard window
-                InitializeVirtualKeyboard();
-
-                // Initialize and detect controller
-                bool initialized = await _engine.InitializeAsync();
-
-                if (initialized)
-                {
-                    // Start processing input
-                    _engine.Start();
-                    
-                    var controller = _engine.Controller;
-                    if (controller != null)
-                    {
-                        UpdateStatus(ConnectionStatus.Connected, 
-                            $"{controller.Name} connected and active");
-                    }
-
-                    StopButton.IsEnabled = true;
-                }
-                else
-                {
-                    UpdateStatus(ConnectionStatus.Disconnected, 
-                        "No Xbox controller found. Please connect one and try again.");
-                    ConnectButton.IsEnabled = true;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error connecting to controller:\n{ex.Message}", 
-                    "Connection Error", 
-                    MessageBoxButton.OK, 
-                    MessageBoxImage.Error);
-                
-                UpdateStatus(ConnectionStatus.Error, "Connection failed");
-                ConnectButton.IsEnabled = true;
-            }
+            StartEngine();
         }
 
         private void StopButton_Click(object sender, RoutedEventArgs e)
@@ -246,15 +203,16 @@ namespace HIDra.UI
                 _engine?.Dispose();
                 _engine = null;
 
-                UpdateStatus(ConnectionStatus.Disconnected, "Controller disconnected");
+                UpdateStatus(ConnectionStatus.Disconnected, "Stopped - press Reconnect to resume controller input");
                 ConnectButton.IsEnabled = true;
                 StopButton.IsEnabled = false;
+                _trayIcon?.UpdateStatus(false, null);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error stopping engine:\n{ex.Message}", 
-                    "Error", 
-                    MessageBoxButton.OK, 
+                MessageBox.Show($"Error stopping engine:\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
         }
@@ -298,28 +256,80 @@ namespace HIDra.UI
             return settingsField?.GetValue(_engine) as InputSettings;
         }
 
+        // Handlers below are raised from the controller supervision thread and use
+        // BeginInvoke rather than Invoke on purpose. Invoke blocks the calling thread
+        // until the UI thread is free, and shutdown has the UI thread waiting on the
+        // supervision task - so the two could sit waiting on each other.
         private void OnConnectionChanged(object? sender, ControllerInfo info)
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(() =>
             {
                 if (info.IsConnected)
                 {
-                    UpdateStatus(ConnectionStatus.Connected, $"{info.Name} connected");
+                    UpdateStatus(ConnectionStatus.Connected, $"{info.Name} connected and active");
                 }
                 else
                 {
-                    UpdateStatus(ConnectionStatus.Disconnected, "Controller disconnected");
-                    ConnectButton.IsEnabled = true;
-                    StopButton.IsEnabled = false;
+                    // Not an error state and not the end of the session: the engine is
+                    // still running and will reattach by itself.
+                    UpdateStatus(ConnectionStatus.Connecting,
+                        "Controller lost - searching for it, reconnect or recharge it");
                 }
+
+                _trayIcon?.UpdateStatus(info.IsConnected, _engine?.Battery);
             });
+        }
+
+        private void OnBatteryChanged(object? sender, ControllerBattery battery)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                BatteryText.Text = battery.PowerType == BatteryPowerType.Unknown
+                    ? string.Empty
+                    : battery.Description;
+
+                BatteryText.Foreground = battery.NeedsAttention
+                    ? new SolidColorBrush(Color.FromRgb(0xFF, 0x98, 0x00))
+                    : new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
+
+                _trayIcon?.UpdateStatus(_engine?.Controller?.IsConnected == true, battery);
+                _trayIcon?.ReportBattery(battery);
+            });
+        }
+
+        private void OnShowWindowRequested(object? sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(RestoreWindow);
+        }
+
+        /// <summary>
+        /// Bring the window back into view, whether it was hidden to the tray or just
+        /// minimised behind something.
+        /// </summary>
+        private void RestoreWindow()
+        {
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
+            Topmost = true;
+            Topmost = false;
+        }
+
+        private void ExitApplication()
+        {
+            _exitConfirmed = true;
+            Close();
         }
 
         private void OnErrorOccurred(object? sender, string error)
         {
-            Dispatcher.Invoke(() =>
+            // Deliberately not a modal dialog. A message box steals focus and sits there
+            // until dismissed, and dismissing it needs the pointer that has just stopped
+            // working - so an error about the controller could block recovery from it.
+            Dispatcher.BeginInvoke(() =>
             {
-                MessageBox.Show(error, "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                ControllerInfo.Text = error;
+                _trayIcon?.ShowMessage("HIDra", error);
             });
         }
 
@@ -368,7 +378,7 @@ namespace HIDra.UI
         private void OnVirtualKeyboardToggleRequested(object? sender, EventArgs e)
         {
             // Use Dispatcher to ensure we're on the UI thread
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(() =>
             {
                 if (_virtualKeyboard == null)
                 {
@@ -401,11 +411,24 @@ namespace HIDra.UI
 
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
+            // Closing the window must not end the session. Pressing the X used to shut
+            // HIDra down completely, leaving the student with no pointer and no way to
+            // restart it; now it hides to the tray, recoverable with the Back+Start
+            // chord on the controller or from the notification area.
+            if (!_exitConfirmed)
+            {
+                e.Cancel = true;
+                Hide();
+                _trayIcon?.ShowMessage("HIDra is still running",
+                    "Your controller still works. Hold Back and Start together to bring this window back.");
+                return;
+            }
+
             _virtualKeyboard?.Close();
             _engine?.Stop();
             _engine?.Dispose();
-            
-            // Force application shutdown
+            _trayIcon?.Dispose();
+
             Application.Current.Shutdown();
         }
     }

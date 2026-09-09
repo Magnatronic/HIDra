@@ -37,6 +37,11 @@ public class HIDraEngine : IDisposable
     
     // Stick mode swap state
     private bool _useRightStickForCursor = false;
+
+    // Recovery chord: holding Back and Start together brings the HIDra window back.
+    private System.Diagnostics.Stopwatch? _recoveryChordTimer;
+    private bool _recoveryChordFired;
+    private const int RecoveryChordHoldMs = 1000;
     
     // Grid 3 detection
     private System.Timers.Timer? _grid3CheckTimer;
@@ -97,6 +102,23 @@ public class HIDraEngine : IDisposable
     public event EventHandler? VirtualKeyboardToggleRequested;
 
     /// <summary>
+    /// Event raised when the controller battery power source or charge level changes
+    /// </summary>
+    public event EventHandler<ControllerBattery>? BatteryChanged;
+
+    /// <summary>
+    /// Event raised when the user asks for the HIDra window back using the recovery
+    /// chord. Without this there is no way to reach the window again once it is hidden,
+    /// because reaching it would require the mouse the user does not have.
+    /// </summary>
+    public event EventHandler? ShowWindowRequested;
+
+    /// <summary>
+    /// Current battery state, if a controller is attached
+    /// </summary>
+    public ControllerBattery? Battery => _controllerService.Battery;
+
+    /// <summary>
     /// Current controller information
     /// </summary>
     public ControllerInfo? Controller => _controllerService.Controller;
@@ -118,35 +140,25 @@ public class HIDraEngine : IDisposable
 
         _controllerService.ConnectionChanged += OnConnectionChanged;
         _controllerService.StateUpdated += OnStateUpdated;
+        _controllerService.BatteryChanged += (s, battery) => BatteryChanged?.Invoke(this, battery);
         _buttonActionHandler.TaskSwitcherRequested += OnTaskSwitcherRequested;
         _buttonActionHandler.StickModeSwapRequested += OnStickModeSwapRequested;
         _buttonActionHandler.ToggleOnScreenKeyboardRequested += OnToggleOnScreenKeyboardRequested;
     }
 
     /// <summary>
-    /// Initialize and detect controller
+    /// Check whether a controller is present right now, so the UI can say so at startup.
+    ///
+    /// A false result is not a failure and must not stop anything: Start() supervises
+    /// continuously and will pick up a controller whenever one appears. This matters
+    /// because HIDra launches at logon, which can easily happen before a member of
+    /// staff has finished plugging the controller in.
     /// </summary>
-    public async Task<bool> InitializeAsync()
+    public bool DetectController()
     {
         try
         {
-            var controller = await _controllerService.DetectControllerAsync();
-            
-            if (controller == null)
-            {
-                ErrorOccurred?.Invoke(this, "No Xbox controller detected. Please connect a controller and try again.");
-                return false;
-            }
-
-            var connected = await _controllerService.ConnectAsync(controller);
-            
-            if (!connected)
-            {
-                ErrorOccurred?.Invoke(this, "Failed to connect to controller.");
-                return false;
-            }
-
-            return true;
+            return _controllerService.DetectController() != null;
         }
         catch (Exception ex)
         {
@@ -178,8 +190,11 @@ public class HIDraEngine : IDisposable
                 IntPtr.Zero, _winEventDelegate,
                 0, 0, WINEVENT_OUTOFCONTEXT);
             
-            // Keep timer as backup for reliability (rare cases where hook might miss)
-            _grid3CheckTimer = new System.Timers.Timer(100);
+            // Backstop for the rare case where the foreground hook misses a change.
+            // The hook above is what makes detection feel instant, so this only needs
+            // to be occasional - at 100ms it was enumerating every process on the
+            // machine ten times a second for the entire session.
+            _grid3CheckTimer = new System.Timers.Timer(2000);
             _grid3CheckTimer.Elapsed += (s, e) => CheckForGrid3();
             _grid3CheckTimer.Start();
             
@@ -217,6 +232,14 @@ public class HIDraEngine : IDisposable
             _grid3CheckTimer = null;
         }
         
+        // If we are shutting down while suspended for Grid 3, the cursor is still parked
+        // off-screen. Put it back, or it stays invisible after HIDra exits.
+        if (_grid3Detected)
+        {
+            SetCursorPos(_cursorPositionBeforeHide.X, _cursorPositionBeforeHide.Y);
+            _grid3Detected = false;
+        }
+
         // Release all inputs
         _mouseSimulator.ReleaseAll();
         _keyboardSimulator.ReleaseAll();
@@ -243,12 +266,27 @@ public class HIDraEngine : IDisposable
     /// </summary>
     private void OnConnectionChanged(object? sender, ControllerInfo info)
     {
-        ConnectionChanged?.Invoke(this, info);
-
-        if (!info.IsConnected)
+        if (info.IsConnected)
         {
-            Stop();
+            // Discard the state captured before the controller vanished. Comparing a
+            // fresh press against a stale snapshot would fire phantom button actions
+            // the moment the controller comes back.
+            _previousState = null;
         }
+        else
+        {
+            // Release anything the controller was holding. This matters most for the
+            // task switcher, which holds Alt down: if the controller dies mid-switch,
+            // a stuck Alt key makes the whole machine unusable for everyone.
+            _mouseSimulator.ReleaseAll();
+            _keyboardSimulator.ReleaseAll();
+            _isTaskSwitcherOpen = false;
+        }
+
+        // Deliberately does not stop the engine. The service keeps scanning and will
+        // reattach on its own - requiring a click on "Reconnect" left the user stranded,
+        // because clicking it needs the mouse that HIDra is there to provide.
+        ConnectionChanged?.Invoke(this, info);
     }
 
     /// <summary>
@@ -329,10 +367,41 @@ public class HIDraEngine : IDisposable
             _mouseSimulator.LeftButtonUp();
         }
 
+        // Recovery chord is checked before button dispatch so it can suppress the
+        // second button's own action while the chord is being formed.
+        UpdateRecoveryChord(state);
+
         // Process buttons
         if (_previousState != null)
         {
             ProcessButtons(state, _previousState);
+        }
+    }
+
+    /// <summary>
+    /// Watches for Back and Start being held together, and asks the UI to show the
+    /// window once they have been held long enough.
+    ///
+    /// A deliberate hold is required so that pressing both in quick succession during
+    /// ordinary use does not summon the window unexpectedly.
+    /// </summary>
+    private void UpdateRecoveryChord(ControllerState state)
+    {
+        bool chordHeld = state.Back && state.Start;
+
+        if (!chordHeld)
+        {
+            _recoveryChordTimer = null;
+            _recoveryChordFired = false;
+            return;
+        }
+
+        _recoveryChordTimer ??= System.Diagnostics.Stopwatch.StartNew();
+
+        if (!_recoveryChordFired && _recoveryChordTimer.ElapsedMilliseconds >= RecoveryChordHoldMs)
+        {
+            _recoveryChordFired = true;
+            ShowWindowRequested?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -368,8 +437,15 @@ public class HIDraEngine : IDisposable
         ProcessButton("ButtonY", current.ButtonY, previous.ButtonY, activeModifier);
         ProcessButton("LeftBumper", current.LeftBumper, previous.LeftBumper, activeModifier);
         ProcessButton("RightBumper", current.RightBumper, previous.RightBumper, activeModifier);
-        ProcessButton("Back", current.Back, previous.Back, activeModifier);
-        ProcessButton("Start", current.Start, previous.Start, activeModifier);
+        // While the recovery chord is being formed, only the button pressed first runs
+        // its normal action. Suppressing the second one stops the chord from also
+        // firing Task View or the Start menu on top of restoring the window.
+        if (!(current.Back && current.Start))
+        {
+            ProcessButton("Back", current.Back, previous.Back, activeModifier);
+            ProcessButton("Start", current.Start, previous.Start, activeModifier);
+        }
+
         ProcessButton("DpadUp", current.DpadUp, previous.DpadUp, activeModifier);
         ProcessButton("DpadDown", current.DpadDown, previous.DpadDown, activeModifier);
         ProcessButton("DpadLeft", current.DpadLeft, previous.DpadLeft, activeModifier);
@@ -478,7 +554,36 @@ public class HIDraEngine : IDisposable
     }
     
     /// <summary>
-    /// Checks if Grid 3 process is running
+    /// Process names of AAC / switch-access applications that HIDra should stand aside for.
+    ///
+    /// Matched whole rather than by substring: the previous check also treated any
+    /// process merely starting with "Grid " or containing "Communicator" as a match,
+    /// which would suspend HIDra for unrelated software that happened to be named
+    /// similarly. This wants to become a user-editable list rather than a constant.
+    /// </summary>
+    private static readonly string[] SuspendingApplicationNames =
+    {
+        "Grid 3",
+        "Grid3",
+        "Communicator",
+        "Communicator 5"
+    };
+
+    private static bool IsSuspendingApplication(string processName)
+    {
+        foreach (var name in SuspendingApplicationNames)
+        {
+            if (processName.Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if a suspending application (Grid 3 and similar) is running
     /// </summary>
     private void CheckForGrid3()
     {
@@ -498,27 +603,27 @@ public class HIDraEngine : IDisposable
             
             // Check if Grid 3 process exists
             // Once detected, HIDra stays suspended until Grid 3 is closed
-            var processes = Process.GetProcesses();
+            // Each Process returned here owns an OS handle. They must be disposed or
+            // the handle count climbs for as long as the app runs - which, started at
+            // logon, is all day.
             bool isGrid3Running = false;
-            
-            foreach (var process in processes)
+
+            foreach (var process in Process.GetProcesses())
             {
                 try
                 {
-                    string processName = process.ProcessName;
-                    if (processName.Equals("Grid 3", StringComparison.OrdinalIgnoreCase) ||
-                        processName.Equals("Grid3", StringComparison.OrdinalIgnoreCase) ||
-                        processName.StartsWith("Grid ", StringComparison.OrdinalIgnoreCase) ||
-                        processName.Contains("Communicator", StringComparison.OrdinalIgnoreCase))
+                    if (IsSuspendingApplication(process.ProcessName))
                     {
                         isGrid3Running = true;
-                        break;
                     }
                 }
                 catch
                 {
-                    // Skip processes we can't access
-                    continue;
+                    // Skip processes we can't query.
+                }
+                finally
+                {
+                    process.Dispose();
                 }
             }
             

@@ -1,5 +1,5 @@
 ========================================
-HIDra v1.0 - Quick Reference Guide
+HIDra v1.4 - Quick Reference Guide
 ========================================
 
 WHAT IS THIS?
@@ -111,8 +111,8 @@ Face Buttons:
   Y = Swap Stick Modes (cursor ↔ scroll)
 
 Bumpers:
-  Right Bumper (RB) = Next Application (Alt+Tab forward)
-  Left Bumper (LB) = Previous Application (Alt+Tab backward)
+  Right Bumper (RB) = Double Click
+  Left Bumper (LB) = Window switcher (hold to browse, A to choose)
 
 D-Pad:
   Up = Maximize Window (full screen)
@@ -132,13 +132,26 @@ VIRTUAL KEYBOARD TIPS
 - Press Ctrl then another key for shortcuts
 - Press Caps Lock for ALL CAPS typing
 
-TROUBLESHOOTING
----------------
+IF SOMETHING GOES WRONG
+-----------------------
 
-Controller not connecting?
-  - Make sure it's plugged in or paired
-  - Try a different USB port
-  - Restart the app
+Controller stopped working?
+  HIDra reconnects by itself. Plug the controller back in, or turn it
+  back on, and wait a few seconds - it will pick it up automatically.
+  You do not need to click anything.
+
+Battery warning appeared?
+  Change or charge the controller battery now, while it still works.
+  A cable is the most reliable option - it cannot go flat.
+
+Window disappeared?
+  HIDra is still running. Hold BACK and START together for one second
+  and the window comes back. Staff can also click the HIDra icon in
+  the notification area, next to the clock.
+
+Closing the window does NOT stop HIDra.
+  It keeps running so the controller keeps working. To stop it properly,
+  right-click the HIDra icon near the clock and choose "Exit HIDra".
 
 Cursor moving too fast/slow?
   - Use Left Trigger for precision mode
@@ -151,5 +164,5 @@ Need help?
 
 VERSION INFORMATION
 -------------------
-HIDra v1.0.0 
+HIDra v1.4.0 
 

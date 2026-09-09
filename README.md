@@ -8,9 +8,26 @@ Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
 - DPad window management: Up = Maximize, Down = Minimize, Left/Right = Snap
 - X toggles onscreen keyboard (UK layout, large keys)
 - Y swaps cursor/scroll sticks
-- RB/LB task switcher (Alt+Tab forward/back)
+- RB double-click; LB opens the window switcher (A confirms, B cancels)
 - Start opens Task View; Back opens Start menu
 - No configuration files  sensible defaults are baked in
+
+## Reliability
+HIDra is intended to be the only way its user can operate the computer, so it is built
+not to leave them stranded:
+
+- **Automatic reconnection.** If the controller disconnects  flat battery, Bluetooth
+  dropout, knocked cable  HIDra keeps searching and reattaches on its own. It never
+  needs a mouse click to recover.
+- **Starts before the controller does.** Launching at logon with nothing plugged in is
+  a normal state; HIDra waits and connects as soon as a controller appears.
+- **Battery warning.** The controller's battery level is shown in the window and in the
+  notification area, with a warning while there is still time to act on it.
+- **Closing hides, it does not quit.** The window closes to the notification area and
+  the controller keeps working. Hold **Back + Start together for one second** to bring
+  the window back, or use the notification-area icon. Exit properly from that icon.
+- **Nothing is left held down.** If the controller vanishes mid-action, any held keys
+  or mouse buttons are released, so a stuck Alt key cannot lock up the machine.
 
 ## Getting Started
 1) Plug in an Xbox controller (USB or Bluetooth)

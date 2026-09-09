@@ -1,170 +1,333 @@
-using SharpDX.XInput;
 using HIDra.Models;
 using System;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace HIDra.Core.Controllers
+namespace HIDra.Core.Controllers;
+
+/// <summary>
+/// Owns the connection to the Xbox controller and publishes its state.
+///
+/// The single most important property of this class is that it never gives up. The
+/// student it was written for has no other way to use the machine, so a flat battery,
+/// a Bluetooth dropout or a nudged cable must recover on its own - a version that
+/// stopped polling and waited for someone to click "Reconnect" with a mouse left her
+/// stranded until a member of staff walked over.
+///
+/// The supervision loop therefore runs from Start() to Stop() and exits for no other
+/// reason: when no controller is present it scans for one, and when the controller
+/// goes away it goes back to scanning rather than terminating.
+/// </summary>
+public class XboxControllerService : IDisposable
 {
-    public class XboxControllerService : IDisposable
+    /// <summary>
+    /// How often to sweep all four XInput slots while no controller is attached.
+    ///
+    /// Microsoft advises against probing empty slots every frame because a call
+    /// against an absent device is comparatively slow. Twice a second is a deliberate
+    /// compromise: far below "every frame", but fast enough that a controller coming
+    /// back feels immediate to someone who is waiting on it.
+    /// </summary>
+    private const int SearchIntervalMs = 500;
+
+    /// <summary>
+    /// Battery level changes over hours, not milliseconds, so it is sampled sparingly.
+    /// </summary>
+    private const int BatteryPollIntervalMs = 30_000;
+
+    /// <summary>Backstop delay after an unexpected error, so a persistent fault cannot spin the CPU.</summary>
+    private const int ErrorBackoffMs = 250;
+
+    private CancellationTokenSource? _cts;
+    private Task? _supervisorTask;
+
+    private int _attachedIndex = -1;
+    private ControllerInfo? _controllerInfo;
+    private ControllerBattery? _battery;
+
+    /// <summary>Raised on every successful poll of an attached controller.</summary>
+    public event EventHandler<ControllerState>? StateUpdated;
+
+    /// <summary>Raised when the controller is attached or lost.</summary>
+    public event EventHandler<ControllerInfo>? ConnectionChanged;
+
+    /// <summary>Raised when the battery power source or charge level changes.</summary>
+    public event EventHandler<ControllerBattery>? BatteryChanged;
+
+    public ControllerInfo? Controller => _controllerInfo;
+
+    public ControllerBattery? Battery => _battery;
+
+    public bool IsAttached => _attachedIndex >= 0;
+
+    /// <summary>
+    /// Look for a controller once, without starting the supervision loop.
+    /// Used at startup so the UI can report immediately whether one is present.
+    /// </summary>
+    public ControllerInfo? DetectController()
     {
-        private Controller? _controller;
-        private ControllerInfo? _controllerInfo;
-        private CancellationTokenSource? _cts;
-        private Task? _readTask;
-        private bool _isReading;
+        int index = FindConnectedControllerIndex();
+        return index < 0 ? null : BuildControllerInfo(index);
+    }
 
-        public event EventHandler<ControllerState>? StateUpdated;
-        public event EventHandler<ControllerInfo>? ConnectionChanged;
-
-        public ControllerInfo? Controller => _controllerInfo;
-
-        public async Task<ControllerInfo?> DetectControllerAsync()
+    /// <summary>
+    /// Start supervising the controller. Safe to call when nothing is plugged in -
+    /// the loop will pick a controller up as soon as one appears.
+    /// </summary>
+    public void StartPolling(int pollRateMs)
+    {
+        if (_supervisorTask != null)
         {
-            // XInput supports up to 4 controllers (index 0-3)
-            for (int i = 0; i < 4; i++)
-            {
-                var controller = new Controller((UserIndex)i);
-                
-                if (controller.IsConnected)
-                {
-                    _controller = controller;
-                    
-                    _controllerInfo = new ControllerInfo
-                    {
-                        DeviceId = $"XInput_{i}",
-                        Type = ControllerType.Xbox360,
-                        Name = "Xbox Controller",
-                        VendorId = 0x045E, // Microsoft
-                        ProductId = 0x028E, // Generic Xbox
-                        Status = ConnectionStatus.Connected
-                    };
-                    
-                    return _controllerInfo;
-                }
-            }
-
-            return null;
+            return;
         }
 
-        public Task<bool> ConnectAsync(ControllerInfo controllerInfo)
+        _cts = new CancellationTokenSource();
+        _supervisorTask = Task.Run(() => SuperviseAsync(pollRateMs, _cts.Token));
+    }
+
+    public void StopPolling()
+    {
+        _cts?.Cancel();
+
+        try
         {
-            // For XInput, detection and connection happen together
-            // Just verify the controller is still connected
-            if (_controller != null && _controller.IsConnected)
-            {
-                _controllerInfo = controllerInfo;
-                return Task.FromResult(true);
-            }
-            
-            return Task.FromResult(false);
+            _supervisorTask?.Wait(TimeSpan.FromSeconds(2));
+        }
+        catch (AggregateException)
+        {
+            // Cancellation surfaces here and is expected.
         }
 
-        public void StartPolling(int pollRateMs)
+        _supervisorTask = null;
+        _cts?.Dispose();
+        _cts = null;
+
+        if (_attachedIndex >= 0)
         {
-            if (_controller == null || !_controller.IsConnected)
-            {
-                throw new InvalidOperationException("No controller connected");
-            }
-
-            _cts = new CancellationTokenSource();
-            _isReading = true;
-
-            _readTask = Task.Run(() => ReadLoop(pollRateMs, _cts.Token));
+            Detach();
         }
+    }
 
-        public void StopPolling()
+    /// <summary>
+    /// The supervision loop. This returns only when cancelled; every other path
+    /// loops back round, including errors we did not anticipate.
+    /// </summary>
+    private async Task SuperviseAsync(int pollRateMs, CancellationToken token)
+    {
+        var batteryStopwatch = Stopwatch.StartNew();
+
+        while (!token.IsCancellationRequested)
         {
-            _isReading = false;
-            _cts?.Cancel();
-            
-            // Wait for the read loop to finish (with timeout)
             try
             {
-                _readTask?.Wait(TimeSpan.FromSeconds(1));
-            }
-            catch (AggregateException)
-            {
-                // Task was cancelled, this is expected
-            }
-        }
-
-        private async Task ReadLoop(int pollRateMs, CancellationToken cancellationToken)
-        {
-            while (_isReading && !cancellationToken.IsCancellationRequested)
-            {
-                try
+                if (_attachedIndex < 0)
                 {
-                    if (_controller == null || !_controller.IsConnected)
+                    int index = FindConnectedControllerIndex();
+
+                    if (index < 0)
                     {
-                        if (_controllerInfo != null)
-                        {
-                            _controllerInfo.Status = ConnectionStatus.Disconnected;
-                            ConnectionChanged?.Invoke(this, _controllerInfo);
-                        }
-                        break;
+                        // Nothing there yet. Wait, then sweep again - forever.
+                        await Task.Delay(SearchIntervalMs, token).ConfigureAwait(false);
+                        continue;
                     }
 
-                    var xinputState = _controller.GetState();
-                    var state = ParseControllerState(xinputState);
-                    StateUpdated?.Invoke(this, state);
-
-                    await Task.Delay(pollRateMs, cancellationToken);
+                    Attach(index);
+                    batteryStopwatch.Restart();
+                    UpdateBattery();
                 }
-                catch (Exception)
+
+                int result = XInputNative.XInputGetState(_attachedIndex, out var nativeState);
+
+                if (result == XInputNative.ErrorDeviceNotConnected)
                 {
-                    // Silent error handling - controller may have disconnected
+                    // The controller went away. Drop back to scanning rather than
+                    // stopping - this is the case that used to strand the user.
+                    Detach();
+                    continue;
+                }
+
+                if (result != XInputNative.ErrorSuccess)
+                {
+                    // An unexpected status. Treat it like a transient fault and retry,
+                    // but always after a delay so we cannot spin.
+                    await Task.Delay(ErrorBackoffMs, token).ConfigureAwait(false);
+                    continue;
+                }
+
+                StateUpdated?.Invoke(this, ParseControllerState(nativeState.Gamepad));
+
+                if (batteryStopwatch.ElapsedMilliseconds >= BatteryPollIntervalMs)
+                {
+                    batteryStopwatch.Restart();
+                    UpdateBattery();
+                }
+
+                await Task.Delay(pollRateMs, token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Stop() was called - the only legitimate way out of this loop.
+                break;
+            }
+            catch (Exception)
+            {
+                // Deliberately swallowed: no fault in a handler or in XInput itself is
+                // worth taking the controller away from someone who depends on it. The
+                // delay below is what keeps this from becoming a busy loop, which is
+                // exactly what the previous implementation degraded into.
+                try
+                {
+                    await Task.Delay(ErrorBackoffMs, token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
             }
         }
+    }
 
-        private ControllerState ParseControllerState(State xinputState)
+    /// <summary>
+    /// Sweep all four XInput slots and return the first connected one, or -1.
+    /// Sweeping every slot rather than remembering the old one means the controller
+    /// can come back on a different slot - which is what happens in practice after a
+    /// Bluetooth reconnect.
+    /// </summary>
+    private static int FindConnectedControllerIndex()
+    {
+        for (int i = 0; i < XInputNative.MaxControllerCount; i++)
         {
-            var gamepad = xinputState.Gamepad;
-            var state = new ControllerState();
-
-            // Parse buttons
-            state.ButtonA = (gamepad.Buttons & GamepadButtonFlags.A) != 0;
-            state.ButtonB = (gamepad.Buttons & GamepadButtonFlags.B) != 0;
-            state.ButtonX = (gamepad.Buttons & GamepadButtonFlags.X) != 0;
-            state.ButtonY = (gamepad.Buttons & GamepadButtonFlags.Y) != 0;
-            state.LeftBumper = (gamepad.Buttons & GamepadButtonFlags.LeftShoulder) != 0;
-            state.RightBumper = (gamepad.Buttons & GamepadButtonFlags.RightShoulder) != 0;
-            state.Start = (gamepad.Buttons & GamepadButtonFlags.Start) != 0;
-            state.Back = (gamepad.Buttons & GamepadButtonFlags.Back) != 0;
-            state.LeftStickClick = (gamepad.Buttons & GamepadButtonFlags.LeftThumb) != 0;
-            state.RightStickClick = (gamepad.Buttons & GamepadButtonFlags.RightThumb) != 0;
-            state.DpadUp = (gamepad.Buttons & GamepadButtonFlags.DPadUp) != 0;
-            state.DpadDown = (gamepad.Buttons & GamepadButtonFlags.DPadDown) != 0;
-            state.DpadLeft = (gamepad.Buttons & GamepadButtonFlags.DPadLeft) != 0;
-            state.DpadRight = (gamepad.Buttons & GamepadButtonFlags.DPadRight) != 0;
-
-            // Parse triggers (0-255) -> normalize to 0.0-1.0
-            state.LeftTrigger = gamepad.LeftTrigger / 255f;
-            state.RightTrigger = gamepad.RightTrigger / 255f;
-
-            // Parse analog sticks (signed 16-bit values, -32768 to 32767) -> normalize to -1.0 to 1.0
-            // Divide by 32767.0 (the actual max value) to get true -1.0 to 1.0 range
-            state.LeftStickX = gamepad.LeftThumbX / 32767f;
-            state.LeftStickY = gamepad.LeftThumbY / 32767f;
-            state.RightStickX = gamepad.RightThumbX / 32767f;
-            state.RightStickY = gamepad.RightThumbY / 32767f;
-
-            // Clamp values to -1.0 to 1.0 range (handles the -32768 edge case)
-            state.LeftStickX = Math.Clamp(state.LeftStickX, -1f, 1f);
-            state.LeftStickY = Math.Clamp(state.LeftStickY, -1f, 1f);
-            state.RightStickX = Math.Clamp(state.RightStickX, -1f, 1f);
-            state.RightStickY = Math.Clamp(state.RightStickY, -1f, 1f);
-
-            return state;
+            if (XInputNative.XInputGetState(i, out _) == XInputNative.ErrorSuccess)
+            {
+                return i;
+            }
         }
 
-        public void Dispose()
+        return -1;
+    }
+
+    private void Attach(int index)
+    {
+        _attachedIndex = index;
+        _controllerInfo = BuildControllerInfo(index);
+        ConnectionChanged?.Invoke(this, _controllerInfo);
+    }
+
+    private void Detach()
+    {
+        _attachedIndex = -1;
+
+        if (_controllerInfo != null)
         {
-            StopPolling();
-            _cts?.Dispose();
-            _controller = null;
-            _controllerInfo = null;
+            _controllerInfo.Status = ConnectionStatus.Disconnected;
+            ConnectionChanged?.Invoke(this, _controllerInfo);
         }
+
+        if (_battery != null)
+        {
+            _battery = new ControllerBattery();
+            BatteryChanged?.Invoke(this, _battery);
+        }
+    }
+
+    private static ControllerInfo BuildControllerInfo(int index) => new()
+    {
+        DeviceId = $"XInput_{index}",
+        Type = ControllerType.XboxOne,
+        Name = "Xbox Controller",
+        VendorId = 0x045E,
+        ProductId = 0x028E,
+        Status = ConnectionStatus.Connected
+    };
+
+    private void UpdateBattery()
+    {
+        if (_attachedIndex < 0)
+        {
+            return;
+        }
+
+        int result = XInputNative.XInputGetBatteryInformation(
+            _attachedIndex,
+            XInputNative.BatteryDeviceTypeGamepad,
+            out var info);
+
+        if (result != XInputNative.ErrorSuccess)
+        {
+            return;
+        }
+
+        var battery = new ControllerBattery
+        {
+            PowerType = info.BatteryType switch
+            {
+                XInputNative.BatteryTypes.Wired => BatteryPowerType.Wired,
+                XInputNative.BatteryTypes.Alkaline => BatteryPowerType.Alkaline,
+                XInputNative.BatteryTypes.NiMh => BatteryPowerType.Rechargeable,
+                _ => BatteryPowerType.Unknown
+            },
+            ChargeLevel = info.BatteryLevel switch
+            {
+                XInputNative.BatteryLevels.Empty => BatteryChargeLevel.Empty,
+                XInputNative.BatteryLevels.Low => BatteryChargeLevel.Low,
+                XInputNative.BatteryLevels.Medium => BatteryChargeLevel.Medium,
+                XInputNative.BatteryLevels.Full => BatteryChargeLevel.Full,
+                _ => BatteryChargeLevel.Unknown
+            }
+        };
+
+        if (battery.SameAs(_battery))
+        {
+            return;
+        }
+
+        _battery = battery;
+        BatteryChanged?.Invoke(this, battery);
+    }
+
+    private static ControllerState ParseControllerState(XInputNative.XInputGamepad gamepad)
+    {
+        var buttons = (XInputNative.GamepadButtons)gamepad.Buttons;
+
+        bool Pressed(XInputNative.GamepadButtons flag) => (buttons & flag) != 0;
+
+        var state = new ControllerState
+        {
+            ButtonA = Pressed(XInputNative.GamepadButtons.A),
+            ButtonB = Pressed(XInputNative.GamepadButtons.B),
+            ButtonX = Pressed(XInputNative.GamepadButtons.X),
+            ButtonY = Pressed(XInputNative.GamepadButtons.Y),
+            LeftBumper = Pressed(XInputNative.GamepadButtons.LeftShoulder),
+            RightBumper = Pressed(XInputNative.GamepadButtons.RightShoulder),
+            Start = Pressed(XInputNative.GamepadButtons.Start),
+            Back = Pressed(XInputNative.GamepadButtons.Back),
+            LeftStickClick = Pressed(XInputNative.GamepadButtons.LeftThumb),
+            RightStickClick = Pressed(XInputNative.GamepadButtons.RightThumb),
+            DpadUp = Pressed(XInputNative.GamepadButtons.DPadUp),
+            DpadDown = Pressed(XInputNative.GamepadButtons.DPadDown),
+            DpadLeft = Pressed(XInputNative.GamepadButtons.DPadLeft),
+            DpadRight = Pressed(XInputNative.GamepadButtons.DPadRight),
+
+            // Triggers report 0-255.
+            LeftTrigger = gamepad.LeftTrigger / 255f,
+            RightTrigger = gamepad.RightTrigger / 255f,
+
+            // Sticks report signed 16-bit values. Dividing by 32767 and clamping keeps
+            // the -32768 end of the range from exceeding -1.0.
+            LeftStickX = Math.Clamp(gamepad.ThumbLX / 32767f, -1f, 1f),
+            LeftStickY = Math.Clamp(gamepad.ThumbLY / 32767f, -1f, 1f),
+            RightStickX = Math.Clamp(gamepad.ThumbRX / 32767f, -1f, 1f),
+            RightStickY = Math.Clamp(gamepad.ThumbRY / 32767f, -1f, 1f)
+        };
+
+        return state;
+    }
+
+    public void Dispose()
+    {
+        StopPolling();
+        _controllerInfo = null;
+        _battery = null;
     }
 }
