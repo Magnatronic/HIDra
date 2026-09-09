@@ -1,6 +1,4 @@
 using System;
-using WindowsInput;
-using WindowsInput.Native;
 
 namespace HIDra.Core.Simulation;
 
@@ -9,15 +7,9 @@ namespace HIDra.Core.Simulation;
 /// </summary>
 public class MouseSimulator : IDisposable
 {
-    private readonly InputSimulator _simulator;
     private bool _isLeftButtonHeld;
     private bool _isRightButtonHeld;
     private bool _isMiddleButtonHeld;
-
-    public MouseSimulator()
-    {
-        _simulator = new InputSimulator();
-    }
 
     /// <summary>
     /// Move mouse cursor by relative amount
@@ -29,7 +21,7 @@ public class MouseSimulator : IDisposable
             return; // Too small to matter
         }
 
-        _simulator.Mouse.MoveMouseBy((int)Math.Round(deltaX), (int)Math.Round(deltaY));
+        NativeInput.MoveMouseBy((int)Math.Round(deltaX), (int)Math.Round(deltaY));
     }
 
     /// <summary>
@@ -37,7 +29,7 @@ public class MouseSimulator : IDisposable
     /// </summary>
     public void LeftClick()
     {
-        _simulator.Mouse.LeftButtonClick();
+        NativeInput.LeftButtonClick();
     }
 
     /// <summary>
@@ -45,7 +37,7 @@ public class MouseSimulator : IDisposable
     /// </summary>
     public void RightClick()
     {
-        _simulator.Mouse.RightButtonClick();
+        NativeInput.RightButtonClick();
     }
 
     /// <summary>
@@ -53,7 +45,7 @@ public class MouseSimulator : IDisposable
     /// </summary>
     public void MiddleClick()
     {
-        _simulator.Mouse.MiddleButtonClick();
+        NativeInput.MiddleButtonClick();
     }
 
     /// <summary>
@@ -61,7 +53,7 @@ public class MouseSimulator : IDisposable
     /// </summary>
     public void DoubleClick()
     {
-        _simulator.Mouse.LeftButtonDoubleClick();
+        NativeInput.LeftButtonDoubleClick();
     }
 
     /// <summary>
@@ -71,7 +63,7 @@ public class MouseSimulator : IDisposable
     {
         if (!_isLeftButtonHeld)
         {
-            _simulator.Mouse.LeftButtonDown();
+            NativeInput.LeftButtonDown();
             _isLeftButtonHeld = true;
         }
     }
@@ -83,7 +75,7 @@ public class MouseSimulator : IDisposable
     {
         if (_isLeftButtonHeld)
         {
-            _simulator.Mouse.LeftButtonUp();
+            NativeInput.LeftButtonUp();
             _isLeftButtonHeld = false;
         }
     }
@@ -95,7 +87,7 @@ public class MouseSimulator : IDisposable
     {
         if (!_isRightButtonHeld)
         {
-            _simulator.Mouse.RightButtonDown();
+            NativeInput.RightButtonDown();
             _isRightButtonHeld = true;
         }
     }
@@ -107,7 +99,7 @@ public class MouseSimulator : IDisposable
     {
         if (_isRightButtonHeld)
         {
-            _simulator.Mouse.RightButtonUp();
+            NativeInput.RightButtonUp();
             _isRightButtonHeld = false;
         }
     }
@@ -122,7 +114,7 @@ public class MouseSimulator : IDisposable
             return;
         }
 
-        _simulator.Mouse.VerticalScroll(amount);
+        NativeInput.VerticalScroll(amount);
     }
 
     /// <summary>
@@ -135,7 +127,7 @@ public class MouseSimulator : IDisposable
             return;
         }
 
-        _simulator.Mouse.HorizontalScroll(amount);
+        NativeInput.HorizontalScroll(amount);
     }
 
     /// <summary>
@@ -145,19 +137,19 @@ public class MouseSimulator : IDisposable
     {
         if (_isLeftButtonHeld)
         {
-            _simulator.Mouse.LeftButtonUp();
+            NativeInput.LeftButtonUp();
             _isLeftButtonHeld = false;
         }
 
         if (_isRightButtonHeld)
         {
-            _simulator.Mouse.RightButtonUp();
+            NativeInput.RightButtonUp();
             _isRightButtonHeld = false;
         }
 
         if (_isMiddleButtonHeld)
         {
-            _simulator.Mouse.MiddleButtonUp();
+            NativeInput.MiddleButtonUp();
             _isMiddleButtonHeld = false;
         }
     }

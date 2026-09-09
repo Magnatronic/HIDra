@@ -1,9 +1,9 @@
 using System;
+using HIDra.Models;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
-using WindowsInput.Native;
 
 namespace HIDra.UI.Views;
 
@@ -27,8 +27,14 @@ public partial class VirtualKeyboardWindow : Window
     private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
     // Event to send key presses back to the main application
-    public event EventHandler<VirtualKeyCode>? KeyPressed;
+    public event EventHandler<VirtualKey>? KeyPressed;
     public event EventHandler<string>? TextEntered;
+
+    /// <summary>
+    /// Raised for a modifier shortcut such as Ctrl+C, where the keys must be sent as
+    /// virtual keys rather than as typed text.
+    /// </summary>
+    public event EventHandler<VirtualKey[]>? KeyComboPressed;
 
     public VirtualKeyboardWindow()
     {
@@ -57,9 +63,33 @@ public partial class VirtualKeyboardWindow : Window
         if (sender is not System.Windows.Controls.Button button) return;
         if (button.Tag is not string keyStr) return;
 
+        // Ctrl is handled before anything else, because a shortcut needs the key sent
+        // as a virtual key rather than as typed text. Previously Ctrl only lit up the
+        // button and was never consulted here, so every shortcut it promised - Ctrl+C,
+        // Ctrl+V, Ctrl+S - silently did nothing.
+        if (_ctrlPressed && keyStr.Length == 1 && char.IsLetterOrDigit(keyStr[0]))
+        {
+            // Letters and digits use their ASCII uppercase value as a virtual-key code.
+            var key = (VirtualKey)char.ToUpperInvariant(keyStr[0]);
+
+            var combo = _shiftPressed
+                ? new[] { VirtualKey.Control, VirtualKey.Shift, key }
+                : new[] { VirtualKey.Control, key };
+
+            KeyComboPressed?.Invoke(this, combo);
+
+            // Both modifiers are one-shot, matching how Shift already behaved.
+            _ctrlPressed = false;
+            _shiftPressed = false;
+            UpdateModifierButtons();
+            UpdateLetterCase();
+            UpdateNumberRowSymbols();
+            return;
+        }
+
         // Get the character to type
         string textToType = keyStr;
-        
+
         // Apply shift or caps lock modifier for letters
         if (keyStr.Length == 1 && char.IsLetter(keyStr[0]))
         {
@@ -75,14 +105,18 @@ public partial class VirtualKeyboardWindow : Window
                 UpdateNumberRowSymbols();
             }
         }
-        // Handle number row shift symbols
+        // Shifted symbols, using the UK layout the keys are labelled with.
+        //
+        // These were previously the US symbols, so the key drawn with a pound sign
+        // typed "#" and the key drawn with a double quote typed "@". The punctuation
+        // keys had no shift mapping at all, so Shift+; produced ";" rather than ":".
         else if (_shiftPressed && keyStr.Length == 1)
         {
             textToType = keyStr switch
             {
                 "1" => "!",
-                "2" => "@",
-                "3" => "#",
+                "2" => "\"",
+                "3" => "£",   // pound sign
                 "4" => "$",
                 "5" => "%",
                 "6" => "^",
@@ -92,6 +126,15 @@ public partial class VirtualKeyboardWindow : Window
                 "0" => ")",
                 "-" => "_",
                 "=" => "+",
+                "[" => "{",
+                "]" => "}",
+                ";" => ":",
+                "'" => "@",
+                "#" => "~",
+                "," => "<",
+                "." => ">",
+                "/" => "?",
+                "\\" => "|",
                 _ => keyStr
             };
             _shiftPressed = false;
@@ -106,12 +149,12 @@ public partial class VirtualKeyboardWindow : Window
 
     private void BackspaceButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKeyCode.BACK);
+        KeyPressed?.Invoke(this, VirtualKey.Back);
     }
 
     private void EnterButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKeyCode.RETURN);
+        KeyPressed?.Invoke(this, VirtualKey.Return);
     }
 
     private void SpaceButton_Click(object sender, RoutedEventArgs e)
@@ -244,32 +287,32 @@ public partial class VirtualKeyboardWindow : Window
 
     private void TabButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKeyCode.TAB);
+        KeyPressed?.Invoke(this, VirtualKey.Tab);
     }
 
     private void EscapeButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKeyCode.ESCAPE);
+        KeyPressed?.Invoke(this, VirtualKey.Escape);
     }
 
     private void ArrowUpButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKeyCode.UP);
+        KeyPressed?.Invoke(this, VirtualKey.Up);
     }
 
     private void ArrowDownButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKeyCode.DOWN);
+        KeyPressed?.Invoke(this, VirtualKey.Down);
     }
 
     private void ArrowLeftButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKeyCode.LEFT);
+        KeyPressed?.Invoke(this, VirtualKey.Left);
     }
 
     private void ArrowRightButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKeyCode.RIGHT);
+        KeyPressed?.Invoke(this, VirtualKey.Right);
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

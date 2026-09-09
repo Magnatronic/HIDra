@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
@@ -16,6 +16,7 @@ namespace HIDra.UI
         private HIDraEngine? _engine;
         private VirtualKeyboardWindow? _virtualKeyboard;
         private TrayIcon? _trayIcon;
+        private ModeToast? _modeToast;
 
         /// <summary>
         /// Set only when the user genuinely chooses to exit. Until then, closing the
@@ -156,6 +157,7 @@ namespace HIDra.UI
                 _engine.VirtualKeyboardToggleRequested += OnVirtualKeyboardToggleRequested;
                 _engine.BatteryChanged += OnBatteryChanged;
                 _engine.ShowWindowRequested += OnShowWindowRequested;
+                _engine.StickModeChanged += OnStickModeChanged;
 
                 InitializeVirtualKeyboard();
 
@@ -303,6 +305,22 @@ namespace HIDra.UI
         }
 
         /// <summary>
+        /// Confirm on screen which stick now does what. Pressing Y changes the meaning
+        /// of both sticks, and without this the change is invisible until something
+        /// unexpected happens.
+        /// </summary>
+        private void OnStickModeChanged(object? sender, bool rightStickIsCursor)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _modeToast ??= new ModeToast();
+                _modeToast.ShowMessage(rightStickIsCursor
+                    ? "Cursor: RIGHT stick\nScroll: LEFT stick"
+                    : "Cursor: LEFT stick\nScroll: RIGHT stick");
+            });
+        }
+
+        /// <summary>
         /// Bring the window back into view, whether it was hidden to the tray or just
         /// minimised behind something.
         /// </summary>
@@ -372,6 +390,7 @@ namespace HIDra.UI
                 _virtualKeyboard = new VirtualKeyboardWindow();
                 _virtualKeyboard.KeyPressed += OnVirtualKeyboardKeyPressed;
                 _virtualKeyboard.TextEntered += OnVirtualKeyboardTextEntered;
+                _virtualKeyboard.KeyComboPressed += OnVirtualKeyboardKeyCombo;
             }
         }
         
@@ -399,7 +418,7 @@ namespace HIDra.UI
             });
         }
         
-        private void OnVirtualKeyboardKeyPressed(object? sender, WindowsInput.Native.VirtualKeyCode key)
+        private void OnVirtualKeyboardKeyPressed(object? sender, VirtualKey key)
         {
             _engine?.SendKeyPress(key);
         }
@@ -407,6 +426,11 @@ namespace HIDra.UI
         private void OnVirtualKeyboardTextEntered(object? sender, string text)
         {
             _engine?.SendText(text);
+        }
+
+        private void OnVirtualKeyboardKeyCombo(object? sender, VirtualKey[] keys)
+        {
+            _engine?.SendKeyCombo(keys);
         }
 
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
@@ -425,6 +449,7 @@ namespace HIDra.UI
             }
 
             _virtualKeyboard?.Close();
+            _modeToast?.Close();
             _engine?.Stop();
             _engine?.Dispose();
             _trayIcon?.Dispose();

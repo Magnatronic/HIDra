@@ -248,7 +248,7 @@ public class HIDraEngine : IDisposable
     /// <summary>
     /// Send a key press (for virtual keyboard)
     /// </summary>
-    public void SendKeyPress(WindowsInput.Native.VirtualKeyCode key)
+    public void SendKeyPress(VirtualKey key)
     {
         _keyboardSimulator.KeyPress(key);
     }
@@ -259,6 +259,14 @@ public class HIDraEngine : IDisposable
     public void SendText(string text)
     {
         _keyboardSimulator.TypeText(text);
+    }
+
+    /// <summary>
+    /// Send a modifier shortcut such as Ctrl+C from the virtual keyboard.
+    /// </summary>
+    public void SendKeyCombo(params VirtualKey[] keys)
+    {
+        _keyboardSimulator.KeyPress(keys);
     }
 
     /// <summary>
@@ -424,7 +432,7 @@ public class HIDraEngine : IDisposable
 
             if (_inputProcessor.IsButtonPressed(current.ButtonB, previous.ButtonB))
             {
-                _keyboardSimulator.KeyPress(WindowsInput.Native.VirtualKeyCode.ESCAPE); // Close switcher
+                _keyboardSimulator.KeyPress(VirtualKey.Escape); // Close switcher
                 _isTaskSwitcherOpen = false;
                 return; // Don't process as right-click
             }

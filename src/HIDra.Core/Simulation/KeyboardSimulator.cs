@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using WindowsInput;
-using WindowsInput.Native;
+using HIDra.Models;
 
 namespace HIDra.Core.Simulation;
 
@@ -11,8 +10,7 @@ namespace HIDra.Core.Simulation;
 /// </summary>
 public class KeyboardSimulator : IDisposable
 {
-    private readonly InputSimulator _simulator;
-    private readonly HashSet<VirtualKeyCode> _heldKeys;
+    private readonly HashSet<VirtualKey> _heldKeys;
 
     // Windows API declarations for window management
     [DllImport("user32.dll")]
@@ -26,22 +24,21 @@ public class KeyboardSimulator : IDisposable
 
     public KeyboardSimulator()
     {
-        _simulator = new InputSimulator();
-        _heldKeys = new HashSet<VirtualKeyCode>();
+        _heldKeys = new HashSet<VirtualKey>();
     }
 
     /// <summary>
     /// Press a key
     /// </summary>
-    public void KeyPress(VirtualKeyCode key)
+    public void KeyPress(VirtualKey key)
     {
-        _simulator.Keyboard.KeyPress(key);
+        NativeInput.KeyPress(key);
     }
 
     /// <summary>
     /// Press multiple keys (e.g., Ctrl+C)
     /// </summary>
-    public void KeyPress(params VirtualKeyCode[] keys)
+    public void KeyPress(params VirtualKey[] keys)
     {
         if (keys.Length == 1)
         {
@@ -52,16 +49,16 @@ public class KeyboardSimulator : IDisposable
             // Hold all modifier keys
             for (int i = 0; i < keys.Length - 1; i++)
             {
-                _simulator.Keyboard.KeyDown(keys[i]);
+                NativeInput.KeyDown(keys[i]);
             }
 
             // Press the final key
-            _simulator.Keyboard.KeyPress(keys[^1]);
+            NativeInput.KeyPress(keys[^1]);
 
             // Release modifiers in reverse order
             for (int i = keys.Length - 2; i >= 0; i--)
             {
-                _simulator.Keyboard.KeyUp(keys[i]);
+                NativeInput.KeyUp(keys[i]);
             }
         }
     }
@@ -69,11 +66,11 @@ public class KeyboardSimulator : IDisposable
     /// <summary>
     /// Hold a key down
     /// </summary>
-    public void KeyDown(VirtualKeyCode key)
+    public void KeyDown(VirtualKey key)
     {
         if (!_heldKeys.Contains(key))
         {
-            _simulator.Keyboard.KeyDown(key);
+            NativeInput.KeyDown(key);
             _heldKeys.Add(key);
         }
     }
@@ -81,11 +78,11 @@ public class KeyboardSimulator : IDisposable
     /// <summary>
     /// Release a key
     /// </summary>
-    public void KeyUp(VirtualKeyCode key)
+    public void KeyUp(VirtualKey key)
     {
         if (_heldKeys.Contains(key))
         {
-            _simulator.Keyboard.KeyUp(key);
+            NativeInput.KeyUp(key);
             _heldKeys.Remove(key);
         }
     }
@@ -95,7 +92,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void TypeText(string text)
     {
-        _simulator.Keyboard.TextEntry(text);
+        NativeInput.TypeText(text);
     }
 
     /// <summary>
@@ -103,7 +100,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void AltTab()
     {
-        KeyPress(VirtualKeyCode.MENU, VirtualKeyCode.TAB);
+        KeyPress(VirtualKey.Menu, VirtualKey.Tab);
     }
 
     /// <summary>
@@ -111,7 +108,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void AltShiftTab()
     {
-        KeyPress(VirtualKeyCode.MENU, VirtualKeyCode.SHIFT, VirtualKeyCode.TAB);
+        KeyPress(VirtualKey.Menu, VirtualKey.Shift, VirtualKey.Tab);
     }
 
     /// <summary>
@@ -120,14 +117,14 @@ public class KeyboardSimulator : IDisposable
     public void EnterTaskSwitcher()
     {
         // Ensure Alt is not stuck from previous operation
-        _simulator.Keyboard.KeyUp(VirtualKeyCode.MENU);
-        _heldKeys.Remove(VirtualKeyCode.MENU);
+        NativeInput.KeyUp(VirtualKey.Menu);
+        _heldKeys.Remove(VirtualKey.Menu);
         
         System.Threading.Thread.Sleep(10); // Brief pause
         
-        KeyDown(VirtualKeyCode.MENU); // Hold Alt
+        KeyDown(VirtualKey.Menu); // Hold Alt
         System.Threading.Thread.Sleep(30); // Small delay to ensure Alt is registered
-        KeyPress(VirtualKeyCode.TAB);  // Tap Tab
+        KeyPress(VirtualKey.Tab);  // Tap Tab
     }
 
     /// <summary>
@@ -135,7 +132,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void TaskSwitcherNext()
     {
-        KeyPress(VirtualKeyCode.TAB);
+        KeyPress(VirtualKey.Tab);
     }
 
     /// <summary>
@@ -143,7 +140,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void TaskSwitcherPrevious()
     {
-        KeyPress(VirtualKeyCode.SHIFT, VirtualKeyCode.TAB);
+        KeyPress(VirtualKey.Shift, VirtualKey.Tab);
     }
 
     /// <summary>
@@ -155,8 +152,8 @@ public class KeyboardSimulator : IDisposable
         System.Threading.Thread.Sleep(50);
         
         // Force release Alt even if not tracked in _heldKeys (for safety)
-        _simulator.Keyboard.KeyUp(VirtualKeyCode.MENU);
-        _heldKeys.Remove(VirtualKeyCode.MENU);
+        NativeInput.KeyUp(VirtualKey.Menu);
+        _heldKeys.Remove(VirtualKey.Menu);
     }
 
     /// <summary>
@@ -164,7 +161,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void WindowsKey()
     {
-        KeyPress(VirtualKeyCode.LWIN);
+        KeyPress(VirtualKey.LeftWindows);
     }
 
     /// <summary>
@@ -172,7 +169,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void WindowsTab()
     {
-        KeyPress(VirtualKeyCode.LWIN, VirtualKeyCode.TAB);
+        KeyPress(VirtualKey.LeftWindows, VirtualKey.Tab);
     }
 
     /// <summary>
@@ -180,7 +177,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void Copy()
     {
-        KeyPress(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_C);
+        KeyPress(VirtualKey.Control, VirtualKey.C);
     }
 
     /// <summary>
@@ -188,7 +185,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void Paste()
     {
-        KeyPress(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
+        KeyPress(VirtualKey.Control, VirtualKey.V);
     }
 
     /// <summary>
@@ -196,7 +193,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void Undo()
     {
-        KeyPress(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_Z);
+        KeyPress(VirtualKey.Control, VirtualKey.Z);
     }
 
     /// <summary>
@@ -204,7 +201,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void Redo()
     {
-        KeyPress(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_Y);
+        KeyPress(VirtualKey.Control, VirtualKey.Y);
     }
 
     /// <summary>
@@ -212,7 +209,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void NextTab()
     {
-        KeyPress(VirtualKeyCode.CONTROL, VirtualKeyCode.TAB);
+        KeyPress(VirtualKey.Control, VirtualKey.Tab);
     }
 
     /// <summary>
@@ -220,7 +217,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void PreviousTab()
     {
-        KeyPress(VirtualKeyCode.CONTROL, VirtualKeyCode.SHIFT, VirtualKeyCode.TAB);
+        KeyPress(VirtualKey.Control, VirtualKey.Shift, VirtualKey.Tab);
     }
 
     /// <summary>
@@ -228,7 +225,7 @@ public class KeyboardSimulator : IDisposable
     /// </summary>
     public void CloseWindow()
     {
-        KeyPress(VirtualKeyCode.MENU, VirtualKeyCode.F4);
+        KeyPress(VirtualKey.Menu, VirtualKey.F4);
     }
 
     /// <summary>
@@ -292,7 +289,7 @@ public class KeyboardSimulator : IDisposable
     {
         foreach (var key in _heldKeys.ToArray())
         {
-            _simulator.Keyboard.KeyUp(key);
+            NativeInput.KeyUp(key);
         }
         _heldKeys.Clear();
     }

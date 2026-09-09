@@ -2,7 +2,6 @@ using HIDra.Core.Simulation;
 using HIDra.Models;
 using System;
 using System.Collections.Generic;
-using WindowsInput.Native;
 
 namespace HIDra.Core.Actions;
 
@@ -64,7 +63,7 @@ public class ButtonActionHandler
             case "key":
                 if (actionMapping.Keys.Count > 0)
                 {
-                    var key = ParseVirtualKeyCode(actionMapping.Keys[0]);
+                    var key = ParseVirtualKey(actionMapping.Keys[0]);
                     if (key.HasValue)
                         _keyboardSimulator.KeyPress(key.Value);
                 }
@@ -73,10 +72,10 @@ public class ButtonActionHandler
             case "keycombo":
                 if (actionMapping.Keys.Count > 0)
                 {
-                    var keys = new List<VirtualKeyCode>();
+                    var keys = new List<VirtualKey>();
                     foreach (var keyStr in actionMapping.Keys)
                     {
-                        var key = ParseVirtualKeyCode(keyStr);
+                        var key = ParseVirtualKey(keyStr);
                         if (key.HasValue)
                             keys.Add(key.Value);
                     }
@@ -157,9 +156,9 @@ public class ButtonActionHandler
     }
 
     /// <summary>
-    /// Parse a string to a VirtualKeyCode
+    /// Parse a string to a VirtualKey
     /// </summary>
-    private VirtualKeyCode? ParseVirtualKeyCode(string keyString)
+    private VirtualKey? ParseVirtualKey(string keyString)
     {
         if (string.IsNullOrWhiteSpace(keyString))
             return null;
@@ -169,56 +168,56 @@ public class ButtonActionHandler
         {
             case "ctrl":
             case "control":
-                return VirtualKeyCode.CONTROL;
+                return VirtualKey.Control;
             case "shift":
-                return VirtualKeyCode.SHIFT;
+                return VirtualKey.Shift;
             case "alt":
-                return VirtualKeyCode.MENU;
+                return VirtualKey.Menu;
             case "win":
             case "windows":
-                return VirtualKeyCode.LWIN;
+                return VirtualKey.LeftWindows;
             case "enter":
             case "return":
-                return VirtualKeyCode.RETURN;
+                return VirtualKey.Return;
             case "space":
             case "spacebar":
-                return VirtualKeyCode.SPACE;
+                return VirtualKey.Space;
             case "tab":
-                return VirtualKeyCode.TAB;
+                return VirtualKey.Tab;
             case "backspace":
-                return VirtualKeyCode.BACK;
+                return VirtualKey.Back;
             case "delete":
             case "del":
-                return VirtualKeyCode.DELETE;
+                return VirtualKey.Delete;
             case "escape":
             case "esc":
-                return VirtualKeyCode.ESCAPE;
+                return VirtualKey.Escape;
             case "home":
-                return VirtualKeyCode.HOME;
+                return VirtualKey.Home;
             case "end":
-                return VirtualKeyCode.END;
+                return VirtualKey.End;
             case "pageup":
             case "pgup":
-                return VirtualKeyCode.PRIOR;
+                return VirtualKey.PageUp;
             case "pagedown":
             case "pgdn":
-                return VirtualKeyCode.NEXT;
+                return VirtualKey.PageDown;
             case "up":
             case "arrowup":
-                return VirtualKeyCode.UP;
+                return VirtualKey.Up;
             case "down":
             case "arrowdown":
-                return VirtualKeyCode.DOWN;
+                return VirtualKey.Down;
             case "left":
             case "arrowleft":
-                return VirtualKeyCode.LEFT;
+                return VirtualKey.Left;
             case "right":
             case "arrowright":
-                return VirtualKeyCode.RIGHT;
+                return VirtualKey.Right;
         }
 
-        // Try to parse as VirtualKeyCode enum
-        if (Enum.TryParse<VirtualKeyCode>(keyString, true, out var virtualKeyCode))
+        // Try to parse as VirtualKey enum
+        if (Enum.TryParse<VirtualKey>(keyString, true, out var virtualKeyCode))
             return virtualKeyCode;
 
         // Handle single character keys
@@ -226,9 +225,9 @@ public class ButtonActionHandler
         {
             char c = char.ToUpper(keyString[0]);
             if (c >= 'A' && c <= 'Z')
-                return (VirtualKeyCode)c;
+                return (VirtualKey)c;
             if (c >= '0' && c <= '9')
-                return (VirtualKeyCode)c;
+                return (VirtualKey)c;
         }
 
         // Handle function keys
@@ -236,7 +235,9 @@ public class ButtonActionHandler
             int.TryParse(keyString.Substring(1), out int fNum) && 
             fNum >= 1 && fNum <= 24)
         {
-            return VirtualKeyCode.F1 + (fNum - 1);
+            // VK_F1 through VK_F24 are contiguous, so the codes stay correct beyond
+            // F12 even though the enum only names that far.
+            return (VirtualKey)((int)VirtualKey.F1 + (fNum - 1));
         }
 
         return null;
