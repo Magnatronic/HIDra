@@ -114,6 +114,12 @@ public class HIDraEngine : IDisposable
     public event EventHandler? ShowWindowRequested;
 
     /// <summary>
+    /// Event raised when a controller is attached that XInput cannot use, typically
+    /// because it is in DirectInput mode rather than XInput mode.
+    /// </summary>
+    public event EventHandler<Controllers.NonXInputController>? UnusableControllerDetected;
+
+    /// <summary>
     /// Current battery state, if a controller is attached
     /// </summary>
     public ControllerBattery? Battery => _controllerService.Battery;
@@ -141,6 +147,7 @@ public class HIDraEngine : IDisposable
         _controllerService.ConnectionChanged += OnConnectionChanged;
         _controllerService.StateUpdated += OnStateUpdated;
         _controllerService.BatteryChanged += (s, battery) => BatteryChanged?.Invoke(this, battery);
+        _controllerService.UnusableControllerDetected += (s, c) => UnusableControllerDetected?.Invoke(this, c);
         _buttonActionHandler.TaskSwitcherRequested += OnTaskSwitcherRequested;
         _buttonActionHandler.StickModeSwapRequested += OnStickModeSwapRequested;
         _buttonActionHandler.ToggleOnScreenKeyboardRequested += OnToggleOnScreenKeyboardRequested;

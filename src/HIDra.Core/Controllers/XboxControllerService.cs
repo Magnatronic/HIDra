@@ -39,12 +39,20 @@ public class XboxControllerService : IDisposable
     /// <summary>Backstop delay after an unexpected error, so a persistent fault cannot spin the CPU.</summary>
     private const int ErrorBackoffMs = 250;
 
+    /// <summary>
+    /// How often, while searching, to ask Windows whether a controller is attached that
+    /// XInput cannot see. Far less often than the search itself - this only needs to
+    /// answer a question someone is asking after several fruitless seconds.
+    /// </summary>
+    private const int DiagnosticIntervalMs = 2000;
+
     private CancellationTokenSource? _cts;
     private Task? _supervisorTask;
 
     private int _attachedIndex = -1;
     private ControllerInfo? _controllerInfo;
     private ControllerBattery? _battery;
+    private bool _unusableControllerReported;
 
     /// <summary>Raised on every successful poll of an attached controller.</summary>
     public event EventHandler<ControllerState>? StateUpdated;
@@ -54,6 +62,13 @@ public class XboxControllerService : IDisposable
 
     /// <summary>Raised when the battery power source or charge level changes.</summary>
     public event EventHandler<ControllerBattery>? BatteryChanged;
+
+    /// <summary>
+    /// Raised when a controller is attached that XInput cannot use, so the UI can say
+    /// what is wrong instead of leaving someone staring at "waiting for a controller".
+    /// Raised once per episode, and again only if the situation recurs.
+    /// </summary>
+    public event EventHandler<NonXInputController>? UnusableControllerDetected;
 
     public ControllerInfo? Controller => _controllerInfo;
 
@@ -117,6 +132,11 @@ public class XboxControllerService : IDisposable
     {
         var batteryStopwatch = Stopwatch.StartNew();
 
+        // The first diagnostic check only warms up Windows' device enumeration, so the
+        // real answer arrives on the second - roughly four seconds into a fruitless
+        // search, which is about when someone starts wondering why nothing is happening.
+        var diagnosticStopwatch = Stopwatch.StartNew();
+
         while (!token.IsCancellationRequested)
         {
             try
@@ -127,10 +147,22 @@ public class XboxControllerService : IDisposable
 
                     if (index < 0)
                     {
-                        // Nothing there yet. Wait, then sweep again - forever.
+                        // Nothing XInput can use. Before waiting, occasionally check
+                        // whether something is attached that simply is not in XInput
+                        // mode, so the UI can explain rather than just keep waiting.
+                        if (diagnosticStopwatch.ElapsedMilliseconds >= DiagnosticIntervalMs)
+                        {
+                            diagnosticStopwatch.Restart();
+                            CheckForUnusableController();
+                        }
+
                         await Task.Delay(SearchIntervalMs, token).ConfigureAwait(false);
                         continue;
                     }
+
+                    // A usable controller arrived, so any previous explanation is stale
+                    // and the warning should be allowed to fire again in future.
+                    _unusableControllerReported = false;
 
                     Attach(index);
                     batteryStopwatch.Restart();
@@ -240,6 +272,28 @@ public class XboxControllerService : IDisposable
         ProductId = 0x028E,
         Status = ConnectionStatus.Connected
     };
+
+    /// <summary>
+    /// Ask Windows whether a controller is present that XInput cannot drive, and report
+    /// it once. Reporting repeatedly would train everyone to ignore the message.
+    /// </summary>
+    private void CheckForUnusableController()
+    {
+        if (_unusableControllerReported)
+        {
+            return;
+        }
+
+        var unusable = ControllerDiagnostics.FindControllerXInputCannotUse();
+
+        if (unusable == null)
+        {
+            return;
+        }
+
+        _unusableControllerReported = true;
+        UnusableControllerDetected?.Invoke(this, unusable);
+    }
 
     private void UpdateBattery()
     {

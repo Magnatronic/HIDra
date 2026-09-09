@@ -158,6 +158,7 @@ namespace HIDra.UI
                 _engine.BatteryChanged += OnBatteryChanged;
                 _engine.ShowWindowRequested += OnShowWindowRequested;
                 _engine.StickModeChanged += OnStickModeChanged;
+                _engine.UnusableControllerDetected += OnUnusableControllerDetected;
 
                 InitializeVirtualKeyboard();
 
@@ -296,6 +297,25 @@ namespace HIDra.UI
 
                 _trayIcon?.UpdateStatus(_engine?.Controller?.IsConnected == true, battery);
                 _trayIcon?.ReportBattery(battery);
+            });
+        }
+
+        /// <summary>
+        /// A controller is plugged in but XInput cannot drive it. Say so plainly:
+        /// otherwise this looks identical to having no controller at all, and nobody
+        /// stood at the machine can tell the difference.
+        /// </summary>
+        private void OnUnusableControllerDetected(object? sender, HIDra.Core.Controllers.NonXInputController controller)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                ControllerInfo.Text = controller.Explanation;
+                BatteryText.Text = controller.TechnicalDetail;
+                BatteryText.Foreground = new SolidColorBrush(Color.FromRgb(0x99, 0x99, 0x99));
+
+                UpdateStatus(ConnectionStatus.Error, controller.Explanation);
+
+                _trayIcon?.ShowMessage("HIDra - controller not usable", controller.Explanation);
             });
         }
 
