@@ -37,6 +37,8 @@ internal static class NativeInput
     private const uint MouseEventMiddleUp = 0x0040;
     private const uint MouseEventWheel = 0x0800;
     private const uint MouseEventHWheel = 0x1000;
+    private const uint MouseEventAbsolute = 0x8000;
+    private const uint MouseEventVirtualDesk = 0x4000;
 
     private const uint KeyEventExtendedKey = 0x0001;
     private const uint KeyEventKeyUp = 0x0002;
@@ -204,6 +206,60 @@ internal static class NativeInput
 
     public static void MoveMouseBy(int dx, int dy) =>
         Send(MouseEvent(MouseEventMove, dx, dy));
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
+
+    [DllImport("user32.dll")]
+    public static extern bool GetCursorPos(out NativePoint lpPoint);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    private const int SM_XVIRTUALSCREEN = 76;
+    private const int SM_YVIRTUALSCREEN = 77;
+    private const int SM_CXVIRTUALSCREEN = 78;
+    private const int SM_CYVIRTUALSCREEN = 79;
+
+    /// <summary>
+    /// Bounds of the whole desktop across every monitor, in pixels.
+    /// </summary>
+    public static (int Left, int Top, int Width, int Height) GetVirtualScreen() =>
+    (
+        GetSystemMetrics(SM_XVIRTUALSCREEN),
+        GetSystemMetrics(SM_YVIRTUALSCREEN),
+        Math.Max(1, GetSystemMetrics(SM_CXVIRTUALSCREEN)),
+        Math.Max(1, GetSystemMetrics(SM_CYVIRTUALSCREEN))
+    );
+
+    /// <summary>
+    /// Move the cursor to an exact screen position.
+    ///
+    /// Absolute movement is used rather than relative because Windows applies its own
+    /// acceleration curve ("enhanced pointer precision") to relative input. That curve
+    /// fights the deliberately linear stick response this tool is built around: a
+    /// measured request to move 40 pixels actually moved 57, and moving back by the same
+    /// amount did not return to the starting point. Absolute positioning is applied
+    /// exactly as asked, which is what makes slow, predictable aiming possible.
+    /// </summary>
+    public static void MoveMouseTo(int x, int y)
+    {
+        var (left, top, width, height) = GetVirtualScreen();
+
+        // Absolute coordinates are normalised across the virtual desktop to a
+        // 0-65535 grid, so they must be converted from pixels first.
+        int nx = (int)Math.Round((x - left) * 65535.0 / Math.Max(1, width - 1));
+        int ny = (int)Math.Round((y - top) * 65535.0 / Math.Max(1, height - 1));
+
+        nx = Math.Clamp(nx, 0, 65535);
+        ny = Math.Clamp(ny, 0, 65535);
+
+        Send(MouseEvent(MouseEventMove | MouseEventAbsolute | MouseEventVirtualDesk, nx, ny));
+    }
 
     public static void LeftButtonDown() => Send(MouseEvent(MouseEventLeftDown));
 

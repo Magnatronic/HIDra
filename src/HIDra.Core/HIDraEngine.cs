@@ -38,6 +38,19 @@ public class HIDraEngine : IDisposable
     // Stick mode swap state
     private bool _useRightStickForCursor = false;
 
+    // Measures how long each frame actually took, so cursor speed can be expressed in
+    // pixels per second rather than per frame. Poll timing is not reliable enough to
+    // treat every frame as equal.
+    private readonly System.Diagnostics.Stopwatch _frameTimer = System.Diagnostics.Stopwatch.StartNew();
+    private double _lastFrameSeconds;
+
+    /// <summary>
+    /// Longest frame duration we will act on. A stalled thread or a machine waking from
+    /// sleep would otherwise produce one enormous delta and fling the cursor across the
+    /// screen.
+    /// </summary>
+    private const double MaxFrameSeconds = 0.05;
+
     // Recovery chord: holding Back and Start together brings the HIDra window back.
     private System.Diagnostics.Stopwatch? _recoveryChordTimer;
     private bool _recoveryChordFired;
@@ -411,6 +424,18 @@ public class HIDraEngine : IDisposable
             return;
         }
 
+        double now = _frameTimer.Elapsed.TotalSeconds;
+        double elapsed = now - _lastFrameSeconds;
+        _lastFrameSeconds = now;
+
+        // The first frame after starting or resuming has no meaningful predecessor.
+        if (elapsed <= 0 || elapsed > MaxFrameSeconds)
+        {
+            elapsed = Math.Min(MaxFrameSeconds, _settings.PollRateMs / 1000.0);
+        }
+
+        float deltaSeconds = (float)elapsed;
+
         // Check for precision mode (Left Trigger)
         bool precisionMode = _inputProcessor.IsTriggerPressed(state.LeftTrigger);
 
@@ -418,7 +443,7 @@ public class HIDraEngine : IDisposable
         if (_useRightStickForCursor)
         {
             // Right stick for cursor, left stick for scroll
-            var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovementFromRightStick(state, precisionMode);
+            var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovementFromRightStick(state, precisionMode, deltaSeconds);
             _mouseSimulator.MoveMouse(mouseX, mouseY);
             
             var (scrollX, scrollY) = _inputProcessor.ProcessScrollFromLeftStick(state);
@@ -427,7 +452,7 @@ public class HIDraEngine : IDisposable
         else
         {
             // Default: Left stick for cursor, right stick for scroll
-            var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovement(state, precisionMode);
+            var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovement(state, precisionMode, deltaSeconds);
             _mouseSimulator.MoveMouse(mouseX, mouseY);
             
             var (scrollX, scrollY) = _inputProcessor.ProcessScroll(state);

@@ -10,6 +10,12 @@ public class InputProcessor
 {
     private readonly InputSettings _settings;
 
+    /// <summary>
+    /// Maximum cursor speed in pixels per second at full stick deflection, before the
+    /// sensitivity and precision multipliers are applied.
+    /// </summary>
+    private const float BaseMaxSpeedPixelsPerSecond = 2000f;
+
     public InputProcessor(InputSettings settings)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -72,7 +78,7 @@ public class InputProcessor
     /// <summary>
     /// Process left stick for mouse movement
     /// </summary>
-    public (float X, float Y) ProcessMouseMovement(ControllerState state, bool precisionMode)
+    public (float X, float Y) ProcessMouseMovement(ControllerState state, bool precisionMode, float deltaSeconds)
     {
         // Apply controller calibration first (for worn sticks that can't reach full range)
         float calibratedX = state.LeftStickX / _settings.StickCalibrationMax;
@@ -92,11 +98,13 @@ public class InputProcessor
         x = ApplySensitivity(x, sensitivity);
         y = ApplySensitivity(y, sensitivity);
 
-        // Scale to pixel movement - maxSpeed is now configurable via CursorSensitivity
-        // Base speed of 20 pixels per frame, multiplied by the configured sensitivity
-        const float baseMaxSpeed = 20f;
-        x *= baseMaxSpeed;
-        y *= -baseMaxSpeed; // Invert Y for natural mouse movement
+        // Scaled as a speed rather than a per-frame step, then multiplied by how long
+        // the frame actually took. The poll interval is nominally 10ms but Windows
+        // timers only resolve to about 15.6ms, so frames arrive unevenly; a fixed step
+        // per frame turned that unevenness directly into visibly jerky movement.
+        // 2000 px/sec matches the previous 20 px/frame at the nominal 100Hz.
+        x *= BaseMaxSpeedPixelsPerSecond * deltaSeconds;
+        y *= -BaseMaxSpeedPixelsPerSecond * deltaSeconds; // Screen Y grows downwards
 
         return (x, y);
     }
@@ -104,7 +112,7 @@ public class InputProcessor
     /// <summary>
     /// Process right stick for mouse cursor movement (alternate mode for one-handed use)
     /// </summary>
-    public (float X, float Y) ProcessMouseMovementFromRightStick(ControllerState state, bool precisionMode)
+    public (float X, float Y) ProcessMouseMovementFromRightStick(ControllerState state, bool precisionMode, float deltaSeconds)
     {
         // Apply controller calibration first (for worn sticks that can't reach full range)
         float calibratedX = state.RightStickX / _settings.StickCalibrationMax;
@@ -121,10 +129,9 @@ public class InputProcessor
         x = ApplySensitivity(x, sensitivity);
         y = ApplySensitivity(y, sensitivity);
 
-        // Scale to pixels per frame (20 pixels base speed)
-        const float baseMaxSpeed = 20f;
-        x *= baseMaxSpeed;
-        y *= -baseMaxSpeed; // Invert Y for natural mouse movement (up = negative screen Y)
+        // Speed rather than per-frame step - see ProcessMouseMovement.
+        x *= BaseMaxSpeedPixelsPerSecond * deltaSeconds;
+        y *= -BaseMaxSpeedPixelsPerSecond * deltaSeconds; // Screen Y grows downwards
 
         return (x, y);
     }
