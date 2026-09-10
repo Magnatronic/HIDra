@@ -298,6 +298,39 @@ public partial class VirtualKeyboardWindow : Window
         KeyPressed?.Invoke(this, VirtualKey.Escape);
     }
 
+    private void WindowsKeyButton_Click(object sender, RoutedEventArgs e)
+    {
+        KeyPressed?.Invoke(this, VirtualKey.LeftWindows);
+    }
+
+    // Home and End matter more here than on an ordinary keyboard: without them the only
+    // way to reach the start or end of a line is to press an arrow key once per
+    // character, and every one of those presses costs a deliberate movement.
+    private void HomeButton_Click(object sender, RoutedEventArgs e)
+    {
+        KeyPressed?.Invoke(this, VirtualKey.Home);
+    }
+
+    private void EndButton_Click(object sender, RoutedEventArgs e)
+    {
+        KeyPressed?.Invoke(this, VirtualKey.End);
+    }
+
+    private void DeleteButton_Click(object sender, RoutedEventArgs e)
+    {
+        KeyPressed?.Invoke(this, VirtualKey.Delete);
+    }
+
+    private void PageUpButton_Click(object sender, RoutedEventArgs e)
+    {
+        KeyPressed?.Invoke(this, VirtualKey.PageUp);
+    }
+
+    private void PageDownButton_Click(object sender, RoutedEventArgs e)
+    {
+        KeyPressed?.Invoke(this, VirtualKey.PageDown);
+    }
+
     private void ArrowUpButton_Click(object sender, RoutedEventArgs e)
     {
         KeyPressed?.Invoke(this, VirtualKey.Up);
@@ -361,11 +394,48 @@ public partial class VirtualKeyboardWindow : Window
             return;
         }
 
+        bool horizontal = direction is KeyboardNavigationDirection.Left
+                                    or KeyboardNavigationDirection.Right;
+
+        // Moving sideways looks only at keys sharing the current row, falling back to
+        // the whole keyboard when the row runs out. Without that, a wide key is judged
+        // by the distance to its centre, so stepping left off the arrow keys preferred a
+        // near key on the row above over the space bar sitting right beside it. Ranking
+        // by centre distance alone cannot express "the key I am touching".
+        var candidates = new List<Button>();
+
+        if (horizontal)
+        {
+            var fromBounds = BoundsOf(_highlightedKey);
+
+            foreach (var candidate in _navigableKeys)
+            {
+                if (ReferenceEquals(candidate, _highlightedKey))
+                {
+                    continue;
+                }
+
+                var bounds = BoundsOf(candidate);
+
+                // Overlapping vertically is what "same row" means when rows are ragged
+                // and keys differ in height.
+                if (bounds.Bottom > fromBounds.Top + 1 && bounds.Top < fromBounds.Bottom - 1)
+                {
+                    candidates.Add(candidate);
+                }
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            candidates.AddRange(_navigableKeys);
+        }
+
         var from = CentreOf(_highlightedKey);
         Button? best = null;
         double bestScore = double.MaxValue;
 
-        foreach (var candidate in _navigableKeys)
+        foreach (var candidate in candidates)
         {
             if (ReferenceEquals(candidate, _highlightedKey))
             {
@@ -559,6 +629,12 @@ public partial class VirtualKeyboardWindow : Window
 
             CollectKeys(child);
         }
+    }
+
+    private Rect BoundsOf(Button key)
+    {
+        var topLeft = key.TransformToAncestor(this).Transform(new Point(0, 0));
+        return new Rect(topLeft.X, topLeft.Y, key.ActualWidth, key.ActualHeight);
     }
 
     private Point CentreOf(Button key)

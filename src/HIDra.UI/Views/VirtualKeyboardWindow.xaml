@@ -228,7 +228,18 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             
-            <Button Grid.Column="0" Grid.ColumnSpan="11" Style="{StaticResource KeyButtonStyle}" Content="━━━━━━━━━━━ Space ━━━━━━━━━━━" Click="SpaceButton_Click" Margin="2" FontSize="14" FontWeight="Bold"/>
+            <!-- Space was eleven columns wide, which wasted the most valuable row on the
+                 keyboard and made it a long trip past. Six columns is still by far the
+                 largest key here, and the space freed carries keys that have no
+                 equivalent on the controller: Home and End in particular save moving
+                 the caret one character at a time with the arrow keys. -->
+            <Button Grid.Column="0" Grid.ColumnSpan="5" Style="{StaticResource KeyButtonStyle}" Content="━━━ Space ━━━" Click="SpaceButton_Click" Margin="2" FontSize="14" FontWeight="Bold"/>
+            <Button Grid.Column="5" Style="{StaticResource KeyButtonStyle}" Content="Win" Click="WindowsKeyButton_Click" Margin="2" FontSize="12"/>
+            <Button Grid.Column="6" Style="{StaticResource KeyButtonStyle}" Content="Home" Click="HomeButton_Click" Margin="2" FontSize="11"/>
+            <Button Grid.Column="7" Style="{StaticResource KeyButtonStyle}" Content="End" Click="EndButton_Click" Margin="2" FontSize="12"/>
+            <Button Grid.Column="8" Style="{StaticResource KeyButtonStyle}" Content="PgUp" Click="PageUpButton_Click" Margin="2" FontSize="11"/>
+            <Button Grid.Column="9" Style="{StaticResource KeyButtonStyle}" Content="PgDn" Click="PageDownButton_Click" Margin="2" FontSize="11"/>
+            <Button Grid.Column="10" Style="{StaticResource KeyButtonStyle}" Content="Del" Click="DeleteButton_Click" Margin="2" FontSize="12"/>
             <Button Grid.Column="11" Style="{StaticResource KeyButtonStyle}" Content="←" Click="ArrowLeftButton_Click" Margin="2" FontSize="20"/>
             <Button Grid.Column="12" Style="{StaticResource KeyButtonStyle}" Content="↓" Click="ArrowDownButton_Click" Margin="2" FontSize="20"/>
             <Button Grid.Column="13" Style="{StaticResource KeyButtonStyle}" Content="→" Click="ArrowRightButton_Click" Margin="2" FontSize="20"/>
