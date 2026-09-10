@@ -189,6 +189,20 @@ public class HIDraEngine : IDisposable
     private const int KeyRepeatIntervalMs = 130;
 
     /// <summary>
+    /// How far the stick must be pushed before it steps to the next key. Deliberately
+    /// well above the deadzone used for cursor movement: a stray step lands the
+    /// highlight on the wrong letter, which costs more to undo than a little cursor
+    /// drift does.
+    /// </summary>
+    private const float KeyboardStickEngageThreshold = 0.55f;
+
+    /// <summary>
+    /// How far the stick must fall back before that direction is released. Lower than
+    /// the engage threshold, so a stick resting near the boundary cannot flicker.
+    /// </summary>
+    private const float KeyboardStickReleaseThreshold = 0.35f;
+
+    /// <summary>
     /// Suspend controller input without stopping the engine.
     /// </summary>
     public void Pause()
@@ -465,23 +479,37 @@ public class HIDraEngine : IDisposable
         // Check for precision mode (Left Trigger)
         bool precisionMode = _inputProcessor.IsTriggerPressed(state.LeftTrigger);
 
+        // While the keyboard is open the left stick is steering the highlight, so it
+        // must not also drag the cursor or scroll the page underneath. The right stick
+        // keeps whatever job it currently has, so the user is not left with nothing.
+        // Kept separate from `state` on purpose: navigation below still needs the real
+        // stick position, and zeroing it here would leave the highlight unable to move.
+        var pointerState = state;
+
+        if (KeyboardNavigationActive)
+        {
+            pointerState = state.Clone();
+            pointerState.LeftStickX = 0f;
+            pointerState.LeftStickY = 0f;
+        }
+
         // Process mouse and scroll - swap sticks based on mode
         if (_useRightStickForCursor)
         {
             // Right stick for cursor, left stick for scroll
-            var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovementFromRightStick(state, precisionMode, deltaSeconds);
+            var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovementFromRightStick(pointerState, precisionMode, deltaSeconds);
             _mouseSimulator.MoveMouse(mouseX, mouseY);
             
-            var (scrollX, scrollY) = _inputProcessor.ProcessScrollFromLeftStick(state);
+            var (scrollX, scrollY) = _inputProcessor.ProcessScrollFromLeftStick(pointerState);
             AccumulateAndApplyScroll(scrollX, scrollY);
         }
         else
         {
             // Default: Left stick for cursor, right stick for scroll
-            var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovement(state, precisionMode, deltaSeconds);
+            var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovement(pointerState, precisionMode, deltaSeconds);
             _mouseSimulator.MoveMouse(mouseX, mouseY);
             
-            var (scrollX, scrollY) = _inputProcessor.ProcessScroll(state);
+            var (scrollX, scrollY) = _inputProcessor.ProcessScroll(pointerState);
             AccumulateAndApplyScroll(scrollX, scrollY);
         }
 
@@ -561,14 +589,56 @@ public class HIDraEngine : IDisposable
     /// Without repeat, crossing the keyboard would mean a separate press for every key
     /// in between, which would trade one kind of effort for another.
     /// </summary>
+    /// <summary>
+    /// Turn a continuous stick position into a discrete step, or null when the stick is
+    /// not pushed far enough to count.
+    ///
+    /// Two thresholds rather than one: the stick must be pushed past the larger value to
+    /// start moving, and must fall back below the smaller one before that direction is
+    /// released. Without that gap, resting a little off centre - or a worn stick that no
+    /// longer returns cleanly - would sit right on the boundary and flicker between
+    /// stepping and not stepping.
+    ///
+    /// Only the larger axis is considered, so a diagonal push moves one way rather than
+    /// alternating unpredictably between two.
+    /// </summary>
+    private KeyboardNavigationDirection? DirectionFromStick(float x, float y)
+    {
+        // Held directions release later than they engage, so keep using the axis we are
+        // already travelling along until it genuinely falls away.
+        float threshold = _heldDirection == null
+            ? KeyboardStickEngageThreshold
+            : KeyboardStickReleaseThreshold;
+
+        float absX = Math.Abs(x);
+        float absY = Math.Abs(y);
+
+        if (absX < threshold && absY < threshold)
+        {
+            return null;
+        }
+
+        if (absX >= absY)
+        {
+            return x > 0 ? KeyboardNavigationDirection.Right : KeyboardNavigationDirection.Left;
+        }
+
+        // Pushing the stick up gives a positive Y, and up the keyboard is what is meant.
+        return y > 0 ? KeyboardNavigationDirection.Up : KeyboardNavigationDirection.Down;
+    }
+
     private void UpdateKeyboardNavigation(ControllerState state)
     {
+        // The left stick is the primary control: the D-pad asks for more precise finger
+        // placement than it is reasonable to require. The D-pad still works, because
+        // supporting both costs nothing and leaves the choice open.
         KeyboardNavigationDirection? direction =
-            state.DpadLeft ? KeyboardNavigationDirection.Left :
-            state.DpadRight ? KeyboardNavigationDirection.Right :
-            state.DpadUp ? KeyboardNavigationDirection.Up :
-            state.DpadDown ? KeyboardNavigationDirection.Down :
-            null;
+            DirectionFromStick(state.LeftStickX, state.LeftStickY)
+            ?? (state.DpadLeft ? KeyboardNavigationDirection.Left
+              : state.DpadRight ? KeyboardNavigationDirection.Right
+              : state.DpadUp ? KeyboardNavigationDirection.Up
+              : state.DpadDown ? KeyboardNavigationDirection.Down
+              : null);
 
         if (direction == null)
         {
