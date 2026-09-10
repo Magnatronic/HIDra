@@ -163,6 +163,32 @@ public class HIDraEngine : IDisposable
     public event EventHandler<bool>? PausedChanged;
 
     /// <summary>
+    /// True while the on-screen keyboard is open and the D-pad should move its
+    /// highlight rather than manage windows.
+    /// </summary>
+    public bool KeyboardNavigationActive { get; set; }
+
+    /// <summary>Move the on-screen keyboard highlight one key.</summary>
+    public event EventHandler<KeyboardNavigationDirection>? KeyboardNavigateRequested;
+
+    /// <summary>Press the highlighted key on the on-screen keyboard.</summary>
+    public event EventHandler? KeyboardSelectRequested;
+
+    // Held-direction repeat, so crossing the keyboard does not mean one press per key.
+    private KeyboardNavigationDirection? _heldDirection;
+    private readonly System.Diagnostics.Stopwatch _keyRepeatTimer = new();
+    private int _keyRepeatCount;
+
+    /// <summary>
+    /// Pause before a held direction starts repeating. Long enough that a deliberate
+    /// single step never runs on by itself.
+    /// </summary>
+    private const int KeyRepeatDelayMs = 450;
+
+    /// <summary>Interval between repeats once they start.</summary>
+    private const int KeyRepeatIntervalMs = 130;
+
+    /// <summary>
     /// Suspend controller input without stopping the engine.
     /// </summary>
     public void Pause()
@@ -474,6 +500,19 @@ public class HIDraEngine : IDisposable
         // second button's own action while the chord is being formed.
         UpdateRecoveryChord(state);
 
+        // While the on-screen keyboard is open the D-pad drives it. Window snapping is
+        // unavailable for that time, which is a fair trade: typing is far more frequent
+        // than window management, and this is what removes aiming from every keystroke.
+        if (KeyboardNavigationActive)
+        {
+            UpdateKeyboardNavigation(state);
+        }
+        else
+        {
+            _heldDirection = null;
+            _keyRepeatTimer.Reset();
+        }
+
         // Process buttons
         if (_previousState != null)
         {
@@ -517,6 +556,51 @@ public class HIDraEngine : IDisposable
     }
 
     /// <summary>
+    /// Move the keyboard highlight from the D-pad, repeating while a direction is held.
+    ///
+    /// Without repeat, crossing the keyboard would mean a separate press for every key
+    /// in between, which would trade one kind of effort for another.
+    /// </summary>
+    private void UpdateKeyboardNavigation(ControllerState state)
+    {
+        KeyboardNavigationDirection? direction =
+            state.DpadLeft ? KeyboardNavigationDirection.Left :
+            state.DpadRight ? KeyboardNavigationDirection.Right :
+            state.DpadUp ? KeyboardNavigationDirection.Up :
+            state.DpadDown ? KeyboardNavigationDirection.Down :
+            null;
+
+        if (direction == null)
+        {
+            _heldDirection = null;
+            _keyRepeatTimer.Reset();
+            return;
+        }
+
+        if (direction != _heldDirection)
+        {
+            // A new direction always steps once immediately, so a single press feels
+            // instant rather than waiting on the repeat delay.
+            _heldDirection = direction;
+            _keyRepeatCount = 0;
+            _keyRepeatTimer.Restart();
+            KeyboardNavigateRequested?.Invoke(this, direction.Value);
+            return;
+        }
+
+        int due = _keyRepeatCount == 0
+            ? KeyRepeatDelayMs
+            : KeyRepeatIntervalMs;
+
+        if (_keyRepeatTimer.ElapsedMilliseconds >= due)
+        {
+            _keyRepeatCount++;
+            _keyRepeatTimer.Restart();
+            KeyboardNavigateRequested?.Invoke(this, direction.Value);
+        }
+    }
+
+    /// <summary>
     /// Process button presses
     /// </summary>
     private void ProcessButtons(ControllerState current, ControllerState previous)
@@ -542,7 +626,16 @@ public class HIDraEngine : IDisposable
         }
 
         // Process all button mappings
-        ProcessButton("ButtonA", current.ButtonA, previous.ButtonA, activeModifier);
+        // A presses the highlighted key while the keyboard is open. A left click is still
+        // available on the right trigger, so nothing becomes unreachable.
+        if (!KeyboardNavigationActive)
+        {
+            ProcessButton("ButtonA", current.ButtonA, previous.ButtonA, activeModifier);
+        }
+        else if (_inputProcessor.IsButtonPressed(current.ButtonA, previous.ButtonA))
+        {
+            KeyboardSelectRequested?.Invoke(this, EventArgs.Empty);
+        }
         ProcessButton("ButtonB", current.ButtonB, previous.ButtonB, activeModifier);
         ProcessButton("ButtonX", current.ButtonX, previous.ButtonX, activeModifier);
         ProcessButton("ButtonY", current.ButtonY, previous.ButtonY, activeModifier);
@@ -557,10 +650,13 @@ public class HIDraEngine : IDisposable
             ProcessButton("Start", current.Start, previous.Start, activeModifier);
         }
 
-        ProcessButton("DpadUp", current.DpadUp, previous.DpadUp, activeModifier);
-        ProcessButton("DpadDown", current.DpadDown, previous.DpadDown, activeModifier);
-        ProcessButton("DpadLeft", current.DpadLeft, previous.DpadLeft, activeModifier);
-        ProcessButton("DpadRight", current.DpadRight, previous.DpadRight, activeModifier);
+        if (!KeyboardNavigationActive)
+        {
+            ProcessButton("DpadUp", current.DpadUp, previous.DpadUp, activeModifier);
+            ProcessButton("DpadDown", current.DpadDown, previous.DpadDown, activeModifier);
+            ProcessButton("DpadLeft", current.DpadLeft, previous.DpadLeft, activeModifier);
+            ProcessButton("DpadRight", current.DpadRight, previous.DpadRight, activeModifier);
+        }
         ProcessButton("LeftStickClick", current.LeftStickClick, previous.LeftStickClick, activeModifier);
         ProcessButton("RightStickClick", current.RightStickClick, previous.RightStickClick, activeModifier);
     }

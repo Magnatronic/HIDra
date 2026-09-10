@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using HIDra.Models;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Runtime.InteropServices;
 
 namespace HIDra.UI.Views;
@@ -313,6 +316,214 @@ public partial class VirtualKeyboardWindow : Window
     private void ArrowRightButton_Click(object sender, RoutedEventArgs e)
     {
         KeyPressed?.Invoke(this, VirtualKey.Right);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Direct key navigation
+    //
+    // A highlight is moved from key to key and confirmed with a single button, instead
+    // of driving the mouse cursor onto each key. Keys are found by their real position
+    // on screen rather than from a hand-written grid, because the rows are ragged - the
+    // bottom row in particular - and a geometric search handles that without a table
+    // that would silently rot whenever the layout changed.
+    // ---------------------------------------------------------------------------
+
+    private readonly List<Button> _navigableKeys = new();
+    private Button? _highlightedKey;
+    private Brush? _highlightSavedBorderBrush;
+    private Thickness _highlightSavedBorderThickness;
+
+    /// <summary>
+    /// Only the border is recoloured for the highlight. Modifier keys show their state
+    /// through their background, so leaving backgrounds alone means the two cannot
+    /// fight over the same key.
+    /// </summary>
+    private static readonly Brush HighlightBrush =
+        new SolidColorBrush(Color.FromRgb(0xFF, 0xD4, 0x00));
+
+    private const double HighlightBorderThickness = 4;
+
+    /// <summary>
+    /// Move the highlight one key in the given direction.
+    /// </summary>
+    public void MoveHighlight(KeyboardNavigationDirection direction)
+    {
+        EnsureKeysCollected();
+
+        if (_navigableKeys.Count == 0)
+        {
+            return;
+        }
+
+        if (_highlightedKey == null)
+        {
+            SetHighlight(_navigableKeys[0]);
+            return;
+        }
+
+        var from = CentreOf(_highlightedKey);
+        Button? best = null;
+        double bestScore = double.MaxValue;
+
+        foreach (var candidate in _navigableKeys)
+        {
+            if (ReferenceEquals(candidate, _highlightedKey))
+            {
+                continue;
+            }
+
+            var to = CentreOf(candidate);
+            double dx = to.X - from.X;
+            double dy = to.Y - from.Y;
+
+            // Distance along the direction of travel, and how far off-axis the
+            // candidate sits. Off-axis distance is weighted so movement stays in the
+            // row or column the user is travelling along wherever possible.
+            double along;
+            double across;
+
+            switch (direction)
+            {
+                case KeyboardNavigationDirection.Left:
+                    if (dx >= -1) continue;
+                    along = -dx; across = Math.Abs(dy) * 3; break;
+                case KeyboardNavigationDirection.Right:
+                    if (dx <= 1) continue;
+                    along = dx; across = Math.Abs(dy) * 3; break;
+                case KeyboardNavigationDirection.Up:
+                    if (dy >= -1) continue;
+                    along = -dy; across = Math.Abs(dx) * 1.5; break;
+                default:
+                    if (dy <= 1) continue;
+                    along = dy; across = Math.Abs(dx) * 1.5; break;
+            }
+
+            double score = along + across;
+
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = candidate;
+            }
+        }
+
+        // No candidate means the edge of the keyboard. Staying put is better than
+        // wrapping somewhere unexpected: the highlight is where the user last left it.
+        if (best != null)
+        {
+            SetHighlight(best);
+        }
+    }
+
+    /// <summary>
+    /// Press the highlighted key, exactly as clicking it would.
+    /// </summary>
+    public void ActivateHighlight()
+    {
+        EnsureKeysCollected();
+
+        if (_highlightedKey == null)
+        {
+            if (_navigableKeys.Count == 0)
+            {
+                return;
+            }
+
+            SetHighlight(_navigableKeys[0]);
+            return;
+        }
+
+        // Raise the button's own Click so every existing behaviour - shift, caps lock,
+        // the Ctrl shortcut path, backspace, the arrow keys - runs unchanged.
+        _highlightedKey.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+    }
+
+    /// <summary>Is a key currently highlighted?</summary>
+    public bool HasHighlight => _highlightedKey != null;
+
+    /// <summary>
+    /// What the highlighted key is, for diagnostics. Prefers the key's own label so it
+    /// reads the way the user sees it.
+    /// </summary>
+    public string? HighlightedKeyDescription
+    {
+        get
+        {
+            if (_highlightedKey == null)
+            {
+                return null;
+            }
+
+            if (_highlightedKey.Tag is string tag && !string.IsNullOrWhiteSpace(tag))
+            {
+                return tag;
+            }
+
+            return _highlightedKey.Name is { Length: > 0 } name
+                ? name
+                : _highlightedKey.Content?.ToString();
+        }
+    }
+
+    private void SetHighlight(Button key)
+    {
+        ClearHighlight();
+
+        _highlightSavedBorderBrush = key.BorderBrush;
+        _highlightSavedBorderThickness = key.BorderThickness;
+
+        key.BorderBrush = HighlightBrush;
+        key.BorderThickness = new Thickness(HighlightBorderThickness);
+
+        _highlightedKey = key;
+    }
+
+    private void ClearHighlight()
+    {
+        if (_highlightedKey == null)
+        {
+            return;
+        }
+
+        _highlightedKey.BorderBrush = _highlightSavedBorderBrush;
+        _highlightedKey.BorderThickness = _highlightSavedBorderThickness;
+        _highlightedKey = null;
+    }
+
+    private void EnsureKeysCollected()
+    {
+        if (_navigableKeys.Count > 0)
+        {
+            return;
+        }
+
+        // Layout must have run at least once or every key reports a zero size and the
+        // geometric search has nothing to work with.
+        UpdateLayout();
+        CollectKeys(this);
+    }
+
+    private void CollectKeys(DependencyObject parent)
+    {
+        int count = VisualTreeHelper.GetChildrenCount(parent);
+
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+
+            if (child is Button button && button.ActualWidth > 0 && button.ActualHeight > 0)
+            {
+                _navigableKeys.Add(button);
+            }
+
+            CollectKeys(child);
+        }
+    }
+
+    private Point CentreOf(Button key)
+    {
+        var topLeft = key.TransformToAncestor(this).Transform(new Point(0, 0));
+        return new Point(topLeft.X + key.ActualWidth / 2, topLeft.Y + key.ActualHeight / 2);
     }
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)

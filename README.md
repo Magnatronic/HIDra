@@ -1,4 +1,4 @@
-﻿# HIDra  Controller Accessibility Tool
+# HIDra  Controller Accessibility Tool
 
 Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
 
@@ -6,7 +6,7 @@ Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
 - Mouse with Left Stick; LT = precision mode
 - Scroll with Right Stick
 - DPad window management: Up = Maximize, Down = Minimize, Left/Right = Snap
-- X toggles onscreen keyboard (UK layout, large keys)
+- X toggles onscreen keyboard (UK layout, large keys); D-pad moves the highlight and A types, so no aiming is needed
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
 - Start opens Task View; Back opens Start menu

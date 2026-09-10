@@ -39,6 +39,8 @@ SWAP MODES:
 
 VIRTUAL KEYBOARD:
   X Button = Open/close on-screen keyboard
+  D-Pad    = Move the yellow highlight between keys
+  A Button = Type the highlighted key
   (Big UK layout with visible shift symbols)
 
 SWITCHING BETWEEN PROGRAMS:
@@ -76,10 +78,17 @@ Open a Program:
   3. Press A to open it
 
 Type Text:
-  1. Press X Button (opens virtual keyboard)
-  2. Use Left Stick to select letters
-  3. Press A to type each letter
-  4. Press X again to close keyboard
+  1. Click into the box you want to type in
+  2. Press X Button (opens the keyboard)
+  3. Use the D-PAD to move the yellow highlight to a letter
+     (hold a direction to travel quickly across the keyboard)
+  4. Press A to type the highlighted letter
+  5. Press X again to close the keyboard
+
+  You do NOT need to aim the mouse at the keys any more.
+  While the keyboard is open the D-pad moves the highlight instead
+  of managing windows, and A types instead of clicking.
+  If you need to click something, hold the Right Trigger.
 
 Work with Two Programs:
   1. Open first program, press D-Pad Left (snap left)

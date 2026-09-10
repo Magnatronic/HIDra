@@ -161,8 +161,12 @@ namespace HIDra.UI
                 _engine.StickModeChanged += OnStickModeChanged;
                 _engine.UnusableControllerDetected += OnUnusableControllerDetected;
                 _engine.PausedChanged += OnPausedChanged;
+                _engine.KeyboardNavigateRequested += OnKeyboardNavigate;
+                _engine.KeyboardSelectRequested += OnKeyboardSelect;
 
                 InitializeVirtualKeyboard();
+
+                _engine.KeyboardNavigationActive = _virtualKeyboard?.IsVisible == true;
 
                 _engine.Start();
 
@@ -483,6 +487,18 @@ namespace HIDra.UI
                 _virtualKeyboard.KeyPressed += OnVirtualKeyboardKeyPressed;
                 _virtualKeyboard.TextEntered += OnVirtualKeyboardTextEntered;
                 _virtualKeyboard.KeyComboPressed += OnVirtualKeyboardKeyCombo;
+
+                // Tie D-pad routing to whether the keyboard is actually on screen.
+                // Setting the flag only where it is toggled would strand it: the
+                // keyboard's own close button hides the window without going through
+                // that path, leaving the D-pad driving something nobody can see.
+                _virtualKeyboard.IsVisibleChanged += (_, _) =>
+                {
+                    if (_engine != null)
+                    {
+                        _engine.KeyboardNavigationActive = _virtualKeyboard?.IsVisible == true;
+                    }
+                };
             }
         }
         
@@ -505,7 +521,15 @@ namespace HIDra.UI
                     else
                     {
                         _virtualKeyboard.Show();
+
+                        // Start with a key highlighted, so the first press types
+                        // something rather than only revealing where the highlight is.
+                        if (!_virtualKeyboard.HasHighlight)
+                        {
+                            _virtualKeyboard.MoveHighlight(KeyboardNavigationDirection.Right);
+                        }
                     }
+
                 }
             });
         }
@@ -518,6 +542,16 @@ namespace HIDra.UI
         private void OnVirtualKeyboardTextEntered(object? sender, string text)
         {
             _engine?.SendText(text);
+        }
+
+        private void OnKeyboardNavigate(object? sender, KeyboardNavigationDirection direction)
+        {
+            Dispatcher.BeginInvoke(() => _virtualKeyboard?.MoveHighlight(direction));
+        }
+
+        private void OnKeyboardSelect(object? sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(() => _virtualKeyboard?.ActivateHighlight());
         }
 
         private void OnVirtualKeyboardKeyCombo(object? sender, VirtualKey[] keys)
