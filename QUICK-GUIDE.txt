@@ -1,5 +1,5 @@
 ========================================
-HIDra v1.4 - Quick Reference Guide
+HIDra v1.5 - Quick Reference Guide
 ========================================
 
 WHAT IS THIS?
@@ -182,5 +182,5 @@ Need help?
 
 VERSION INFORMATION
 -------------------
-HIDra v1.4.0 
+HIDra v1.5.0 
 

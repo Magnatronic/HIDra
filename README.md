@@ -1,6 +1,6 @@
-# HIDra  Controller Accessibility Tool
+# HIDra - Controller Accessibility Tool
 
-Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
+Control Windows with an Xbox controller. Simple, reliable, zero-config.
 
 ## Features
 - Mouse with Left Stick; LT = precision mode
@@ -10,14 +10,14 @@ Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
 - Start opens Task View; Back opens Start menu
-- No configuration files  sensible defaults are baked in
+- No configuration files - sensible defaults are baked in
 
 ## Reliability
 HIDra is intended to be the only way its user can operate the computer, so it is built
 not to leave them stranded:
 
-- **Automatic reconnection.** If the controller disconnects  flat battery, Bluetooth
-  dropout, knocked cable  HIDra keeps searching and reattaches on its own. It never
+- **Automatic reconnection.** If the controller disconnects - flat battery, Bluetooth
+  dropout, knocked cable - HIDra keeps searching and reattaches on its own. It never
   needs a mouse click to recover.
 - **Starts before the controller does.** Launching at logon with nothing plugged in is
   a normal state; HIDra waits and connects as soon as a controller appears.
@@ -49,7 +49,7 @@ not to leave them stranded:
 ## System Requirements
 - **Windows 10/11** (x64)
 - **Xbox One/Series controller** (USB or Bluetooth)
-- **For compact version**: .NET 8 Desktop Runtime
+- **For compact version**: .NET 10 Desktop Runtime
 - **For portable version**: No additional requirements
 
 ## Distribution Options
@@ -57,19 +57,19 @@ not to leave them stranded:
 **Two versions available to suit different needs:**
 
 ### Option 1: Compact Version (Recommended)
-- **Size**: ~3 MB
-- **Requirement**: .NET 8 Desktop Runtime
+- **Size**: ~26 MB
+- **Requirement**: .NET 10 Desktop Runtime
 - **Best for**: Regular users, faster downloads
-- **Download runtime**: [Microsoft .NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
+- **Download runtime**: [Microsoft .NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 ### Option 2: Portable Version  
-- **Size**: ~173 MB
+- **Size**: ~198 MB
 - **Requirement**: None - completely standalone
 - **Best for**: USB sticks, computers without admin rights, portable use
 - **Trade-off**: Larger download but runs anywhere
 
 ## Build and Publish (for developers)
-- **Prerequisite**: .NET 8 SDK
+- **Prerequisite**: .NET 10 SDK
 - **Build the solution**: `dotnet build HIDra.sln`
 
 ### Quick Build Scripts:
@@ -79,12 +79,13 @@ not to leave them stranded:
 
 ### Manual Build Commands:
 ```bash
-# Framework-dependent (3 MB single-file)
-dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -o publish-framework -p:PublishSingleFile=true -p:SelfContained=false -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false
+# Framework-dependent (~26 MB folder, needs the .NET 10 Desktop Runtime)
+dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -o publish-framework --self-contained false -p:DebugType=None -p:DebugSymbols=false
 
-# Self-contained portable (173 MB single-file)
-dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o publish-portable
+# Self-contained portable (~198 MB folder, needs nothing installed)
+dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -r win-x64 --self-contained true -o publish-portable -p:DebugType=None -p:DebugSymbols=false
 ```
+Neither passes `-p:PublishSingleFile` on purpose - see Distribution below.
 
 ## Smoke Test
 1) After publishing, run the executable from the publish folder
@@ -95,9 +96,17 @@ dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -r win-x64 --self-contain
 ## Distribution
 Two deployment options are available to suit different environments and requirements:
 
-**Framework-dependent** (~3 MB): Professional deployment requiring .NET 8 Desktop Runtime pre-installation. Ideal for managed environments and regular users.
+**Framework-dependent** (~26 MB): Requires the .NET 10 Desktop Runtime on the target
+machine. Ideal for managed environments where the runtime is deployed centrally.
 
-**Self-contained portable** (~173 MB): Single executable with embedded runtime that runs anywhere on Windows x64 without dependencies. Perfect for portable use and environments without admin rights.
+**Self-contained portable** (~198 MB): Carries its own runtime and runs anywhere on
+Windows x64 with nothing installed. For USB sticks and machines without admin rights.
+
+Both are published as a **folder**, not a single-file executable, and both must be kept
+whole: copy or unzip the entire folder and run `HIDra.UI.exe` from inside it. A
+single-file build extracts its native libraries to `%TEMP%\.net` on every launch, and
+managed environments routinely block execution from user-writable paths, which would
+make HIDra fail on exactly the locked-down machines it is built for.
 
 ## License
-MIT  see `LICENSE`.
+MIT - see `LICENSE`.
