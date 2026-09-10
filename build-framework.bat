@@ -1,35 +1,31 @@
 @echo off
-echo Building HIDra - Framework Dependent Single-File Version
-echo ======================================================
+setlocal
+echo Building HIDra - framework-dependent (requires .NET 10 Desktop Runtime)
+echo ======================================================================
 
-REM Clean previous builds
-if exist "publish-framework" rmdir /s /q "publish-framework"
+call "%~dp0find-dotnet.bat"
+if errorlevel 1 exit /b 1
 
-REM Build framework-dependent single-file version
-dotnet publish src\HIDra.UI\HIDra.UI.csproj -c Release -o publish-framework ^
-    -p:PublishSingleFile=true ^
-    -p:SelfContained=false ^
-    -p:IncludeNativeLibrariesForSelfExtract=true ^
+if exist "%~dp0publish-framework" rmdir /s /q "%~dp0publish-framework"
+
+REM Published as a plain folder rather than a single file on purpose. Single-file
+REM builds extract their native libraries to %TEMP%\.net at run time, and managed
+REM environments routinely block execution from user-writable paths - which would
+REM make HIDra fail on exactly the locked-down college machines it is meant for.
+"%DOTNET_EXE%" publish "%~dp0src\HIDra.UI\HIDra.UI.csproj" ^
+    -c Release ^
+    -o "%~dp0publish-framework" ^
+    --self-contained false ^
     -p:DebugType=None ^
     -p:DebugSymbols=false
 
-if %ERRORLEVEL% == 0 (
+if errorlevel 1 (
     echo.
-    echo ✅ Framework-dependent single-file build completed!
-    echo 📦 Output: publish-framework\HIDra.UI.exe
-    
-    REM Show file size in KB
-    for %%F in (publish-framework\HIDra.UI.exe) do (
-        set /a sizeKB=%%~zF/1024
-        echo 📏 Size: !sizeKB! KB
-    )
-    
-    echo.
-    echo ⚠️  Users need to install .NET 8 Desktop Runtime from:
-    echo    https://dotnet.microsoft.com/download/dotnet/8.0
-) else (
-    echo ❌ Build failed!
+    echo BUILD FAILED
+    exit /b 1
 )
 
 echo.
-pause
+echo Done: publish-framework\HIDra.UI.exe
+echo Needs the .NET 10 Desktop Runtime on the target machine.
+endlocal

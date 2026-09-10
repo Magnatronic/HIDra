@@ -76,10 +76,20 @@ public class ButtonActionHandler
                     foreach (var keyStr in actionMapping.Keys)
                     {
                         var key = ParseVirtualKey(keyStr);
-                        if (key.HasValue)
-                            keys.Add(key.Value);
+
+                        // Abort the whole combination if any part of it is unrecognised.
+                        // Sending what did parse is worse than sending nothing: a
+                        // mistyped modifier in "Win+Left" would fire a bare Left arrow
+                        // and move the user's selection instead of snapping a window.
+                        if (!key.HasValue)
+                        {
+                            keys.Clear();
+                            break;
+                        }
+
+                        keys.Add(key.Value);
                     }
-                    
+
                     if (keys.Count > 0)
                         _keyboardSimulator.KeyPress(keys.ToArray());
                 }
@@ -173,9 +183,21 @@ public class ButtonActionHandler
                 return VirtualKey.Shift;
             case "alt":
                 return VirtualKey.Menu;
+            // "LWin" is the spelling used by the built-in mappings and by the old
+            // WindowsInput enum, so it must keep working. Without these aliases the key
+            // fell through to Enum.TryParse, failed to match the current member name,
+            // and was silently dropped - which turned Win+Left into a bare Left arrow
+            // and stopped window snapping working at all.
             case "win":
             case "windows":
+            case "lwin":
+            case "leftwin":
+            case "leftwindows":
                 return VirtualKey.LeftWindows;
+            case "rwin":
+            case "rightwin":
+            case "rightwindows":
+                return VirtualKey.RightWindows;
             case "enter":
             case "return":
                 return VirtualKey.Return;

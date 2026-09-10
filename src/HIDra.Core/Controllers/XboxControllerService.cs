@@ -120,7 +120,10 @@ public class XboxControllerService : IDisposable
 
         if (_attachedIndex >= 0)
         {
-            Detach();
+            // Silent teardown: nothing was lost, we were asked to stop. Announcing a
+            // disconnection here made the UI report "controller lost - searching for
+            // it" immediately after a deliberate stop, which was simply untrue.
+            Detach(announce: false);
         }
     }
 
@@ -246,20 +249,32 @@ public class XboxControllerService : IDisposable
         ConnectionChanged?.Invoke(this, _controllerInfo);
     }
 
-    private void Detach()
+    /// <summary>
+    /// Release the attached controller. <paramref name="announce"/> is false when the
+    /// caller asked us to stop, so a deliberate shutdown is not reported as a loss.
+    /// </summary>
+    private void Detach(bool announce = true)
     {
         _attachedIndex = -1;
 
         if (_controllerInfo != null)
         {
             _controllerInfo.Status = ConnectionStatus.Disconnected;
-            ConnectionChanged?.Invoke(this, _controllerInfo);
+
+            if (announce)
+            {
+                ConnectionChanged?.Invoke(this, _controllerInfo);
+            }
         }
 
         if (_battery != null)
         {
             _battery = new ControllerBattery();
-            BatteryChanged?.Invoke(this, _battery);
+
+            if (announce)
+            {
+                BatteryChanged?.Invoke(this, _battery);
+            }
         }
     }
 

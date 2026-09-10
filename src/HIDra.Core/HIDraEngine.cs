@@ -134,6 +134,61 @@ public class HIDraEngine : IDisposable
     /// </summary>
     public bool IsRunning => _isRunning;
 
+    /// <summary>
+    /// True while controller input is deliberately suppressed.
+    ///
+    /// Pausing is not the same as stopping. The controller is still polled and the
+    /// recovery chord is still watched, so the user can resume without help; tearing
+    /// the engine down instead would leave the one person who depends on it with no
+    /// pointer and no way to bring it back.
+    /// </summary>
+    public bool IsPaused { get; private set; }
+
+    /// <summary>
+    /// Raised when input is paused or resumed, so the UI can say which.
+    /// </summary>
+    public event EventHandler<bool>? PausedChanged;
+
+    /// <summary>
+    /// Suspend controller input without stopping the engine.
+    /// </summary>
+    public void Pause()
+    {
+        if (IsPaused)
+        {
+            return;
+        }
+
+        IsPaused = true;
+
+        // Let go of anything currently held, or a button down at the moment of pausing
+        // would stay down for as long as the pause lasts.
+        _mouseSimulator.ReleaseAll();
+        _keyboardSimulator.ReleaseAll();
+        _isTaskSwitcherOpen = false;
+
+        PausedChanged?.Invoke(this, true);
+    }
+
+    /// <summary>
+    /// Resume controller input after a pause.
+    /// </summary>
+    public void Resume()
+    {
+        if (!IsPaused)
+        {
+            return;
+        }
+
+        IsPaused = false;
+
+        // Start from a clean slate so buttons held during the pause do not register as
+        // fresh presses the instant input comes back.
+        _previousState = null;
+
+        PausedChanged?.Invoke(this, false);
+    }
+
     public HIDraEngine(InputSettings? settings = null, Dictionary<string, ButtonMapping>? buttonMappings = null)
     {
         _settings = settings ?? new InputSettings();
@@ -348,6 +403,14 @@ public class HIDraEngine : IDisposable
     /// </summary>
     private void ProcessControllerState(ControllerState state)
     {
+        if (IsPaused)
+        {
+            // Nothing is emitted while paused, but the chord is still watched: it is
+            // the only way back for someone whose sole input device this is.
+            UpdateRecoveryChord(state);
+            return;
+        }
+
         // Check for precision mode (Left Trigger)
         bool precisionMode = _inputProcessor.IsTriggerPressed(state.LeftTrigger);
 
@@ -416,6 +479,14 @@ public class HIDraEngine : IDisposable
         if (!_recoveryChordFired && _recoveryChordTimer.ElapsedMilliseconds >= RecoveryChordHoldMs)
         {
             _recoveryChordFired = true;
+
+            // The chord doubles as the way out of a pause, so a paused HIDra is never
+            // a dead end for the person holding the controller.
+            if (IsPaused)
+            {
+                Resume();
+            }
+
             ShowWindowRequested?.Invoke(this, EventArgs.Empty);
         }
     }

@@ -1,35 +1,29 @@
 @echo off
-echo Building HIDra - Portable Single-File Version (No Runtime Required)
-echo ================================================================
+setlocal
+echo Building HIDra - self-contained portable (no runtime needed)
+echo ============================================================
 
-REM Clean previous builds
-if exist "publish-portable" rmdir /s /q "publish-portable"
+call "%~dp0find-dotnet.bat"
+if errorlevel 1 exit /b 1
 
-REM Build self-contained single-file version
-dotnet publish src\HIDra.UI\HIDra.UI.csproj -c Release -r win-x64 -o publish-portable ^
-    --self-contained ^
-    -p:PublishSingleFile=true ^
-    -p:IncludeNativeLibrariesForSelfExtract=true ^
+if exist "%~dp0publish-portable" rmdir /s /q "%~dp0publish-portable"
+
+REM Folder rather than single file, for the same reason as the framework build.
+"%DOTNET_EXE%" publish "%~dp0src\HIDra.UI\HIDra.UI.csproj" ^
+    -c Release ^
+    -r win-x64 ^
+    --self-contained true ^
+    -o "%~dp0publish-portable" ^
     -p:DebugType=None ^
     -p:DebugSymbols=false
 
-if %ERRORLEVEL% == 0 (
+if errorlevel 1 (
     echo.
-    echo ✅ Portable single-file build completed!
-    echo 📦 Output: publish-portable\HIDra.UI.exe
-    
-    REM Show file size in MB
-    for %%F in (publish-portable\HIDra.UI.exe) do (
-        set /a sizeMB=%%~zF/1048576
-        echo 📏 Size: !sizeMB! MB
-    )
-    
-    echo.
-    echo ✅ This version includes everything needed - no runtime installation required
-    echo 🎒 Perfect for USB sticks and portable use
-) else (
-    echo ❌ Build failed!
+    echo BUILD FAILED
+    exit /b 1
 )
 
 echo.
-pause
+echo Done: publish-portable\HIDra.UI.exe
+echo Carries its own runtime - runs on a machine with no .NET installed.
+endlocal

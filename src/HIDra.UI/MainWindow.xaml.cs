@@ -159,6 +159,7 @@ namespace HIDra.UI
                 _engine.ShowWindowRequested += OnShowWindowRequested;
                 _engine.StickModeChanged += OnStickModeChanged;
                 _engine.UnusableControllerDetected += OnUnusableControllerDetected;
+                _engine.PausedChanged += OnPausedChanged;
 
                 InitializeVirtualKeyboard();
 
@@ -198,25 +199,28 @@ namespace HIDra.UI
             StartEngine();
         }
 
+        /// <summary>
+        /// Pause or resume controller input.
+        ///
+        /// This deliberately does not tear the engine down. Stopping outright left the
+        /// controller dead, including the recovery chord - so whoever pressed it had no
+        /// way to undo it without a mouse. Pausing keeps the chord alive.
+        /// </summary>
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (_engine == null)
             {
-                _engine?.Stop();
-                _engine?.Dispose();
-                _engine = null;
-
-                UpdateStatus(ConnectionStatus.Disconnected, "Stopped - press Reconnect to resume controller input");
-                ConnectButton.IsEnabled = true;
-                StopButton.IsEnabled = false;
-                _trayIcon?.UpdateStatus(false, null);
+                StartEngine();
+                return;
             }
-            catch (Exception ex)
+
+            if (_engine.IsPaused)
             {
-                MessageBox.Show($"Error stopping engine:\n{ex.Message}",
-                    "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                _engine.Resume();
+            }
+            else
+            {
+                _engine.Pause();
             }
         }
 
@@ -267,6 +271,14 @@ namespace HIDra.UI
         {
             Dispatcher.BeginInvoke(() =>
             {
+                // A deliberate pause outranks connection news: reporting the controller
+                // as "active" while input is suppressed would be untrue.
+                if (_engine?.IsPaused == true)
+                {
+                    _trayIcon?.UpdateStatus(info.IsConnected, _engine?.Battery);
+                    return;
+                }
+
                 if (info.IsConnected)
                 {
                     UpdateStatus(ConnectionStatus.Connected, $"{info.Name} connected and active");
@@ -316,6 +328,37 @@ namespace HIDra.UI
                 UpdateStatus(ConnectionStatus.Error, controller.Explanation);
 
                 _trayIcon?.ShowMessage("HIDra - controller not usable", controller.Explanation);
+            });
+        }
+
+        /// <summary>
+        /// Reflect a pause in the window, the button and the tray, saying plainly how
+        /// to undo it from the controller itself.
+        /// </summary>
+        private void OnPausedChanged(object? sender, bool paused)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                StopButton.Content = paused ? "Resume" : "Pause";
+
+                if (paused)
+                {
+                    UpdateStatus(ConnectionStatus.Disconnected, "Paused");
+                    ControllerInfo.Text =
+                        "Controller input is paused. Press Resume, or hold Back and Start "
+                        + "together on the controller for one second.";
+                    _trayIcon?.ShowMessage("HIDra paused",
+                        "Controller input is paused. Hold Back and Start together to resume.");
+                }
+                else
+                {
+                    bool connected = _engine?.Controller?.IsConnected == true;
+                    UpdateStatus(
+                        connected ? ConnectionStatus.Connected : ConnectionStatus.Connecting,
+                        connected
+                            ? "Controller connected and active - ready to use"
+                            : "Waiting for a controller - plug one in and it will connect on its own");
+                }
             });
         }
 
