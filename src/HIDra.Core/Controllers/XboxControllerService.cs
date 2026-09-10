@@ -46,6 +46,27 @@ public class XboxControllerService : IDisposable
     /// </summary>
     private const int DiagnosticIntervalMs = 2000;
 
+    [System.Runtime.InteropServices.DllImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
+    private static extern uint BeginHighResolutionTimers(uint milliseconds);
+
+    [System.Runtime.InteropServices.DllImport("winmm.dll", EntryPoint = "timeEndPeriod")]
+    private static extern uint EndHighResolutionTimers(uint milliseconds);
+
+    /// <summary>
+    /// Windows' default timer granularity is about 15.6ms, so a 10ms poll actually
+    /// arrived every 11.6-23.6ms - roughly 64Hz, varying two-fold from frame to frame.
+    /// Cursor movement is scaled by how long each frame took, so that variation did not
+    /// change the overall speed, but it did make the distance moved per frame lurch,
+    /// which reads as the cursor pausing and then jumping as it travels.
+    ///
+    /// Asking for 1ms granularity while polling tightens that to 9.3-12.7ms and reaches
+    /// the intended 100Hz. It costs a little power, which is a fair trade for the one
+    /// person whose only pointing device this is.
+    /// </summary>
+    private const uint TimerResolutionMs = 1;
+
+    private bool _highResolutionTimersRequested;
+
     private CancellationTokenSource? _cts;
     private Task? _supervisorTask;
 
@@ -97,6 +118,8 @@ public class XboxControllerService : IDisposable
             return;
         }
 
+        RequestHighResolutionTimers();
+
         _cts = new CancellationTokenSource();
         _supervisorTask = Task.Run(() => SuperviseAsync(pollRateMs, _cts.Token));
     }
@@ -118,12 +141,56 @@ public class XboxControllerService : IDisposable
         _cts?.Dispose();
         _cts = null;
 
+        ReleaseHighResolutionTimers();
+
         if (_attachedIndex >= 0)
         {
             // Silent teardown: nothing was lost, we were asked to stop. Announcing a
             // disconnection here made the UI report "controller lost - searching for
             // it" immediately after a deliberate stop, which was simply untrue.
             Detach(announce: false);
+        }
+    }
+
+    /// <summary>
+    /// Ask Windows for finer timer granularity, so the poll interval is actually honoured.
+    /// Paired with <see cref="ReleaseHighResolutionTimers"/> - the request is reference
+    /// counted system-wide, so leaving it outstanding would affect the whole machine.
+    /// </summary>
+    private void RequestHighResolutionTimers()
+    {
+        if (_highResolutionTimersRequested)
+        {
+            return;
+        }
+
+        try
+        {
+            BeginHighResolutionTimers(TimerResolutionMs);
+            _highResolutionTimersRequested = true;
+        }
+        catch (Exception)
+        {
+            // Not fatal: without it the cursor is less smooth, but everything works.
+        }
+    }
+
+    private void ReleaseHighResolutionTimers()
+    {
+        if (!_highResolutionTimersRequested)
+        {
+            return;
+        }
+
+        _highResolutionTimersRequested = false;
+
+        try
+        {
+            EndHighResolutionTimers(TimerResolutionMs);
+        }
+        catch (Exception)
+        {
+            // Nothing useful to do while shutting down.
         }
     }
 
