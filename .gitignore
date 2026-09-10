@@ -1,4 +1,4 @@
-﻿# .NET Core
+# .NET Core
 bin/
 obj/
 *.user
@@ -48,11 +48,11 @@ Desktop.ini
 # VS Code
 .vscode/
 
-# Publish outputs
+# Publish outputs - build artefacts, never committed. Stale copies checked in here
+# previously were not just clutter: one was still being launched by mistake during
+# testing, running months-old code alongside the current build.
 publish/
-publish-framework-dependent/
-publish-framework/
-publish-portable/
+publish-*/
 
 # Tray project (unused)
 src/HIDra.Tray/

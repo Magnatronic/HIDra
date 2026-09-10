@@ -71,42 +71,6 @@
                     Orientation="Horizontal" 
                     HorizontalAlignment="Center" 
                     Margin="0,25,0,0">
-            <Button x:Name="ConnectButton" 
-                    Content="Reconnect" 
-                    Width="100" 
-                    Height="40" 
-                    FontSize="13"
-                    Background="#3C3C3C"
-                    Foreground="White"
-                    BorderBrush="#555555"
-                    Margin="0,0,8,0"
-                    Click="ConnectButton_Click">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="#3C3C3C"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="BorderBrush" Value="#555555"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="4">
-                                        <ContentPresenter HorizontalAlignment="Center" 
-                                                        VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#4C4C4C"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
             <Button x:Name="StopButton" 
                     Content="Pause" 
                     Width="80" 

@@ -17,6 +17,7 @@ namespace HIDra.UI
         private VirtualKeyboardWindow? _virtualKeyboard;
         private TrayIcon? _trayIcon;
         private ModeToast? _modeToast;
+        private System.Windows.Threading.DispatcherTimer? _startRetryTimer;
 
         /// <summary>
         /// Set only when the user genuinely chooses to exit. Until then, closing the
@@ -176,28 +177,43 @@ namespace HIDra.UI
                 }
 
                 StopButton.IsEnabled = true;
-                ConnectButton.IsEnabled = false;
                 _trayIcon?.UpdateStatus(_engine.Controller?.IsConnected == true, _engine.Battery);
             }
             catch (Exception ex)
             {
-                UpdateStatus(ConnectionStatus.Error, $"Could not start: {ex.Message}");
-                ConnectButton.IsEnabled = true;
+                // Retry rather than offering a button. Whoever needs HIDra to start is,
+                // by definition, the person who cannot click anything to make it happen.
+                UpdateStatus(ConnectionStatus.Error,
+                    $"Could not start: {ex.Message}. Trying again...");
+                ScheduleEngineRetry();
             }
         }
 
         /// <summary>
-        /// Manual restart of the engine. Rarely needed now that reconnection is
-        /// automatic, but kept so staff have a way to reset things.
+        /// Try to start the engine again shortly. Keeps trying for as long as it keeps
+        /// failing, in the same spirit as the controller supervision loop.
         /// </summary>
-        private void ConnectButton_Click(object sender, RoutedEventArgs e)
+        private void ScheduleEngineRetry()
         {
-            _engine?.Stop();
             _engine?.Dispose();
             _engine = null;
 
+            _startRetryTimer ??= new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(5)
+            };
+
+            _startRetryTimer.Tick -= OnStartRetryTick;
+            _startRetryTimer.Tick += OnStartRetryTick;
+            _startRetryTimer.Start();
+        }
+
+        private void OnStartRetryTick(object? sender, EventArgs e)
+        {
+            _startRetryTimer?.Stop();
             StartEngine();
         }
+
 
         /// <summary>
         /// Pause or resume controller input.
@@ -396,6 +412,19 @@ namespace HIDra.UI
             Topmost = false;
         }
 
+        /// <summary>
+        /// Someone launched HIDra again while it was already running. Show the window
+        /// they were presumably looking for, and say why a second copy did not appear -
+        /// otherwise clicking the shortcut looks like it did nothing at all.
+        /// </summary>
+        public void RestoreFromAnotherInstance()
+        {
+            RestoreWindow();
+            _trayIcon?.ShowMessage("HIDra is already running",
+                "Only one copy can run at a time, so this window has been brought back "
+                + "instead of starting another.");
+        }
+
         private void ExitApplication()
         {
             _exitConfirmed = true;
@@ -511,6 +540,7 @@ namespace HIDra.UI
                 return;
             }
 
+            _startRetryTimer?.Stop();
             _virtualKeyboard?.Close();
             _modeToast?.Close();
             _engine?.Stop();
