@@ -174,6 +174,12 @@ public class HIDraEngine : IDisposable
     /// <summary>Press the highlighted key on the on-screen keyboard.</summary>
     public event EventHandler? KeyboardSelectRequested;
 
+    /// <summary>
+    /// Press the highlighted key shifted, giving the symbol printed above it or the
+    /// capital letter. Saves travelling to the Shift key and back for every one.
+    /// </summary>
+    public event EventHandler? KeyboardSelectShiftedRequested;
+
     // Held-direction repeat, so crossing the keyboard does not mean one press per key.
     private KeyboardNavigationDirection? _heldDirection;
     private readonly System.Diagnostics.Stopwatch _keyRepeatTimer = new();
@@ -706,7 +712,18 @@ public class HIDraEngine : IDisposable
         {
             KeyboardSelectRequested?.Invoke(this, EventArgs.Empty);
         }
-        ProcessButton("ButtonB", current.ButtonB, previous.ButtonB, activeModifier);
+        // B gives the shifted character of the highlighted key while the keyboard is
+        // open - the symbol printed above it, or the capital. Right-click is unavailable
+        // for that time, which is rarely wanted mid-typing and is the same trade already
+        // made for A.
+        if (!KeyboardNavigationActive)
+        {
+            ProcessButton("ButtonB", current.ButtonB, previous.ButtonB, activeModifier);
+        }
+        else if (_inputProcessor.IsButtonPressed(current.ButtonB, previous.ButtonB))
+        {
+            KeyboardSelectShiftedRequested?.Invoke(this, EventArgs.Empty);
+        }
         ProcessButton("ButtonX", current.ButtonX, previous.ButtonX, activeModifier);
         ProcessButton("ButtonY", current.ButtonY, previous.ButtonY, activeModifier);
         ProcessButton("LeftBumper", current.LeftBumper, previous.LeftBumper, activeModifier);

@@ -41,6 +41,7 @@ VIRTUAL KEYBOARD:
   X Button = Open/close on-screen keyboard
   Left Stick = Move the yellow highlight between keys
   A Button   = Type the highlighted key
+  B Button   = Type its shifted version (£ $ % : ? and CAPITALS)
   (Big UK layout with visible shift symbols)
 
 SWITCHING BETWEEN PROGRAMS:
@@ -84,7 +85,9 @@ Type Text:
      (hold a direction to travel quickly across the keyboard)
      (the D-pad also works, if you prefer it)
   4. Press A to type the highlighted letter
-  5. Press X again to close the keyboard
+  5. Press B for the symbol printed ABOVE the key,
+     or for a CAPITAL letter (e.g. A gives 3, B gives £)
+  6. Press X again to close the keyboard
 
   You do NOT need to aim the mouse at the keys any more.
   While the keyboard is open the left stick moves the highlight
@@ -138,9 +141,10 @@ VIRTUAL KEYBOARD TIPS
 ----------------------
 - UK layout with " above 2 and £ above 3
 - Shift symbols are big and easy to see
-- Press Shift to use symbols (!, @, £, etc.)
-- Press Ctrl then another key for shortcuts
+- Press B for symbols and capitals - no need to visit Shift at all
+- Shift still works if you prefer it, and clears after one key
 - Press Caps Lock for ALL CAPS typing
+- Press Ctrl then another key for shortcuts
 
 IF SOMETHING GOES WRONG
 -----------------------

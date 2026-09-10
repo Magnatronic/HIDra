@@ -6,7 +6,7 @@ Control Windows with an Xbox controller. Simple, reliable, zeroconfig.
 - Mouse with Left Stick; LT = precision mode
 - Scroll with Right Stick
 - DPad window management: Up = Maximize, Down = Minimize, Left/Right = Snap
-- X toggles onscreen keyboard (UK layout, large keys); left stick moves the highlight and A types, so no aiming is needed
+- X toggles onscreen keyboard (UK layout, large keys); left stick moves the highlight, A types, B gives the shifted symbol or capital - no aiming needed
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
 - Start opens Task View; Back opens Start menu

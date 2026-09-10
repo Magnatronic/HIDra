@@ -438,6 +438,47 @@ public partial class VirtualKeyboardWindow : Window
         _highlightedKey.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
     }
 
+    /// <summary>
+    /// Press the highlighted key as though Shift were held, giving the symbol printed
+    /// above it - or the capital, for a letter.
+    ///
+    /// This exists so the shifted character costs one button instead of two journeys
+    /// across the keyboard to the Shift key and back. Shift is applied only for this
+    /// one press: it behaves as a momentary modifier rather than a latch, so the state
+    /// afterwards is always the same no matter which key was pressed.
+    /// </summary>
+    public void ActivateHighlightShifted()
+    {
+        EnsureKeysCollected();
+
+        if (_highlightedKey == null)
+        {
+            if (_navigableKeys.Count > 0)
+            {
+                SetHighlight(_navigableKeys[0]);
+            }
+
+            return;
+        }
+
+        _shiftPressed = true;
+
+        try
+        {
+            _highlightedKey.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+        }
+        finally
+        {
+            // Always end unshifted, whether or not the key that ran consumed it. Keys
+            // such as Backspace and Enter ignore Shift entirely and would otherwise
+            // leave it stuck on for the following keystroke.
+            _shiftPressed = false;
+            UpdateModifierButtons();
+            UpdateLetterCase();
+            UpdateNumberRowSymbols();
+        }
+    }
+
     /// <summary>Is a key currently highlighted?</summary>
     public bool HasHighlight => _highlightedKey != null;
 
