@@ -10,7 +10,21 @@
         ShowInTaskbar="False"
         Focusable="False"
         ShowActivated="False">
-    
+
+    <!--
+        Three kinds of key, and the difference between them is meant to be visible at a
+        glance rather than only in the markup:
+
+          typing keys    dark, large glyph - the letters, digits and symbols
+          function keys  lighter, smaller word - everything that acts rather than types
+          the close key  red - the only key here that a press cannot take back
+
+        The four backgrounds this file used to carry (#3C3C3C, #424242, #383838,
+        #4A4A4A) differed by two to six values per channel, which is invisible on
+        screen. They separated the keys in the source and nowhere else, so the only
+        thing the user could actually see was the font size - and that ran 11, 12, 13,
+        14, 16, 18 and 20 with no rule behind it, which reads as accidental.
+    -->
     <Window.Resources>
         <!-- Base Key Button Style with Animation -->
         <Style x:Key="KeyButtonStyle" TargetType="Button">
@@ -38,15 +52,20 @@
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
+                                            <!-- Flashing green and back used to be two animations, the
+                                                 second of which returned every key to #3C3C3C and held
+                                                 it there. That was invisible while all the keys were
+                                                 nearly that colour anyway; now that a function key is
+                                                 visibly lighter, one press would have repainted it as a
+                                                 letter key for good. Reversing a single animation and
+                                                 stopping it hands the key back to whatever colour its
+                                                 own style says it is. -->
                                             <ColorAnimation Storyboard.TargetName="border"
                                                           Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
                                                           To="#4CAF50"
-                                                          Duration="0:0:0.1"/>
-                                            <ColorAnimation Storyboard.TargetName="border"
-                                                          Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                          To="#3C3C3C"
-                                                          Duration="0:0:0.2"
-                                                          BeginTime="0:0:0.1"/>
+                                                          Duration="0:0:0.1"
+                                                          AutoReverse="True"
+                                                          FillBehavior="Stop"/>
                                         </Storyboard>
                                     </BeginStoryboard>
                                 </Trigger.EnterActions>
@@ -56,35 +75,42 @@
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
+                <!-- Only the border reacts to the mouse. Recolouring the background would
+                     wipe out the difference between a typing key and a function key, and
+                     fight the blue and green that modifier keys use to show their state. -->
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#4C4C4C"/>
                     <Setter Property="BorderBrush" Value="#0078D4"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- Letter Key Style (standard letters A-Z) -->
+        <!-- Letters: the most frequent keys, so the largest glyph on the board -->
         <Style x:Key="LetterKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
-            <Setter Property="Background" Value="#3C3C3C"/>
+            <Setter Property="FontSize" Value="22"/>
         </Style>
 
-        <!-- Number Key Style (lighter for numbers) -->
-        <Style x:Key="NumberKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
-            <Setter Property="Background" Value="#424242"/>
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="FontWeight" Value="Normal"/>
-        </Style>
+        <!-- Digits and symbols: two glyphs stacked, sized by the runs inside them -->
+        <Style x:Key="PairedKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}"/>
 
-        <!-- Symbol Key Style (darker for special characters) -->
-        <Style x:Key="SymbolKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
-            <Setter Property="Background" Value="#383838"/>
-            <Setter Property="FontSize" Value="16"/>
-        </Style>
-
-        <!-- Modifier Key Style (Esc, Tab, Caps, Shift, Ctrl) -->
-        <Style x:Key="ModifierKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
-            <Setter Property="Background" Value="#4A4A4A"/>
+        <!-- Function keys: they act rather than type, and say so by being lighter -->
+        <Style x:Key="FunctionKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
+            <Setter Property="Background" Value="#565656"/>
+            <Setter Property="BorderBrush" Value="#767676"/>
             <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <!-- Function keys labelled with a symbol rather than a word -->
+        <Style x:Key="FunctionGlyphKeyStyle" TargetType="Button" BasedOn="{StaticResource FunctionKeyStyle}">
+            <Setter Property="FontSize" Value="22"/>
+        </Style>
+
+        <!-- Closing the keyboard is the one thing here that a press cannot undo, so it
+             does not get to look like every other key. -->
+        <Style x:Key="CloseKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
+            <Setter Property="Background" Value="#5A2E2E"/>
+            <Setter Property="BorderBrush" Value="#A85454"/>
+            <Setter Property="Foreground" Value="#FF9090"/>
+            <Setter Property="FontSize" Value="22"/>
         </Style>
     </Window.Resources>
 
@@ -99,49 +125,53 @@
 
         <!-- Row 0: Numbers and symbols (with shift variants) -->
         <UniformGrid Grid.Row="0" Rows="1" Columns="14">
-            <Button Style="{StaticResource ModifierKeyStyle}" Content="Esc" Click="EscapeButton_Click"/>
-            <Button x:Name="Key1" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="1">
+            <!-- Close sat beside the up arrow, one step from keys that editing text uses
+                 constantly, where an overshoot ended the typing session. The top left
+                 corner is the one place on the board nothing routes through: you arrive
+                 here only by deciding to. -->
+            <Button Style="{StaticResource CloseKeyStyle}" Content="✕" Click="CloseButton_Click"/>
+            <Button x:Name="Key1" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="1">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">!</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">1</Run></TextBlock>
             </Button>
-            <Button x:Name="Key2" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="2">
+            <Button x:Name="Key2" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="2">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">"</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">2</Run></TextBlock>
             </Button>
-            <Button x:Name="Key3" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="3">
+            <Button x:Name="Key3" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="3">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">£</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">3</Run></TextBlock>
             </Button>
-            <Button x:Name="Key4" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="4">
+            <Button x:Name="Key4" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="4">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">$</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">4</Run></TextBlock>
             </Button>
-            <Button x:Name="Key5" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="5">
+            <Button x:Name="Key5" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="5">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">%</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">5</Run></TextBlock>
             </Button>
-            <Button x:Name="Key6" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="6">
+            <Button x:Name="Key6" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="6">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">^</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">6</Run></TextBlock>
             </Button>
-            <Button x:Name="Key7" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="7">
+            <Button x:Name="Key7" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="7">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">&amp;</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">7</Run></TextBlock>
             </Button>
-            <Button x:Name="Key8" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="8">
+            <Button x:Name="Key8" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="8">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">*</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">8</Run></TextBlock>
             </Button>
-            <Button x:Name="Key9" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="9">
+            <Button x:Name="Key9" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="9">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">(</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">9</Run></TextBlock>
             </Button>
-            <Button x:Name="Key0" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="0">
+            <Button x:Name="Key0" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="0">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">)</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">0</Run></TextBlock>
             </Button>
-            <Button x:Name="KeyMinus" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="-">
+            <Button x:Name="KeyMinus" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="-">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">_</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">-</Run></TextBlock>
             </Button>
-            <Button x:Name="KeyEquals" Style="{StaticResource NumberKeyStyle}" Click="KeyButton_Click" Tag="=">
+            <Button x:Name="KeyEquals" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="=">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">+</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">=</Run></TextBlock>
             </Button>
-            <Button Style="{StaticResource ModifierKeyStyle}" Content="⌫" Click="BackspaceButton_Click" FontSize="20"/>
+            <Button Style="{StaticResource FunctionGlyphKeyStyle}" Content="⌫" Click="BackspaceButton_Click"/>
         </UniformGrid>
 
         <!-- Row 1: QWERTYUIOP + Brackets -->
         <UniformGrid Grid.Row="1" Rows="1" Columns="14">
-            <Button Style="{StaticResource ModifierKeyStyle}" Content="Tab" Click="TabButton_Click" FontSize="12"/>
+            <Button Style="{StaticResource FunctionKeyStyle}" Content="Tab" Click="TabButton_Click"/>
             <Button x:Name="KeyQ" Style="{StaticResource LetterKeyStyle}" Content="q" Click="KeyButton_Click" Tag="Q"/>
             <Button x:Name="KeyW" Style="{StaticResource LetterKeyStyle}" Content="w" Click="KeyButton_Click" Tag="W"/>
             <Button x:Name="KeyE" Style="{StaticResource LetterKeyStyle}" Content="e" Click="KeyButton_Click" Tag="E"/>
@@ -152,18 +182,25 @@
             <Button x:Name="KeyI" Style="{StaticResource LetterKeyStyle}" Content="i" Click="KeyButton_Click" Tag="I"/>
             <Button x:Name="KeyO" Style="{StaticResource LetterKeyStyle}" Content="o" Click="KeyButton_Click" Tag="O"/>
             <Button x:Name="KeyP" Style="{StaticResource LetterKeyStyle}" Content="p" Click="KeyButton_Click" Tag="P"/>
-            <Button x:Name="KeyBracketOpen" Style="{StaticResource SymbolKeyStyle}" Click="KeyButton_Click" Tag="[">
+            <Button x:Name="KeyBracketOpen" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="[">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">{</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">[</Run></TextBlock>
             </Button>
-            <Button x:Name="KeyBracketClose" Style="{StaticResource SymbolKeyStyle}" Click="KeyButton_Click" Tag="]">
+            <Button x:Name="KeyBracketClose" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="]">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">}</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">]</Run></TextBlock>
             </Button>
-            <Button x:Name="CapsLockKey" Style="{StaticResource ModifierKeyStyle}" Content="Caps" Click="CapsLockButton_Click" FontSize="12"/>
+            <!-- Del joins Backspace above it and Enter below, so the right hand column is
+                 the single place to look for removing and for committing text. Moving it
+                 up here also gives the bottom row room to breathe. -->
+            <Button Style="{StaticResource FunctionKeyStyle}" Content="Del" Click="DeleteButton_Click"/>
         </UniformGrid>
 
         <!-- Row 2: ASDFGHJKL + Punctuation -->
         <UniformGrid Grid.Row="2" Rows="1" Columns="14">
-            <Button x:Name="ShiftKey" Style="{StaticResource ModifierKeyStyle}" Content="⇧" Click="ShiftButton_Click" FontSize="20"/>
+            <!-- Caps sat at the far right of the row above, which is a place no keyboard
+                 has ever kept it, while Shift held the spot every user reaches for when
+                 they want Caps. Swapping them costs nothing and matches the board people
+                 already know. -->
+            <Button x:Name="CapsLockKey" Style="{StaticResource FunctionKeyStyle}" Content="Caps" Click="CapsLockButton_Click"/>
             <Button x:Name="KeyA" Style="{StaticResource LetterKeyStyle}" Content="a" Click="KeyButton_Click" Tag="A"/>
             <Button x:Name="KeyS" Style="{StaticResource LetterKeyStyle}" Content="s" Click="KeyButton_Click" Tag="S"/>
             <Button x:Name="KeyD" Style="{StaticResource LetterKeyStyle}" Content="d" Click="KeyButton_Click" Tag="D"/>
@@ -173,19 +210,24 @@
             <Button x:Name="KeyJ" Style="{StaticResource LetterKeyStyle}" Content="j" Click="KeyButton_Click" Tag="J"/>
             <Button x:Name="KeyK" Style="{StaticResource LetterKeyStyle}" Content="k" Click="KeyButton_Click" Tag="K"/>
             <Button x:Name="KeyL" Style="{StaticResource LetterKeyStyle}" Content="l" Click="KeyButton_Click" Tag="L"/>
-            <Button x:Name="KeySemicolon" Style="{StaticResource SymbolKeyStyle}" Click="KeyButton_Click" Tag=";">
+            <Button x:Name="KeySemicolon" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag=";">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">:</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">;</Run></TextBlock>
             </Button>
-            <Button x:Name="KeyQuote" Style="{StaticResource SymbolKeyStyle}" Click="KeyButton_Click" Tag="'">
+            <Button x:Name="KeyQuote" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="'">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">@</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">'</Run></TextBlock>
             </Button>
-            <Button Style="{StaticResource SymbolKeyStyle}" Content="#" Click="KeyButton_Click" Tag="#"/>
-            <Button Style="{StaticResource ModifierKeyStyle}" Content="↵" Click="EnterButton_Click" FontSize="20"/>
+            <!-- # was the one symbol key printed with a blank top half, which reads as a
+                 fault rather than as a key with nothing shifted above it. Shift+# has
+                 always sent ~; only the label was missing. -->
+            <Button x:Name="KeyHash" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="#">
+                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">~</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">#</Run></TextBlock>
+            </Button>
+            <Button Style="{StaticResource FunctionGlyphKeyStyle}" Content="↵" Click="EnterButton_Click"/>
         </UniformGrid>
 
         <!-- Row 3: ZXCVBNM + Punctuation + Arrows -->
         <UniformGrid Grid.Row="3" Rows="1" Columns="14">
-            <Button x:Name="CtrlKey" Style="{StaticResource ModifierKeyStyle}" Content="Ctrl" Click="CtrlButton_Click" FontSize="11"/>
+            <Button x:Name="ShiftKey" Style="{StaticResource FunctionGlyphKeyStyle}" Content="⇧" Click="ShiftButton_Click"/>
             <Button x:Name="KeyZ" Style="{StaticResource LetterKeyStyle}" Content="z" Click="KeyButton_Click" Tag="Z"/>
             <Button x:Name="KeyX" Style="{StaticResource LetterKeyStyle}" Content="x" Click="KeyButton_Click" Tag="X"/>
             <Button x:Name="KeyC" Style="{StaticResource LetterKeyStyle}" Content="c" Click="KeyButton_Click" Tag="C"/>
@@ -193,23 +235,25 @@
             <Button x:Name="KeyB" Style="{StaticResource LetterKeyStyle}" Content="b" Click="KeyButton_Click" Tag="B"/>
             <Button x:Name="KeyN" Style="{StaticResource LetterKeyStyle}" Content="n" Click="KeyButton_Click" Tag="N"/>
             <Button x:Name="KeyM" Style="{StaticResource LetterKeyStyle}" Content="m" Click="KeyButton_Click" Tag="M"/>
-            <Button x:Name="KeyComma" Style="{StaticResource SymbolKeyStyle}" Click="KeyButton_Click" Tag=",">
+            <Button x:Name="KeyComma" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag=",">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">&lt;</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">,</Run></TextBlock>
             </Button>
-            <Button x:Name="KeyPeriod" Style="{StaticResource SymbolKeyStyle}" Click="KeyButton_Click" Tag=".">
+            <Button x:Name="KeyPeriod" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag=".">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">&gt;</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">.</Run></TextBlock>
             </Button>
-            <Button x:Name="KeySlash" Style="{StaticResource SymbolKeyStyle}" Click="KeyButton_Click" Tag="/">
+            <Button x:Name="KeySlash" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="/">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">?</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">/</Run></TextBlock>
             </Button>
-            <Button x:Name="KeyBackslash" Style="{StaticResource SymbolKeyStyle}" Click="KeyButton_Click" Tag="\">
+            <Button x:Name="KeyBackslash" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="\">
                 <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">|</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">\</Run></TextBlock>
             </Button>
-            <Button Style="{StaticResource KeyButtonStyle}" Content="↑" Click="ArrowUpButton_Click" FontSize="20"/>
-            <Button Style="{StaticResource KeyButtonStyle}" Content="✕" Click="CloseButton_Click" FontSize="20" Foreground="#FF5555"/>
+            <Button Style="{StaticResource FunctionGlyphKeyStyle}" Content="↑" Click="ArrowUpButton_Click"/>
+            <!-- Esc takes the corner Close gave up. Landing on it by accident sends one
+                 Escape, which is the cheapest mistake available on this board. -->
+            <Button Style="{StaticResource FunctionKeyStyle}" Content="Esc" Click="EscapeButton_Click"/>
         </UniformGrid>
 
-        <!-- Row 4: Space + Arrows -->
+        <!-- Row 4: Ctrl + Space + navigation + Arrows -->
         <Grid Grid.Row="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -227,22 +271,24 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            
-            <!-- Space was eleven columns wide, which wasted the most valuable row on the
-                 keyboard and made it a long trip past. Six columns is still by far the
-                 largest key here, and the space freed carries keys that have no
-                 equivalent on the controller: Home and End in particular save moving
-                 the caret one character at a time with the arrow keys. -->
-            <Button Grid.Column="0" Grid.ColumnSpan="5" Style="{StaticResource KeyButtonStyle}" Content="━━━ Space ━━━" Click="SpaceButton_Click" Margin="2" FontSize="14" FontWeight="Bold"/>
-            <Button Grid.Column="5" Style="{StaticResource KeyButtonStyle}" Content="Win" Click="WindowsKeyButton_Click" Margin="2" FontSize="12"/>
-            <Button Grid.Column="6" Style="{StaticResource KeyButtonStyle}" Content="Home" Click="HomeButton_Click" Margin="2" FontSize="11"/>
-            <Button Grid.Column="7" Style="{StaticResource KeyButtonStyle}" Content="End" Click="EndButton_Click" Margin="2" FontSize="12"/>
-            <Button Grid.Column="8" Style="{StaticResource KeyButtonStyle}" Content="PgUp" Click="PageUpButton_Click" Margin="2" FontSize="11"/>
-            <Button Grid.Column="9" Style="{StaticResource KeyButtonStyle}" Content="PgDn" Click="PageDownButton_Click" Margin="2" FontSize="11"/>
-            <Button Grid.Column="10" Style="{StaticResource KeyButtonStyle}" Content="Del" Click="DeleteButton_Click" Margin="2" FontSize="12"/>
-            <Button Grid.Column="11" Style="{StaticResource KeyButtonStyle}" Content="←" Click="ArrowLeftButton_Click" Margin="2" FontSize="20"/>
-            <Button Grid.Column="12" Style="{StaticResource KeyButtonStyle}" Content="↓" Click="ArrowDownButton_Click" Margin="2" FontSize="20"/>
-            <Button Grid.Column="13" Style="{StaticResource KeyButtonStyle}" Content="→" Click="ArrowRightButton_Click" Margin="2" FontSize="20"/>
+
+            <!-- Ctrl moves down here, which puts the four keys flanking the letters -
+                 Tab, Caps, Shift, Ctrl - back into the order every physical keyboard
+                 uses, and stops this row opening with a slab. Space keeps five columns:
+                 still by far the widest key, and no longer swallowing the room that Win,
+                 Home, End, PgUp and PgDn need. Home and End earn their place most -
+                 without them, reaching the start of a line costs one arrow press per
+                 character, and every one of those is a deliberate movement. -->
+            <Button Grid.Column="0" x:Name="CtrlKey" Style="{StaticResource FunctionKeyStyle}" Content="Ctrl" Click="CtrlButton_Click"/>
+            <Button Grid.Column="1" Grid.ColumnSpan="5" Style="{StaticResource FunctionKeyStyle}" Content="━━━ Space ━━━" Click="SpaceButton_Click"/>
+            <Button Grid.Column="6" Style="{StaticResource FunctionKeyStyle}" Content="Win" Click="WindowsKeyButton_Click"/>
+            <Button Grid.Column="7" Style="{StaticResource FunctionKeyStyle}" Content="Home" Click="HomeButton_Click"/>
+            <Button Grid.Column="8" Style="{StaticResource FunctionKeyStyle}" Content="End" Click="EndButton_Click"/>
+            <Button Grid.Column="9" Style="{StaticResource FunctionKeyStyle}" Content="PgUp" Click="PageUpButton_Click"/>
+            <Button Grid.Column="10" Style="{StaticResource FunctionKeyStyle}" Content="PgDn" Click="PageDownButton_Click"/>
+            <Button Grid.Column="11" Style="{StaticResource FunctionGlyphKeyStyle}" Content="←" Click="ArrowLeftButton_Click"/>
+            <Button Grid.Column="12" Style="{StaticResource FunctionGlyphKeyStyle}" Content="↓" Click="ArrowDownButton_Click"/>
+            <Button Grid.Column="13" Style="{StaticResource FunctionGlyphKeyStyle}" Content="→" Click="ArrowRightButton_Click"/>
         </Grid>
     </Grid>
 </Window>

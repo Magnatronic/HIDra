@@ -145,7 +145,8 @@ VIRTUAL KEYBOARD TIPS
 - Shift still works if you prefer it, and clears after one key
 - Press Caps Lock for ALL CAPS typing
 - Press Ctrl then another key for shortcuts
-- The bottom row also has Win, Home, End, PgUp, PgDn and Del
+- The bottom row also has Ctrl, Win, Home, End, PgUp and PgDn
+- Delete sits on the right hand edge, between Backspace and Enter
 - Home and End jump to the start or end of a line, which saves
   pressing the arrow keys once per letter
 

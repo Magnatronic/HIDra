@@ -211,7 +211,7 @@ public partial class VirtualKeyboardWindow : Window
         var symbolButtonNames = new[] { 
             "Key1", "Key2", "Key3", "Key4", "Key5", "Key6", "Key7", "Key8", "Key9", "Key0", "KeyMinus", "KeyEquals",
             "KeyBracketOpen", "KeyBracketClose", "KeyBackslash", "KeySlash",
-            "KeySemicolon", "KeyQuote", "KeyComma", "KeyPeriod"
+            "KeySemicolon", "KeyQuote", "KeyHash", "KeyComma", "KeyPeriod"
         };
         
         foreach (var buttonName in symbolButtonNames)
@@ -255,7 +255,9 @@ public partial class VirtualKeyboardWindow : Window
     private void UpdateModifierButtons()
     {
         var blueColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 212));
-        var grayColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(74, 74, 74));
+        // The resting colour has to be the one FunctionKeyStyle paints, or a modifier key
+        // quietly changes shade the first time its state is refreshed.
+        var grayColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(86, 86, 86));
         var greenColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80));
 
         // Visual feedback for Shift key
@@ -390,39 +392,47 @@ public partial class VirtualKeyboardWindow : Window
 
         if (_highlightedKey == null)
         {
-            SetHighlight(_navigableKeys[0]);
+            SetHighlight(DefaultKey());
             return;
         }
 
         bool horizontal = direction is KeyboardNavigationDirection.Left
                                     or KeyboardNavigationDirection.Right;
 
-        // Moving sideways looks only at keys sharing the current row, falling back to
-        // the whole keyboard when the row runs out. Without that, a wide key is judged
-        // by the distance to its centre, so stepping left off the arrow keys preferred a
-        // near key on the row above over the space bar sitting right beside it. Ranking
-        // by centre distance alone cannot express "the key I am touching".
+        // Movement looks first at the keys the current one actually lines up with:
+        // sideways, the keys sharing its row; up and down, the keys sharing its column.
+        // Without that, a wide key is judged by the distance to its centre, so stepping
+        // left off the arrow keys preferred a near key on the row above over the space
+        // bar sitting right beside it. Ranking by centre distance alone cannot express
+        // "the key I am touching".
+        //
+        // The same held vertically, and for the same reason: with the space bar starting
+        // one column in, pressing down from Z reached Ctrl and down from B reached Win,
+        // even though both letters sit squarely above the space bar. Overlap decides it
+        // on either axis, and keeps deciding it if the layout changes again.
         var candidates = new List<Button>();
 
-        if (horizontal)
+        var fromBounds = BoundsOf(_highlightedKey);
+
+        foreach (var candidate in _navigableKeys)
         {
-            var fromBounds = BoundsOf(_highlightedKey);
-
-            foreach (var candidate in _navigableKeys)
+            if (ReferenceEquals(candidate, _highlightedKey))
             {
-                if (ReferenceEquals(candidate, _highlightedKey))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var bounds = BoundsOf(candidate);
+            var bounds = BoundsOf(candidate);
 
-                // Overlapping vertically is what "same row" means when rows are ragged
-                // and keys differ in height.
-                if (bounds.Bottom > fromBounds.Top + 1 && bounds.Top < fromBounds.Bottom - 1)
-                {
-                    candidates.Add(candidate);
-                }
+            // Overlap on the axis being crossed is what "same row" and "same column"
+            // mean when rows are ragged and keys differ in size. The one pixel of slack
+            // keeps two keys that merely abut from counting as aligned.
+            bool aligned = horizontal
+                ? bounds.Bottom > fromBounds.Top + 1 && bounds.Top < fromBounds.Bottom - 1
+                : bounds.Right > fromBounds.Left + 1 && bounds.Left < fromBounds.Right - 1;
+
+            if (aligned)
+            {
+                candidates.Add(candidate);
             }
         }
 
@@ -499,7 +509,7 @@ public partial class VirtualKeyboardWindow : Window
                 return;
             }
 
-            SetHighlight(_navigableKeys[0]);
+            SetHighlight(DefaultKey());
             return;
         }
 
@@ -525,7 +535,7 @@ public partial class VirtualKeyboardWindow : Window
         {
             if (_navigableKeys.Count > 0)
             {
-                SetHighlight(_navigableKeys[0]);
+                SetHighlight(DefaultKey());
             }
 
             return;
@@ -574,6 +584,20 @@ public partial class VirtualKeyboardWindow : Window
                 ? name
                 : _highlightedKey.Content?.ToString();
         }
+    }
+
+    /// <summary>
+    /// Where the highlight starts, and where it falls back to if it is ever lost.
+    ///
+    /// This used to be whichever key the visual tree happened to yield first, which
+    /// was harmless only for as long as that key was Esc. It is Close now, and opening
+    /// the keyboard with the highlight already sitting on Close would make the first
+    /// press shut it again. Naming the key removes the dependency on layout order:
+    /// the middle of the home row is also the shortest average journey to anywhere.
+    /// </summary>
+    private Button DefaultKey()
+    {
+        return this.FindName("KeyG") as Button ?? _navigableKeys[0];
     }
 
     private void SetHighlight(Button key)
