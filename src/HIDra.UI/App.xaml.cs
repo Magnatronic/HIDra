@@ -19,6 +19,7 @@ namespace HIDra.UI
         private Thread? _showWindowListener;
         private volatile bool _listening;
         private bool _ownsMutex;
+        private System.Windows.Threading.DispatcherTimer? _pendingShowTimer;
 
         /// <summary>
         /// Refuse to start a second copy.
@@ -55,20 +56,33 @@ namespace HIDra.UI
         /// </summary>
         private static void SignalRunningInstance()
         {
-            try
+            // Keep trying briefly. The copy that won the race may still be starting and
+            // not have created the signal yet, which is exactly what happens when
+            // somebody double-clicks impatiently because the window has not appeared.
+            // Giving up on the first attempt would lose those clicks silently, so the
+            // window would never come forward and the clicking would continue.
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+
+            while (DateTime.UtcNow < deadline)
             {
-                if (EventWaitHandle.TryOpenExisting(ShowWindowEventName, out var handle))
+                try
                 {
-                    using (handle)
+                    if (EventWaitHandle.TryOpenExisting(ShowWindowEventName, out var handle))
                     {
-                        handle.Set();
+                        using (handle)
+                        {
+                            handle.Set();
+                        }
+
+                        return;
                     }
                 }
-            }
-            catch (Exception)
-            {
-                // The running copy may be shutting down. Nothing useful to do, and this
-                // process is exiting anyway.
+                catch (Exception)
+                {
+                    // Fall through and retry; the running copy may be mid-startup.
+                }
+
+                Thread.Sleep(100);
             }
         }
 
@@ -98,13 +112,7 @@ namespace HIDra.UI
                             break;
                         }
 
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            if (MainWindow is HIDra.UI.MainWindow window)
-                            {
-                                window.RestoreFromAnotherInstance();
-                            }
-                        }));
+                        Dispatcher.BeginInvoke(new Action(ShowMainWindowWhenReady));
                     }
                     catch (Exception)
                     {
@@ -122,8 +130,58 @@ namespace HIDra.UI
             _showWindowListener.Start();
         }
 
+        /// <summary>
+        /// Bring the main window forward, waiting for it to exist if it does not yet.
+        ///
+        /// The signal is created before the window is, precisely so that an impatient
+        /// second click is not missed - but that means a click can arrive while there is
+        /// still no window to show. Rather than dropping it, the request is held until
+        /// the window appears, which is the moment the person clicking wanted it.
+        /// </summary>
+        private void ShowMainWindowWhenReady()
+        {
+            if (MainWindow is HIDra.UI.MainWindow window)
+            {
+                window.RestoreFromAnotherInstance();
+                return;
+            }
+
+            if (_pendingShowTimer != null)
+            {
+                return;
+            }
+
+            var started = DateTime.UtcNow;
+
+            _pendingShowTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(150)
+            };
+
+            _pendingShowTimer.Tick += (_, _) =>
+            {
+                if (MainWindow is HIDra.UI.MainWindow ready)
+                {
+                    _pendingShowTimer!.Stop();
+                    _pendingShowTimer = null;
+                    ready.RestoreFromAnotherInstance();
+                }
+                else if (DateTime.UtcNow - started > TimeSpan.FromSeconds(20))
+                {
+                    // Something is badly wrong if there is still no window; stop waiting.
+                    _pendingShowTimer!.Stop();
+                    _pendingShowTimer = null;
+                }
+            };
+
+            _pendingShowTimer.Start();
+        }
+
         protected override void OnExit(ExitEventArgs e)
         {
+            _pendingShowTimer?.Stop();
+            _pendingShowTimer = null;
+
             _listening = false;
 
             _showWindowEvent?.Set();
