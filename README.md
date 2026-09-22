@@ -10,6 +10,8 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - Six word suggestions on the keyboard, from the prediction engine built into Windows - nothing extra to install
 - Dwell: click by resting the cursor (a ring by the cursor fills as the click approaches), and type by resting the keyboard highlight (both optional)
 - Keyboard extras: automatic capitals, the student's own phrases on a Phrases key, and an adjustable size
+- A shortcut panel on the keyboard, with icons (Undo, voice typing, Save, File Explorer, Copy/Paste, screenshots, emoji, Bold...), a row that follows the program in front (PowerPoint, Word, web browser, File Explorer), and a Select switch for highlighting text; it can be switched off
+- An Apps key that opens PowerPoint, Word, Edge and other installed programs in one press
 - One main screen: a labelled controller showing what every button does, and every setting beside it
 - LT moves the keyboard between the top and bottom of the screen, so it never has to cover your work
 - Y swaps cursor/scroll sticks

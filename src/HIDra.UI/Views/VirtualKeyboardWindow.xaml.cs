@@ -59,6 +59,7 @@ public partial class VirtualKeyboardWindow : Window
         };
 
         _fadeIdleTimer.Tick += (_, _) => FadeIdleElapsed();
+        _programWatch.Tick += (_, _) => UpdateProgramRow();
         _fadeStepTimer.Tick += (_, _) => FadeStep();
         
         // Position window at bottom of screen
@@ -73,12 +74,16 @@ public partial class VirtualKeyboardWindow : Window
             {
                 StartFresh();
                 NotifyActivity();
+                UpdateProgramRow();
+                _programWatch.Start();
             }
             else
             {
                 ResetPrediction();
                 StopDwell();
                 _fadeIdleTimer.Stop();
+                _programWatch.Stop();
+                SetSelectMode(false);
             }
         };
 
@@ -432,6 +437,10 @@ public partial class VirtualKeyboardWindow : Window
     private bool _wordBeganSentence;
     private bool _showingPhrases;
 
+    // The row showing programs to open instead of words
+    private bool _showingApps;
+    private readonly AppLauncher.App?[] _apps = new AppLauncher.App?[SuggestionCount];
+
     private bool CapitaliseNextLetter => AutoCapitalise && _atSentenceStart && _currentWord.Length == 0;
 
     private static bool IsWordChar(char c) => char.IsLetterOrDigit(c) || c == '\'';
@@ -442,6 +451,10 @@ public partial class VirtualKeyboardWindow : Window
         // Otherwise one accidental press - easy with type-by-resting - left the row
         // showing phrases while the student typed on, looking as if prediction had died.
         _showingPhrases = false;
+        _showingApps = false;
+
+        // Typing replaces any selection, so selecting is finished
+        SetSelectMode(false);
 
         // "i" on its own, or starting a contraction such as i'm or i'll, is always a
         // capital. It is only known once the word ends, so it is corrected then.
@@ -482,6 +495,22 @@ public partial class VirtualKeyboardWindow : Window
     private void RaiseKeyPressed(VirtualKey key)
     {
         _showingPhrases = false;
+        _showingApps = false;
+
+        if (Array.IndexOf(MovementKeys, key) >= 0 && (_selectMode || _shiftPressed))
+        {
+            ClearOneShotShift();
+            ClearContext();
+            KeyComboPressed?.Invoke(this, new[] { VirtualKey.Shift, key });
+            AfterContextChanged();
+            return;
+        }
+
+        // Any other key - Backspace, Delete, Enter, Tab - acts on the selection
+        if (Array.IndexOf(MovementKeys, key) < 0)
+        {
+            SetSelectMode(false);
+        }
 
         switch (key)
         {
@@ -563,6 +592,7 @@ public partial class VirtualKeyboardWindow : Window
         ClearContext();
         _atSentenceStart = true;
         _showingPhrases = false;
+        _showingApps = false;
         AfterContextChanged();
     }
 
@@ -580,6 +610,12 @@ public partial class VirtualKeyboardWindow : Window
     private async void RefreshSuggestions()
     {
         int request = ++_suggestionRequest;
+
+        if (_showingApps)
+        {
+            ShowApps();
+            return;
+        }
 
         IReadOnlyList<string> items;
         if (_showingPhrases)
@@ -635,10 +671,79 @@ public partial class VirtualKeyboardWindow : Window
             }
         }
 
-        if (FindName("PhrasesKey") is Button phrasesKey)
+        ShowRowKeyLabels();
+    }
+
+    /// <summary>
+    /// Each row key says "Words" while its own row is showing, as the way back
+    /// </summary>
+    private void ShowRowKeyLabels()
+    {
+        PhrasesKey.Content = _showingPhrases ? "Words" : "Phrases";
+        AppsKey.Content = _showingApps ? "Words" : "Apps";
+    }
+
+    /// <summary>
+    /// Fill the row with the installed programs, each with its own icon
+    /// </summary>
+    private void ShowApps()
+    {
+        var apps = AppLauncher.Installed;
+
+        for (int i = 0; i < SuggestionCount; i++)
         {
-            phrasesKey.Content = _showingPhrases ? "Words" : "Phrases";
+            _suggestions[i] = null;
+            _apps[i] = i < apps.Count ? apps[i] : null;
+
+            if (FindName($"Suggestion{i}") is not Button button)
+            {
+                continue;
+            }
+
+            if (_apps[i] is not AppLauncher.App app)
+            {
+                button.Content = i == 0 && apps.Count == 0
+                    ? new TextBlock
+                    {
+                        Text = "No programs found to open",
+                        FontSize = 15,
+                        FontStyle = FontStyles.Italic,
+                        Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC)),
+                        TextWrapping = TextWrapping.Wrap
+                    }
+                    : null;
+                continue;
+            }
+
+            var content = new StackPanel { Orientation = Orientation.Horizontal };
+            if (app.Icon != null)
+            {
+                content.Children.Add(new Image
+                {
+                    Source = app.Icon,
+                    Width = 32,
+                    Height = 32,
+                    Margin = new Thickness(0, 0, 8, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                });
+            }
+            content.Children.Add(new TextBlock
+            {
+                Text = app.Name,
+                FontSize = 17,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            button.Content = content;
         }
+
+        ShowRowKeyLabels();
+    }
+
+    private void AppsKey_Click(object sender, RoutedEventArgs e)
+    {
+        _showingApps = !_showingApps;
+        _showingPhrases = false;
+        RefreshSuggestions();
     }
 
     /// <summary>
@@ -667,6 +772,7 @@ public partial class VirtualKeyboardWindow : Window
     private void PhrasesKey_Click(object sender, RoutedEventArgs e)
     {
         _showingPhrases = !_showingPhrases;
+        _showingApps = false;
         RefreshSuggestions();
     }
 
@@ -674,6 +780,19 @@ public partial class VirtualKeyboardWindow : Window
     {
         if (sender is not Button { Tag: string tag } || !int.TryParse(tag, out int index))
         {
+            return;
+        }
+
+        if (_showingApps)
+        {
+            // Open the program, and put the row back to words ready for typing in it
+            if (_apps[index] is AppLauncher.App app)
+            {
+                AppLauncher.Launch(app);
+                _showingApps = false;
+                ResetPrediction();
+            }
+
             return;
         }
 
@@ -688,6 +807,7 @@ public partial class VirtualKeyboardWindow : Window
             // A phrase is typed whole, and the row goes back to suggestions for what
             // comes after it
             _showingPhrases = false;
+        _showingApps = false;
             RaiseTextEntered(word + " ");
             return;
         }
@@ -717,10 +837,341 @@ public partial class VirtualKeyboardWindow : Window
     }
 
     // ---------------------------------------------------------------------------
+    // Shortcut panel
+    //
+    // Whole actions as single keys, beside Backspace and Enter so they are one step
+    // from where the highlight usually is. A shortcut such as Ctrl+Z otherwise costs two
+    // trips across the keyboard - to Ctrl and back to the letter - each one a string of
+    // deliberate movements.
+    //
+    // The first four rows are the same everywhere. The last row follows the program in
+    // front - PowerPoint, Word, a web browser, File Explorer - with the things most
+    // used there.
+    // ---------------------------------------------------------------------------
+
+    /// <summary>
+    /// A shortcut key: its word, the icon shown above the word, and the keys it sends.
+    ///
+    /// The icons are Windows' own (Segoe Fluent Icons, or Segoe MDL2 Assets on Windows
+    /// 10), so nothing needs bundling - and they are the same icons as the buttons in
+    /// PowerPoint and Word, so recognising one helps with the other. The student uses
+    /// AAC, where a picture with its word is easier to find than a word alone.
+    /// </summary>
+    private sealed record Shortcut(string Label, char Icon, params VirtualKey[] Keys);
+
+    private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
+
+    private static VirtualKey K(char letter) => (VirtualKey)char.ToUpperInvariant(letter);
+
+    private static readonly Shortcut[] GeneralShortcuts =
+    {
+        new("Undo", '\uE7A7', VirtualKey.Control, K('z')),
+        new("Redo", '\uE7A6', VirtualKey.Control, K('y')),
+        // Windows voice typing: speak instead of type, into whatever has the cursor
+        new("Voice", '\uE720', VirtualKey.LeftWindows, K('h')),
+        new("Save", '\uE74E', VirtualKey.Control, K('s')),
+        new("Files", '\uE8B7', VirtualKey.LeftWindows, K('e')),
+
+        new("Cut", '\uE8C6', VirtualKey.Control, K('x')),
+        new("Copy", '\uE8C8', VirtualKey.Control, K('c')),
+        new("Paste", '\uE77F', VirtualKey.Control, K('v')),
+        new("Select all", '\uE8B3', VirtualKey.Control, K('a')),
+        // The whole screen, saved straight to Pictures\Screenshots - nothing to drag
+        new("Screen shot", '\uE722', VirtualKey.LeftWindows, VirtualKey.Snapshot),
+
+        new("Word left", '\uE72B', VirtualKey.Control, VirtualKey.Left),
+        new("Word right", '\uE72A', VirtualKey.Control, VirtualKey.Right),
+        new("Delete word", '\uE750', VirtualKey.Control, VirtualKey.Back),
+        // A switch, not a shortcut: while on, moving the cursor selects text as it goes
+        new("Select", '\uE7E6'),
+        // Choose an area of the screen (drag with RT); it is copied, ready to paste
+        new("Snip", '\uE7A8', VirtualKey.LeftWindows, VirtualKey.Shift, K('s')),
+
+        new("Bold", '\uE8DD', VirtualKey.Control, K('b')),
+        new("Italic", '\uE8DB', VirtualKey.Control, K('i')),
+        // Windows' emoji picker, for posters and messages
+        new("Emoji", '\uE76E', VirtualKey.LeftWindows, VirtualKey.OemPeriod),
+        // Bigger and smaller text work alike in PowerPoint, Word and Publisher
+        new("Bigger", '\uE8E8', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemPeriod),
+        new("Smaller", '\uE8E7', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemComma),
+    };
+
+    private static readonly Shortcut[] PowerPointRow =
+    {
+        new("New slide", '\uE710', VirtualKey.Control, K('m')),
+        new("Copy slide", '\uE8C8', VirtualKey.Control, K('d')),
+        new("Align left", '\uE8E4', VirtualKey.Control, K('l')),
+        new("Centre", '\uE8E3', VirtualKey.Control, K('e')),
+        new("Slideshow", '\uE786', VirtualKey.F5),
+    };
+
+    private static readonly Shortcut[] WordRow =
+    {
+        new("Heading", '\uE8D2', VirtualKey.Control, VirtualKey.LeftAlt, K('1')),
+        new("Bullets", '\uE8FD', VirtualKey.Control, VirtualKey.Shift, K('l')),
+        new("Centre", '\uE8E3', VirtualKey.Control, K('e')),
+        new("New page", '\uE7C3', VirtualKey.Control, VirtualKey.Return),
+        new("Print", '\uE749', VirtualKey.Control, K('p')),
+    };
+
+    private static readonly Shortcut[] BrowserRow =
+    {
+        new("Back", '\uE72B', VirtualKey.LeftAlt, VirtualKey.Left),
+        new("Forward", '\uE72A', VirtualKey.LeftAlt, VirtualKey.Right),
+        new("New tab", '\uE710', VirtualKey.Control, K('t')),
+        new("Web address", '\uE774', VirtualKey.Control, K('l')),
+        new("Find", '\uE721', VirtualKey.Control, K('f')),
+    };
+
+    private static readonly Shortcut[] ExplorerRow =
+    {
+        new("Up folder", '\uE74A', VirtualKey.LeftAlt, VirtualKey.Up),
+        new("Back", '\uE72B', VirtualKey.LeftAlt, VirtualKey.Left),
+        new("New folder", '\uE8F4', VirtualKey.Control, VirtualKey.Shift, K('n')),
+        new("Rename", '\uE8AC', VirtualKey.F2),
+        new("Search", '\uE721', VirtualKey.Control, K('e')),
+    };
+
+    private static readonly Shortcut[] OtherRow =
+    {
+        new("Top", '\uE70E', VirtualKey.Control, VirtualKey.Home),
+        new("Bottom", '\uE70D', VirtualKey.Control, VirtualKey.End),
+        new("Zoom in", '\uE8A3', VirtualKey.Control, VirtualKey.OemPlus),
+        new("Zoom out", '\uE71F', VirtualKey.Control, VirtualKey.OemMinus),
+        new("Find", '\uE721', VirtualKey.Control, K('f')),
+    };
+
+    private readonly Shortcut?[] _shortcuts = new Shortcut?[25];
+    private Shortcut[]? _programRow;
+
+    private readonly System.Windows.Threading.DispatcherTimer _programWatch =
+        new() { Interval = TimeSpan.FromMilliseconds(700) };
+
+    /// <summary>
+    /// Pick the last row for the program in front. The keyboard never takes focus, so
+    /// the foreground window is the one the student is typing into.
+    /// </summary>
+    private void UpdateProgramRow()
+    {
+        var row = ForegroundProcessName() switch
+        {
+            "powerpnt" => PowerPointRow,
+            "winword" => WordRow,
+            "msedge" or "chrome" or "firefox" or "brave" or "opera" => BrowserRow,
+            // Also the desktop and taskbar, where the Explorer keys are harmless
+            "explorer" => ExplorerRow,
+            // HIDra itself, while staff use the main screen, keeps whatever was showing
+            "hidra.ui" => _programRow ?? OtherRow,
+            _ => OtherRow
+        };
+
+        if (ReferenceEquals(row, _programRow))
+        {
+            return;
+        }
+
+        _programRow = row;
+
+        for (int i = 0; i < _shortcuts.Length; i++)
+        {
+            _shortcuts[i] = i < GeneralShortcuts.Length ? GeneralShortcuts[i] : row[i - GeneralShortcuts.Length];
+
+            if (FindName($"Shortcut{i}") is Button button)
+            {
+                var shortcut = _shortcuts[i]!;
+                var content = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                content.Children.Add(new TextBlock
+                {
+                    Text = shortcut.Icon.ToString(),
+                    FontFamily = IconFont,
+                    FontSize = 24,
+                    FontWeight = FontWeights.Normal,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 3)
+                });
+                content.Children.Add(new TextBlock
+                {
+                    Text = shortcut.Label,
+                    FontSize = 12.5,
+                    FontWeight = FontWeights.SemiBold,
+                    TextWrapping = TextWrapping.Wrap,
+                    TextAlignment = TextAlignment.Center
+                });
+                button.Content = content;
+            }
+        }
+
+        // Rebuilding the labels must not hide that Select is on
+        bool selecting = _selectMode;
+        _selectMode = !selecting;
+        SetSelectMode(selecting);
+    }
+
+    private void ShortcutButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string tag } || !int.TryParse(tag, out int index)
+            || _shortcuts[index] is not Shortcut shortcut)
+        {
+            return;
+        }
+
+        if (shortcut.Keys.Length == 0)
+        {
+            // The Select switch
+            SetSelectMode(!_selectMode);
+            return;
+        }
+
+        var keys = shortcut.Keys;
+
+        if (IsCursorMovement(keys))
+        {
+            // Moving by word, or to the top or bottom: selects instead while Select is on,
+            // or for this one step when pressed with B
+            if (_selectMode || _shiftPressed)
+            {
+                keys = WithShift(keys);
+            }
+
+            ClearOneShotShift();
+        }
+        else
+        {
+            // Cut, Copy, Bold... act on the selection, so selecting is finished
+            SetSelectMode(false);
+        }
+
+        KeyComboPressed?.Invoke(this, keys);
+
+        // A shortcut can change or move the text in ways the keyboard cannot follow
+        ResetPrediction();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Selecting text
+    //
+    // Selecting normally means holding Shift while moving - two things at once, which a
+    // controller cannot do. The Select key is a switch instead: while it is on, the
+    // arrows, Home, End and the word keys highlight text as they move. Anything that
+    // then acts on the selection - typing, Delete, Cut, Copy, Bold - switches it off,
+    // since the selection has been used. B on a movement key selects just that one step.
+    // ---------------------------------------------------------------------------
+
+    private bool _selectMode;
+
+    private static readonly VirtualKey[] MovementKeys =
+    {
+        VirtualKey.Left, VirtualKey.Right, VirtualKey.Up, VirtualKey.Down,
+        VirtualKey.Home, VirtualKey.End, VirtualKey.PageUp, VirtualKey.PageDown
+    };
+
+    /// <summary>
+    /// A shortcut that only moves the text cursor, such as Ctrl+Left - as opposed to one
+    /// that does something, such as Alt+Left (Back in a browser).
+    /// </summary>
+    private static bool IsCursorMovement(VirtualKey[] keys) =>
+        keys.Length > 0
+        && Array.IndexOf(MovementKeys, keys[^1]) >= 0
+        && keys.Take(keys.Length - 1).All(k => k == VirtualKey.Control);
+
+    private static VirtualKey[] WithShift(VirtualKey[] keys) =>
+        keys.Take(keys.Length - 1).Append(VirtualKey.Shift).Append(keys[^1]).ToArray();
+
+    private void SetSelectMode(bool on)
+    {
+        if (_selectMode == on)
+        {
+            return;
+        }
+
+        _selectMode = on;
+
+        for (int i = 0; i < _shortcuts.Length; i++)
+        {
+            if (_shortcuts[i] is { Keys.Length: 0 } && FindName($"Shortcut{i}") is Button button)
+            {
+                // Green while on, the same as Caps Lock, so it is plain that moving will select
+                button.Background = on
+                    ? new SolidColorBrush(Color.FromRgb(76, 175, 80))
+                    : (Brush)FindResource("ShortcutBackground");
+            }
+        }
+    }
+
+    /// <summary>B's Shift lasts for one key, including a movement key</summary>
+    private void ClearOneShotShift()
+    {
+        if (_shiftPressed)
+        {
+            _shiftPressed = false;
+            UpdateModifierButtons();
+            UpdateLetterCase();
+            UpdateNumberRowSymbols();
+        }
+    }
+
+    private static string ForegroundProcessName()
+    {
+        try
+        {
+            var hwnd = GetForegroundWindow();
+            if (hwnd == IntPtr.Zero)
+            {
+                return "";
+            }
+
+            GetWindowThreadProcessId(hwnd, out uint pid);
+            using var process = System.Diagnostics.Process.GetProcessById((int)pid);
+            return process.ProcessName.ToLowerInvariant();
+        }
+        catch
+        {
+            return "";
+        }
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    // ---------------------------------------------------------------------------
     // Keyboard size
     // ---------------------------------------------------------------------------
 
-    private const double BaseWidth = 1050;
+    private const double BaseWidth = 1430;
+
+    // Without the shortcut panel the keyboard goes back to its compact width
+    private const double CompactBaseWidth = 1050;
+
+    private double _scale = 1.0;
+    private bool _showShortcuts = true;
+
+    /// <summary>
+    /// Show the shortcut panel. Some students find the extra keys too much, so it can be
+    /// switched off, leaving just the keyboard.
+    /// </summary>
+    public bool ShowShortcuts
+    {
+        get => _showShortcuts;
+        set
+        {
+            if (_showShortcuts == value) return;
+            _showShortcuts = value;
+
+            ShortcutPanel.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            ShortcutColumn.Width = value ? new GridLength(5, GridUnitType.Star) : new GridLength(0);
+
+            // The highlight could be sitting on a key that has just disappeared
+            if (!value && _highlightedKey != null && ShortcutPanel.Children.Contains(_highlightedKey))
+            {
+                ClearHighlight();
+            }
+
+            SetScale(_scale);
+        }
+    }
     private const double BaseHeight = 424;
 
     /// <summary>
@@ -729,11 +1180,14 @@ public partial class VirtualKeyboardWindow : Window
     /// </summary>
     public void SetScale(double scale)
     {
+        _scale = scale;
+        double baseWidth = _showShortcuts ? BaseWidth : CompactBaseWidth;
+
         var workArea = SystemParameters.WorkArea;
-        scale = Math.Min(scale, workArea.Width / BaseWidth);
+        scale = Math.Min(scale, workArea.Width / baseWidth);
 
         KeyboardRoot.LayoutTransform = new ScaleTransform(scale, scale);
-        Width = BaseWidth * scale;
+        Width = baseWidth * scale;
         Height = BaseHeight * scale;
 
         // Keys have moved and changed size, so the highlight's map of them is stale

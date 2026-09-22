@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="HIDra Virtual Keyboard"
-        Width="1050" Height="424"
+        Width="1430" Height="424"
         WindowStyle="None"
         AllowsTransparency="True"
         BorderBrush="#666666"
@@ -126,6 +126,14 @@
 
         <!-- Word suggestions: a distinct green so they read as offers, not as keys that
              type a single character. Normal weight keeps longer words from crowding. -->
+        <!-- Shortcuts: blue-grey, so whole actions read as different from single keys -->
+        <SolidColorBrush x:Key="ShortcutBackground" Color="#2E3A48"/>
+        <Style x:Key="ShortcutKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
+            <Setter Property="Background" Value="{StaticResource ShortcutBackground}"/>
+            <Setter Property="BorderBrush" Value="#5C7A99"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
         <Style x:Key="SuggestionKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
             <Setter Property="Background" Value="#23402A"/>
             <Setter Property="BorderBrush" Value="#4CAF50"/>
@@ -143,13 +151,19 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+        <!-- The keys, then the shortcut panel beside Backspace, Del and Enter -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="14*"/>
+            <ColumnDefinition x:Name="ShortcutColumn" Width="5*"/>
+        </Grid.ColumnDefinitions>
 
         <!-- Word suggestions from Windows' built-in prediction. Always on screen, even
              when empty, so the rows below never shift and the highlight's routes stay
              where the user has learned them. Pushing up from the number row reaches
              them; A types the rest of the word and a space, B the same capitalised. -->
-        <Grid Grid.Row="0">
+        <Grid Grid.Row="0" Grid.ColumnSpan="2">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.8*"/>
                 <ColumnDefinition Width="0.8*"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -158,14 +172,16 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <!-- Swaps the row between suggestions and the student's own phrases -->
+            <!-- Swap the row between suggestions and the student's own phrases, or the
+                 programs she can open in one press -->
             <Button x:Name="PhrasesKey" Grid.Column="0" Style="{StaticResource FunctionKeyStyle}" Content="Phrases" Click="PhrasesKey_Click"/>
-            <Button x:Name="Suggestion0" Grid.Column="1" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="0"/>
-            <Button x:Name="Suggestion1" Grid.Column="2" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="1"/>
-            <Button x:Name="Suggestion2" Grid.Column="3" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="2"/>
-            <Button x:Name="Suggestion3" Grid.Column="4" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="3"/>
-            <Button x:Name="Suggestion4" Grid.Column="5" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="4"/>
-            <Button x:Name="Suggestion5" Grid.Column="6" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="5"/>
+            <Button x:Name="AppsKey" Grid.Column="1" Style="{StaticResource FunctionKeyStyle}" Content="Apps" Click="AppsKey_Click"/>
+            <Button x:Name="Suggestion0" Grid.Column="2" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="0"/>
+            <Button x:Name="Suggestion1" Grid.Column="3" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="1"/>
+            <Button x:Name="Suggestion2" Grid.Column="4" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="2"/>
+            <Button x:Name="Suggestion3" Grid.Column="5" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="3"/>
+            <Button x:Name="Suggestion4" Grid.Column="6" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="4"/>
+            <Button x:Name="Suggestion5" Grid.Column="7" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="5"/>
         </Grid>
 
         <!-- Row 1: Numbers and symbols (with shift variants) -->
@@ -335,5 +351,35 @@
             <Button Grid.Column="12" Style="{StaticResource FunctionGlyphKeyStyle}" Content="↓" Click="ArrowDownButton_Click"/>
             <Button Grid.Column="13" Style="{StaticResource FunctionGlyphKeyStyle}" Content="→" Click="ArrowRightButton_Click"/>
         </Grid>
+
+        <!-- Shortcut panel. Four rows are the same everywhere; the fifth follows the
+             program in front. Labels are filled in by the code. -->
+        <UniformGrid x:Name="ShortcutPanel" Grid.Row="1" Grid.RowSpan="5" Grid.Column="1" Rows="5" Columns="5" Margin="10,0,0,0">
+            <Button x:Name="Shortcut0" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="0"/>
+            <Button x:Name="Shortcut1" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="1"/>
+            <Button x:Name="Shortcut2" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="2"/>
+            <Button x:Name="Shortcut3" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="3"/>
+            <Button x:Name="Shortcut4" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="4"/>
+            <Button x:Name="Shortcut5" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="5"/>
+            <Button x:Name="Shortcut6" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="6"/>
+            <Button x:Name="Shortcut7" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="7"/>
+            <Button x:Name="Shortcut8" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="8"/>
+            <Button x:Name="Shortcut9" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="9"/>
+            <Button x:Name="Shortcut10" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="10"/>
+            <Button x:Name="Shortcut11" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="11"/>
+            <Button x:Name="Shortcut12" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="12"/>
+            <Button x:Name="Shortcut13" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="13"/>
+            <Button x:Name="Shortcut14" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="14"/>
+            <Button x:Name="Shortcut15" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="15"/>
+            <Button x:Name="Shortcut16" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="16"/>
+            <Button x:Name="Shortcut17" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="17"/>
+            <Button x:Name="Shortcut18" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="18"/>
+            <Button x:Name="Shortcut19" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="19"/>
+            <Button x:Name="Shortcut20" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="20"/>
+            <Button x:Name="Shortcut21" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="21"/>
+            <Button x:Name="Shortcut22" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="22"/>
+            <Button x:Name="Shortcut23" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="23"/>
+            <Button x:Name="Shortcut24" Style="{StaticResource ShortcutKeyStyle}" Click="ShortcutButton_Click" Tag="24"/>
+        </UniformGrid>
     </Grid>
 </Window>

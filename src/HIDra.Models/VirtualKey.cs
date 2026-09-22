@@ -80,5 +80,14 @@ public enum VirtualKey : ushort
     V = 0x56,
     X = 0x58,
     Y = 0x59,
-    Z = 0x5A
+    Z = 0x5A,
+
+    // Punctuation keys, for shortcuts such as Ctrl+Shift+> (bigger text)
+    OemPlus = 0xBB,
+    OemComma = 0xBC,
+    OemMinus = 0xBD,
+    OemPeriod = 0xBE,
+
+    /// <summary>Print Screen</summary>
+    Snapshot = 0x2C
 }

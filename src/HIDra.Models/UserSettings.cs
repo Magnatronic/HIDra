@@ -86,4 +86,10 @@ public class UserSettings
     /// would be unclear whether the keyboard is open at all.
     /// </summary>
     public float KeyboardFadeOpacity { get; set; } = 0.3f;
+
+    /// <summary>
+    /// Show the shortcut panel beside the keyboard. Off leaves just the keyboard, for a
+    /// student who finds the extra keys too much.
+    /// </summary>
+    public bool ShowShortcuts { get; set; } = true;
 }

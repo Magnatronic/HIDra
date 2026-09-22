@@ -491,7 +491,8 @@ namespace HIDra.UI
                     Phrases = _userSettings.Phrases,
                     FadeEnabled = _userSettings.KeyboardFadeEnabled,
                     FadeSeconds = _userSettings.KeyboardFadeSeconds,
-                    FadeOpacity = _userSettings.KeyboardFadeOpacity
+                    FadeOpacity = _userSettings.KeyboardFadeOpacity,
+                    ShowShortcuts = _userSettings.ShowShortcuts
                 };
                 _virtualKeyboard.SetScale(_userSettings.KeyboardScale);
                 _virtualKeyboard.KeyPressed += OnVirtualKeyboardKeyPressed;
@@ -689,6 +690,9 @@ namespace HIDra.UI
         private void KeyboardFadeStronger_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.KeyboardFadeOpacity = Step(s.KeyboardFadeOpacity, 0.1f, 0.2f, 0.6f, up: true));
 
+        private void ShortcutsToggle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.ShowShortcuts = !s.ShowShortcuts);
+
         private void AutoCapitalToggle_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.AutoCapitalise = !s.AutoCapitalise);
 
@@ -751,6 +755,7 @@ namespace HIDra.UI
                 _virtualKeyboard.FadeSeconds = _userSettings.KeyboardFadeSeconds;
                 _virtualKeyboard.FadeOpacity = _userSettings.KeyboardFadeOpacity;
                 _virtualKeyboard.RefreshFade();
+                _virtualKeyboard.ShowShortcuts = _userSettings.ShowShortcuts;
 
                 if (_virtualKeyboard.IsVisible)
                 {
@@ -776,6 +781,7 @@ namespace HIDra.UI
             _refreshingSettings = true;
             KeyboardSizeValue.Text = $"{_userSettings.KeyboardScale * 100:0}%";
             ShowToggle(AutoCapitalToggle, _userSettings.AutoCapitalise);
+            ShowToggle(ShortcutsToggle, _userSettings.ShowShortcuts);
             ShowToggle(KeyboardFadeToggle, _userSettings.KeyboardFadeEnabled);
             KeyboardFadeValue.Text = $"{_userSettings.KeyboardFadeSeconds:0.0} s";
             KeyboardFadeOpacityValue.Text = $"{_userSettings.KeyboardFadeOpacity * 100:0}%";

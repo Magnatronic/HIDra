@@ -356,6 +356,19 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                <TextBlock Text="Shortcut keys" Style="{StaticResource SettingTitle}"/>
+                                <TextBlock Text="The blue panel beside the keyboard" Style="{StaticResource SettingHint}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="ShortcutsToggle" Style="{StaticResource ToggleButtonStyle}" Click="ShortcutsToggle_Click"/>
+                            </StackPanel>
+                        </Grid>
+                        <Grid Style="{StaticResource SettingRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                 <TextBlock Text="Capitals automatically" Style="{StaticResource SettingTitle}"/>
                                 <TextBlock Text="Starts sentences, and I, with a capital" Style="{StaticResource SettingHint}"/>
                             </StackPanel>

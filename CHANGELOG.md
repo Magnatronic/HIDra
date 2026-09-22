@@ -43,6 +43,25 @@ the keyboard sat over the very text she was typing, with no way to move it.
   a name, an email address, sentences used often. The Phrases key at the start of the
   suggestion row swaps the suggestions for them, and one press types the whole phrase.
 - **Keyboard size**, from 80% to 150%, never wider than the screen.
+- **A shortcut panel beside Backspace and Enter.** Whole actions as one key, one step
+  from where the highlight usually is, instead of a trip to Ctrl and back: Undo, Redo,
+  voice typing (Windows' dictation), Save, File Explorer, Cut, Copy, Paste, Select all,
+  a whole-screen screenshot, Snip, word-at-a-time moving and deleting, Bold, Italic,
+  emoji and bigger/smaller text. The bottom row follows the program in front:
+  PowerPoint (new slide, slideshow...), Word (heading, bullets...), a web browser
+  (back, new tab, find...), File Explorer (up a folder, new folder, rename...).
+  Each key shows an icon above its word - the same icons as PowerPoint's and Word's
+  own buttons - since the student uses AAC and finds pictures quicker than words.
+  The panel can be switched off on the main screen for a student who finds it too
+  much. The suggestion row now runs the full width.
+- **Selecting text.** A Select key works as a switch: while it is on (green), the
+  arrows, Home, End and the word keys highlight text as they move, instead of needing
+  Shift held down. Typing, Delete, Cut, Copy or Bold then use the selection and switch
+  it off. B on a movement key selects just that one step.
+- **Opening programs in one press.** An Apps key swaps the suggestion row for the
+  programs installed on the PC - PowerPoint, Word, Publisher, Edge, Chrome, File
+  Explorer - each with its own logo. Reaching them through the Start menu with a
+  controller takes a long string of movements.
 - **The keyboard can fade when resting.** If it covers text and moving it is not enough,
   it can fade after a few seconds without controller input, so the text behind shows
   through; any stick or button brings it straight back. It never fades below a visible
