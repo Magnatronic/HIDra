@@ -438,6 +438,11 @@ public partial class VirtualKeyboardWindow : Window
 
     private void RaiseTextEntered(string text)
     {
+        // Phrases are a one-off choice, not a mode: typing anything means words again.
+        // Otherwise one accidental press - easy with type-by-resting - left the row
+        // showing phrases while the student typed on, looking as if prediction had died.
+        _showingPhrases = false;
+
         // "i" on its own, or starting a contraction such as i'm or i'll, is always a
         // capital. It is only known once the word ends, so it is corrected then.
         if (AutoCapitalise && text.Length > 0 && !IsWordChar(text[0]) &&
@@ -476,6 +481,8 @@ public partial class VirtualKeyboardWindow : Window
 
     private void RaiseKeyPressed(VirtualKey key)
     {
+        _showingPhrases = false;
+
         switch (key)
         {
             case VirtualKey.Back:
@@ -590,6 +597,12 @@ public partial class VirtualKeyboardWindow : Window
             return;
         }
 
+        // An empty row after pressing Phrases looks broken, so explain it instead. The
+        // explanation is only a label: nothing is stored for it, so it cannot be typed.
+        string? emptyPhrasesHint = _showingPhrases && items.Count == 0
+            ? "No phrases saved yet - add them on the HIDra screen"
+            : null;
+
         for (int i = 0; i < SuggestionCount; i++)
         {
             _suggestions[i] = i < items.Count ? items[i] : null;
@@ -604,6 +617,21 @@ public partial class VirtualKeyboardWindow : Window
                     FontSize = _showingPhrases ? 16 : 20,
                     Margin = new Thickness(6, 0, 6, 0)
                 };
+
+                if (i == 0 && emptyPhrasesHint != null)
+                {
+                    // Spread across the row so it reads as one message, not six keys
+                    button.Content = new TextBlock
+                    {
+                        Text = emptyPhrasesHint,
+                        FontSize = 15,
+                        FontStyle = FontStyles.Italic,
+                        Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC)),
+                        TextWrapping = TextWrapping.Wrap,
+                        TextAlignment = TextAlignment.Center,
+                        Margin = new Thickness(6, 0, 6, 0)
+                    };
+                }
             }
         }
 
