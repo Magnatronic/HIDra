@@ -6,7 +6,7 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - Mouse with Left Stick (slow by default; speed is set on the main screen and remembered per student)
 - Scroll with Right Stick
 - DPad window management: Up = Maximize, Down = Minimize, Left/Right = Snap
-- X toggles onscreen keyboard (UK layout, large keys); left stick moves the highlight, A types, B gives the shifted symbol or capital - no aiming needed
+- X toggles onscreen keyboard (UK layout, large keys, rows offset like a real keyboard, numbers and symbols on a second layer behind 123 #+); left stick moves the highlight, A types, B gives the shifted symbol or capital - no aiming needed
 - Six word suggestions on the keyboard, from the prediction engine built into Windows - nothing extra to install
 - Dwell: click by resting the cursor (a ring by the cursor fills as the click approaches), and type by resting the keyboard highlight (both optional)
 - Keyboard extras: automatic capitals, the student's own phrases on a Phrases key, and an adjustable size

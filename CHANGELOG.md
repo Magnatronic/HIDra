@@ -22,6 +22,16 @@ changed between them.
   Folders). The keys used to run in no particular order. Underline is new; the
   whole-screen screenshot key is gone, as Snip does the same job and puts the picture
   where it can be pasted.
+- **The keyboard is laid out like a keyboard.** Each row starts further in than the
+  one above, as on any real keyboard, instead of fourteen equal keys stacked in a grid.
+  Space, Enter and Backspace are the biggest keys, since after letters they are typed
+  most.
+- **Numbers and symbols are on a second layer**, behind a 123 #+ key, as on a phone.
+  The number row and the symbols typed least ([ ] \ ; # = and Caps, Win, PgUp, PgDn)
+  took a full key each on the way to the letters. They now share the letters' places,
+  and every key round the edge stays where it is on both layers. ! @ £ & ( ) : " and
+  € have keys of their own there. The keyboard always opens on the letters. With the
+  number row gone the word suggestions are a step nearer, and the keyboard is shorter.
 
 ## v1.6.0
 
