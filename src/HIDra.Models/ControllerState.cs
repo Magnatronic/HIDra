@@ -141,3 +141,30 @@ public class ControllerState
         };
     }
 }
+
+/// <summary>
+/// The controls in use at one moment - held buttons, pulled triggers, sticks pushed off
+/// centre - so the main screen can light each one up as it is used. That turns the
+/// drawing into something to try out, not just read: press a button and its label
+/// shows what it does.
+/// </summary>
+[Flags]
+public enum ControllerControls
+{
+    None = 0,
+    A = 1 << 0,
+    B = 1 << 1,
+    X = 1 << 2,
+    Y = 1 << 3,
+    LeftBumper = 1 << 4,
+    RightBumper = 1 << 5,
+    LeftTrigger = 1 << 6,
+    RightTrigger = 1 << 7,
+    Back = 1 << 8,
+    Start = 1 << 9,
+    LeftStick = 1 << 10,
+    RightStick = 1 << 11,
+    LeftStickPress = 1 << 12,
+    RightStickPress = 1 << 13,
+    DPad = 1 << 14
+}

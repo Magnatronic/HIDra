@@ -242,6 +242,14 @@ public class HIDraEngine : IDisposable
     /// </summary>
     public event EventHandler<KeyboardQuickKey>? KeyboardQuickKeyRequested;
 
+    /// <summary>
+    /// The set of controls in use has changed - raised only on a change, not every
+    /// poll, so the main screen can light up what is pressed without being flooded.
+    /// </summary>
+    public event EventHandler<ControllerControls>? ActiveControlsChanged;
+
+    private ControllerControls _activeControls;
+
     // Held-direction repeat, so crossing the keyboard does not mean one press per key.
     private KeyboardNavigationDirection? _heldDirection;
     private readonly System.Diagnostics.Stopwatch _keyRepeatTimer = new();
@@ -710,6 +718,32 @@ public class HIDraEngine : IDisposable
         {
             _activityThrottle.Restart();
             InputActivity?.Invoke(this, EventArgs.Empty);
+        }
+
+        var controls = ControllerControls.None;
+        if (state.ButtonA) controls |= ControllerControls.A;
+        if (state.ButtonB) controls |= ControllerControls.B;
+        if (state.ButtonX) controls |= ControllerControls.X;
+        if (state.ButtonY) controls |= ControllerControls.Y;
+        if (state.LeftBumper) controls |= ControllerControls.LeftBumper;
+        if (state.RightBumper) controls |= ControllerControls.RightBumper;
+        if (_inputProcessor.IsTriggerPressed(state.LeftTrigger)) controls |= ControllerControls.LeftTrigger;
+        if (_inputProcessor.IsTriggerPressed(state.RightTrigger)) controls |= ControllerControls.RightTrigger;
+        if (state.Back) controls |= ControllerControls.Back;
+        if (state.Start) controls |= ControllerControls.Start;
+        if (Math.Abs(state.LeftStickX) > stickThreshold || Math.Abs(state.LeftStickY) > stickThreshold)
+            controls |= ControllerControls.LeftStick;
+        if (Math.Abs(state.RightStickX) > stickThreshold || Math.Abs(state.RightStickY) > stickThreshold)
+            controls |= ControllerControls.RightStick;
+        if (state.LeftStickClick) controls |= ControllerControls.LeftStickPress;
+        if (state.RightStickClick) controls |= ControllerControls.RightStickPress;
+        if (state.DpadUp || state.DpadDown || state.DpadLeft || state.DpadRight)
+            controls |= ControllerControls.DPad;
+
+        if (controls != _activeControls)
+        {
+            _activeControls = controls;
+            ActiveControlsChanged?.Invoke(this, controls);
         }
     }
 

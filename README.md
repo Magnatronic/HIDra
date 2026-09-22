@@ -13,7 +13,7 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - A shortcut panel on the keyboard, with icons, in labelled rows - Edit (Undo, Copy, Paste...), Select (a Select switch for highlighting text, word moves), Style (Bold, Italic, Underline, text size), Tools (voice typing, emoji, Save, File Explorer, Snip) - and a row that follows the program in front (PowerPoint, Word, web browser, File Explorer); it can be switched off
 - While the keyboard is open, LB types Backspace, RB Space and Y Enter, from wherever the highlight is
 - An Apps key that opens PowerPoint, Word, Edge and other installed programs in one press
-- One main screen: a labelled controller showing what every button does, and every setting beside it
+- One main screen that is both the settings and a guide: a controller drawing labelled with what every button does - switching between "using the pointer" and "typing" as the keyboard opens and closes - with each button lighting up orange as it is pressed, and its settings on its label (pointer speed on the left stick, click by resting on A...); keyboard settings beside it; and a "How do I..." panel for everyday tasks
 - LT moves the keyboard between the top and bottom of the screen, so it never has to cover your work
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
