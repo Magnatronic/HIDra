@@ -41,7 +41,6 @@ namespace HIDra.UI
             InitializeComponent();
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
-            SizeChanged += (_, _) => FitGuideToHeight();
         }
 
         /// <summary>
@@ -653,55 +652,26 @@ namespace HIDra.UI
             _liveCards.Add((ControllerControls.LeftStickPress | ControllerControls.RightStickPress, CardStickPress));
 
             SetGuideMode(typing: _virtualKeyboard?.IsVisible == true);
+            ShowSettingsPage(false);
         }
 
-        // Below this height the "How do I..." cards along the bottom would squeeze the
-        // controller drawing too small to read, so they move into the drawing's panel
-        // behind a button instead
-        private const double CompactGuideHeight = 900;
+        // ---------------------------------------------------------------------------
+        // Pages
+        //
+        // The Guide is for the student and is what opens; Settings is for staff. Both on
+        // one page was too much at once.
+        // ---------------------------------------------------------------------------
 
-        private bool _compactGuide;
-        private bool _showingHowToInline;
+        private void GuideTab_Click(object sender, RoutedEventArgs e) => ShowSettingsPage(false);
 
-        private void FitGuideToHeight()
+        private void SettingsTab_Click(object sender, RoutedEventArgs e) => ShowSettingsPage(true);
+
+        private void ShowSettingsPage(bool settings)
         {
-            bool compact = ActualHeight < CompactGuideHeight;
-            if (compact == _compactGuide)
-            {
-                return;
-            }
-
-            _compactGuide = compact;
-
-            if (compact)
-            {
-                ((Panel)HowToGrid.Parent).Children.Remove(HowToGrid);
-                HowToGrid.Columns = 2;
-                HowToInline.Child = new ScrollViewer { Content = HowToGrid, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-            }
-            else
-            {
-                ((ScrollViewer)HowToInline.Child).Content = null;
-                HowToInline.Child = null;
-                HowToGrid.Columns = 4;
-                ((StackPanel)HowToPanel.Child).Children.Add(HowToGrid);
-                _showingHowToInline = false;
-            }
-
-            HowToPanel.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
-            HowToButton.Visibility = compact ? Visibility.Visible : Visibility.Collapsed;
-            ShowHowToInline(_showingHowToInline && compact);
-        }
-
-        private void HowToButton_Click(object sender, RoutedEventArgs e) =>
-            ShowHowToInline(!_showingHowToInline);
-
-        private void ShowHowToInline(bool show)
-        {
-            _showingHowToInline = show;
-            HowToInline.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            GuideDiagram.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
-            HowToButton.Background = show ? OnBrush : OffBrush;
+            GuidePage.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
+            SettingsPage.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
+            GuideTabButton.Background = settings ? OffBrush : OnBrush;
+            SettingsTabButton.Background = settings ? OnBrush : OffBrush;
         }
 
         private void ModePointer_Click(object sender, RoutedEventArgs e) => SetGuideMode(typing: false);
@@ -725,7 +695,7 @@ namespace HIDra.UI
             ActY.Text = _guideTyping ? "Enter" : "Swap the two sticks";
             ActB.Text = _guideTyping ? "Capital, or the symbol on top" : "Right click";
             ActX.Text = _guideTyping ? "Close the keyboard" : "Open the keyboard";
-            ActA.Text = _guideTyping ? "Type the key in the orange box" : "Click";
+            ActA.Text = _guideTyping ? "Type the key" : "Click";
             ActDPad.Text = _guideTyping ? "Move the orange box" : "Maximise, minimise, snap";
 
             // While typing, the left stick always steers the keyboard. Otherwise the
