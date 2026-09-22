@@ -21,16 +21,24 @@
     <!-- For the notification-area icon (System.Windows.Forms.NotifyIcon), which is
          how the window is recovered once it has been hidden. -->
     <UseWindowsForms>true</UseWindowsForms>
-    <!-- HIDra v1.4.0 branding -->
+    <!-- HIDra branding -->
     <AssemblyName>HIDra.UI</AssemblyName>
-    <Version>1.5.0</Version>
-    <AssemblyVersion>1.5.0.0</AssemblyVersion>
-    <FileVersion>1.5.0.0</FileVersion>
+    <Version>1.6.0</Version>
+    <AssemblyVersion>1.6.0.0</AssemblyVersion>
+    <FileVersion>1.6.0.0</FileVersion>
     <Product>HIDra - Controller Accessibility Tool</Product>
     <Company>Magnatronic</Company>
     <Copyright>MIT License</Copyright>
     <Description>Control Windows with an Xbox controller for accessibility</Description>
+    <!-- Used for the exe, the window title bars and taskbar, and the notification area -->
+    <ApplicationIcon>HIDra.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Also embedded, so the notification area can load it at its own small size
+         rather than shrinking the 32px copy Windows extracts from the exe. -->
+    <Resource Include="HIDra.ico" />
+  </ItemGroup>
 
   <!-- Conditional publishing settings for self-contained builds -->
   <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">

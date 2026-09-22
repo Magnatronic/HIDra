@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using HIDra.Models;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Runtime.InteropServices;
@@ -22,6 +24,7 @@ public partial class VirtualKeyboardWindow : Window
     // Win32 API constants
     private const int GWL_EXSTYLE = -20;
     private const int WS_EX_NOACTIVATE = 0x08000000;
+    private const int WS_EX_TRANSPARENT = 0x00000020;
 
     [DllImport("user32.dll")]
     private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -54,11 +57,49 @@ public partial class VirtualKeyboardWindow : Window
             var extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
             SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_NOACTIVATE);
         };
+
+        _fadeIdleTimer.Tick += (_, _) => FadeIdleElapsed();
+        _fadeStepTimer.Tick += (_, _) => FadeStep();
         
         // Position window at bottom of screen
         this.WindowStartupLocation = WindowStartupLocation.Manual;
-        this.Left = (SystemParameters.PrimaryScreenWidth - this.Width) / 2;
-        this.Top = SystemParameters.PrimaryScreenHeight - this.Height - 50;
+        MoveToEdge(atTop: false);
+
+        // While hidden the student may click somewhere else entirely, so whatever was
+        // being typed before is no longer the text next to the cursor.
+        IsVisibleChanged += (_, _) =>
+        {
+            if (IsVisible)
+            {
+                StartFresh();
+                NotifyActivity();
+            }
+            else
+            {
+                ResetPrediction();
+                StopDwell();
+                _fadeIdleTimer.Stop();
+            }
+        };
+
+        _dwellTimer.Tick += (_, _) =>
+        {
+            StopDwell();
+            ActivateHighlight();
+        };
+
+        _dwellRingDelay.Tick += (_, _) => ShowDwellRing();
+    }
+
+    /// <summary>
+    /// Move the keyboard to the top or bottom of the screen, so it does not sit over
+    /// the text the student is typing into.
+    /// </summary>
+    public void MoveToEdge(bool atTop)
+    {
+        var workArea = SystemParameters.WorkArea;
+        this.Left = workArea.Left + (workArea.Width - this.Width) / 2;
+        this.Top = atTop ? workArea.Top + 10 : workArea.Bottom - this.Height - 10;
     }
 
     private void KeyButton_Click(object sender, RoutedEventArgs e)
@@ -81,6 +122,10 @@ public partial class VirtualKeyboardWindow : Window
 
             KeyComboPressed?.Invoke(this, combo);
 
+            // A shortcut such as Ctrl+V or Ctrl+Z changes the text in ways the
+            // keyboard cannot follow, so the current word is no longer known.
+            ResetPrediction();
+
             // Both modifiers are one-shot, matching how Shift already behaved.
             _ctrlPressed = false;
             _shiftPressed = false;
@@ -96,7 +141,7 @@ public partial class VirtualKeyboardWindow : Window
         // Apply shift or caps lock modifier for letters
         if (keyStr.Length == 1 && char.IsLetter(keyStr[0]))
         {
-            bool shouldBeUppercase = _capsLockOn ? !_shiftPressed : _shiftPressed;
+            bool shouldBeUppercase = (_capsLockOn || CapitaliseNextLetter) ? !_shiftPressed : _shiftPressed;
             textToType = shouldBeUppercase ? keyStr.ToUpper() : keyStr.ToLower();
             
             // Reset shift after use (but not caps lock)
@@ -147,22 +192,22 @@ public partial class VirtualKeyboardWindow : Window
         }
 
         // Send text to be typed
-        TextEntered?.Invoke(this, textToType);
+        RaiseTextEntered(textToType);
     }
 
     private void BackspaceButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Back);
+        RaiseKeyPressed(VirtualKey.Back);
     }
 
     private void EnterButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Return);
+        RaiseKeyPressed(VirtualKey.Return);
     }
 
     private void SpaceButton_Click(object sender, RoutedEventArgs e)
     {
-        TextEntered?.Invoke(this, " ");
+        RaiseTextEntered(" ");
     }
 
     private void ShiftButton_Click(object sender, RoutedEventArgs e)
@@ -199,7 +244,7 @@ public partial class VirtualKeyboardWindow : Window
             if (key?.Tag is string tag && tag.Length == 1 && char.IsLetter(tag[0]))
             {
                 // Caps lock inverts the effect of shift
-                bool shouldBeUppercase = _capsLockOn ? !_shiftPressed : _shiftPressed;
+                bool shouldBeUppercase = (_capsLockOn || CapitaliseNextLetter) ? !_shiftPressed : _shiftPressed;
                 key.Content = shouldBeUppercase ? tag.ToUpper() : tag.ToLower();
             }
         }
@@ -292,17 +337,17 @@ public partial class VirtualKeyboardWindow : Window
 
     private void TabButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Tab);
+        RaiseKeyPressed(VirtualKey.Tab);
     }
 
     private void EscapeButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Escape);
+        RaiseKeyPressed(VirtualKey.Escape);
     }
 
     private void WindowsKeyButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.LeftWindows);
+        RaiseKeyPressed(VirtualKey.LeftWindows);
     }
 
     // Home and End matter more here than on an ordinary keyboard: without them the only
@@ -310,47 +355,361 @@ public partial class VirtualKeyboardWindow : Window
     // character, and every one of those presses costs a deliberate movement.
     private void HomeButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Home);
+        RaiseKeyPressed(VirtualKey.Home);
     }
 
     private void EndButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.End);
+        RaiseKeyPressed(VirtualKey.End);
     }
 
     private void DeleteButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Delete);
+        RaiseKeyPressed(VirtualKey.Delete);
     }
 
     private void PageUpButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.PageUp);
+        RaiseKeyPressed(VirtualKey.PageUp);
     }
 
     private void PageDownButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.PageDown);
+        RaiseKeyPressed(VirtualKey.PageDown);
     }
 
     private void ArrowUpButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Up);
+        RaiseKeyPressed(VirtualKey.Up);
     }
 
     private void ArrowDownButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Down);
+        RaiseKeyPressed(VirtualKey.Down);
     }
 
     private void ArrowLeftButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Left);
+        RaiseKeyPressed(VirtualKey.Left);
     }
 
     private void ArrowRightButton_Click(object sender, RoutedEventArgs e)
     {
-        KeyPressed?.Invoke(this, VirtualKey.Right);
+        RaiseKeyPressed(VirtualKey.Right);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Word prediction, automatic capitals and phrases
+    //
+    // The keyboard cannot read the document being typed into, so it follows what it
+    // has typed itself: the word in progress and the few before it. Anything that
+    // moves the text cursor or edits in ways it cannot follow - arrows, Home, Tab, a
+    // Ctrl shortcut, hiding the keyboard - starts afresh rather than guessing.
+    // ---------------------------------------------------------------------------
+
+    private const int SuggestionCount = 6;
+    private const int ContextWords = 3;
+
+    private readonly WordPredictor _predictor = new();
+    private readonly List<string> _previousWords = new();
+    private readonly string?[] _suggestions = new string?[SuggestionCount];
+    private string _currentWord = "";
+    private int _suggestionRequest;
+
+    /// <summary>
+    /// Capitalise the first letter of a sentence, and "i" on its own
+    /// </summary>
+    public bool AutoCapitalise { get; set; } = true;
+
+    /// <summary>
+    /// The student's own phrases, offered in place of the suggestions by the Phrases key
+    /// </summary>
+    public IReadOnlyList<string> Phrases { get; set; } = Array.Empty<string>();
+
+    // Whether the next letter starts a sentence, and whether the word in progress did -
+    // so backspacing a whole first word brings the capital back.
+    private bool _atSentenceStart;
+    private bool _wordBeganSentence;
+    private bool _showingPhrases;
+
+    private bool CapitaliseNextLetter => AutoCapitalise && _atSentenceStart && _currentWord.Length == 0;
+
+    private static bool IsWordChar(char c) => char.IsLetterOrDigit(c) || c == '\'';
+
+    private void RaiseTextEntered(string text)
+    {
+        // "i" on its own, or starting a contraction such as i'm or i'll, is always a
+        // capital. It is only known once the word ends, so it is corrected then.
+        if (AutoCapitalise && text.Length > 0 && !IsWordChar(text[0]) &&
+            (_currentWord == "i" || _currentWord.StartsWith("i'")))
+        {
+            for (int i = 0; i < _currentWord.Length; i++)
+            {
+                KeyPressed?.Invoke(this, VirtualKey.Back);
+            }
+
+            _currentWord = "I" + _currentWord[1..];
+            TextEntered?.Invoke(this, _currentWord);
+        }
+
+        foreach (char c in text)
+        {
+            if (IsWordChar(c))
+            {
+                if (_currentWord.Length == 0)
+                {
+                    _wordBeganSentence = _atSentenceStart;
+                }
+
+                _currentWord += c;
+                _atSentenceStart = false;
+            }
+            else
+            {
+                EndWord(c);
+            }
+        }
+
+        TextEntered?.Invoke(this, text);
+        AfterContextChanged();
+    }
+
+    private void RaiseKeyPressed(VirtualKey key)
+    {
+        switch (key)
+        {
+            case VirtualKey.Back:
+                // Backspace inside a word is easy to follow. Past its start, the
+                // keyboard would be guessing what is now before the cursor.
+                if (_currentWord.Length > 0)
+                {
+                    _currentWord = _currentWord[..^1];
+                    if (_currentWord.Length == 0)
+                    {
+                        _atSentenceStart = _wordBeganSentence;
+                    }
+                }
+                else
+                {
+                    ClearContext();
+                }
+                break;
+
+            case VirtualKey.Return:
+                EndWord('\n');
+                break;
+
+            default:
+                ClearContext();
+                break;
+        }
+
+        KeyPressed?.Invoke(this, key);
+        AfterContextChanged();
+    }
+
+    private void EndWord(char separator)
+    {
+        if (_currentWord.Length > 0)
+        {
+            _previousWords.Add(_currentWord);
+            if (_previousWords.Count > ContextWords)
+            {
+                _previousWords.RemoveAt(0);
+            }
+
+            _currentWord = "";
+        }
+
+        // A new sentence or line owes nothing to the words before it, and starts with
+        // a capital
+        if (separator is '.' or '!' or '?' or '\n')
+        {
+            _previousWords.Clear();
+            _atSentenceStart = true;
+        }
+    }
+
+    /// <summary>
+    /// The text cursor may be anywhere now, so nothing is assumed - not even that a
+    /// capital is due.
+    /// </summary>
+    private void ClearContext()
+    {
+        _currentWord = "";
+        _previousWords.Clear();
+        _atSentenceStart = false;
+    }
+
+    private void ResetPrediction()
+    {
+        ClearContext();
+        AfterContextChanged();
+    }
+
+    /// <summary>
+    /// A freshly opened keyboard is usually about to start something new, so it offers
+    /// a capital. Shift or B still types a lower-case letter if that is wrong.
+    /// </summary>
+    private void StartFresh()
+    {
+        ClearContext();
+        _atSentenceStart = true;
+        _showingPhrases = false;
+        AfterContextChanged();
+    }
+
+    private void AfterContextChanged()
+    {
+        UpdateLetterCase();
+        RefreshSuggestions();
+    }
+
+    /// <summary>
+    /// Fill the row with suggestions, or with phrases while the Phrases key is on.
+    /// Suggestion answers can arrive out of order when keys are pressed quickly, so only
+    /// the answer to the latest request is shown.
+    /// </summary>
+    private async void RefreshSuggestions()
+    {
+        int request = ++_suggestionRequest;
+
+        IReadOnlyList<string> items;
+        if (_showingPhrases)
+        {
+            items = Phrases.Where(p => !string.IsNullOrWhiteSpace(p)).Take(SuggestionCount).ToList();
+        }
+        else
+        {
+            var words = await _predictor.PredictAsync(_currentWord, _previousWords.ToArray(), SuggestionCount);
+            items = words.Select(MatchCase).ToList();
+        }
+
+        if (request != _suggestionRequest)
+        {
+            return;
+        }
+
+        for (int i = 0; i < SuggestionCount; i++)
+        {
+            _suggestions[i] = i < items.Count ? items[i] : null;
+
+            if (FindName($"Suggestion{i}") is Button button)
+            {
+                // Phrases can be long; trim them to the key rather than let them spill
+                button.Content = new TextBlock
+                {
+                    Text = _suggestions[i] ?? "",
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    FontSize = _showingPhrases ? 16 : 20,
+                    Margin = new Thickness(6, 0, 6, 0)
+                };
+            }
+        }
+
+        if (FindName("PhrasesKey") is Button phrasesKey)
+        {
+            phrasesKey.Content = _showingPhrases ? "Words" : "Phrases";
+        }
+    }
+
+    /// <summary>
+    /// Show suggestions in the case being typed, so a capitalised start gets
+    /// capitalised suggestions and Caps Lock gets capitals throughout.
+    /// </summary>
+    private string MatchCase(string word)
+    {
+        if (_capsLockOn)
+        {
+            return word.ToUpperInvariant();
+        }
+
+        if (CapitaliseNextLetter || (_currentWord.Length > 0 && char.IsUpper(_currentWord[0])))
+        {
+            return char.ToUpperInvariant(word[0]) + word[1..];
+        }
+
+        return word;
+    }
+
+    /// <summary>
+    /// The first key of the row swaps it between word suggestions and the student's
+    /// saved phrases.
+    /// </summary>
+    private void PhrasesKey_Click(object sender, RoutedEventArgs e)
+    {
+        _showingPhrases = !_showingPhrases;
+        RefreshSuggestions();
+    }
+
+    private void SuggestionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string tag } || !int.TryParse(tag, out int index))
+        {
+            return;
+        }
+
+        string? word = _suggestions[index];
+        if (word == null)
+        {
+            return;
+        }
+
+        if (_showingPhrases)
+        {
+            // A phrase is typed whole, and the row goes back to suggestions for what
+            // comes after it
+            _showingPhrases = false;
+            RaiseTextEntered(word + " ");
+            return;
+        }
+
+        // B (or Shift) gives the word a capital, the same as it does for a letter
+        if (_shiftPressed)
+        {
+            word = char.ToUpperInvariant(word[0]) + word[1..];
+            _shiftPressed = false;
+            UpdateModifierButtons();
+            UpdateLetterCase();
+            UpdateNumberRowSymbols();
+        }
+
+        // Only the rest of the word is typed: what is already there stays exactly as
+        // the student typed it, whatever case the suggestion came back in.
+        string rest = word.Length > _currentWord.Length ? word[_currentWord.Length..] : "";
+
+        // A suggestion taken at the start of a sentence arrives already capitalised
+        // from MatchCase, so it counts as the sentence's first word.
+        if (_currentWord.Length == 0)
+        {
+            _wordBeganSentence = _atSentenceStart;
+        }
+
+        RaiseTextEntered(rest + " ");
+    }
+
+    // ---------------------------------------------------------------------------
+    // Keyboard size
+    // ---------------------------------------------------------------------------
+
+    private const double BaseWidth = 1050;
+    private const double BaseHeight = 424;
+
+    /// <summary>
+    /// Scale the whole keyboard, keys and text alike. It never grows wider than the
+    /// screen, so the largest setting still fits a small laptop.
+    /// </summary>
+    public void SetScale(double scale)
+    {
+        var workArea = SystemParameters.WorkArea;
+        scale = Math.Min(scale, workArea.Width / BaseWidth);
+
+        KeyboardRoot.LayoutTransform = new ScaleTransform(scale, scale);
+        Width = BaseWidth * scale;
+        Height = BaseHeight * scale;
+
+        // Keys have moved and changed size, so the highlight's map of them is stale
+        _navigableKeys.Clear();
     }
 
     // ---------------------------------------------------------------------------
@@ -383,6 +742,7 @@ public partial class VirtualKeyboardWindow : Window
     /// </summary>
     public void MoveHighlight(KeyboardNavigationDirection direction)
     {
+        NotifyActivity();
         EnsureKeysCollected();
 
         if (_navigableKeys.Count == 0)
@@ -492,6 +852,7 @@ public partial class VirtualKeyboardWindow : Window
         if (best != null)
         {
             SetHighlight(best);
+            StartDwell();
         }
     }
 
@@ -500,6 +861,8 @@ public partial class VirtualKeyboardWindow : Window
     /// </summary>
     public void ActivateHighlight()
     {
+        StopDwell();
+        NotifyActivity();
         EnsureKeysCollected();
 
         if (_highlightedKey == null)
@@ -529,6 +892,8 @@ public partial class VirtualKeyboardWindow : Window
     /// </summary>
     public void ActivateHighlightShifted()
     {
+        StopDwell();
+        NotifyActivity();
         EnsureKeysCollected();
 
         if (_highlightedKey == null)
@@ -599,6 +964,206 @@ public partial class VirtualKeyboardWindow : Window
     {
         return this.FindName("KeyG") as Button ?? _navigableKeys[0];
     }
+
+    // ---------------------------------------------------------------------------
+    // Keyboard dwell
+    //
+    // Resting the highlight on a key types it, for anyone who finds pressing A while
+    // steering hard. Only a move the student makes starts the count: opening the
+    // keyboard onto its default key must not type that key by itself.
+    //
+    // A ring around the key's label fills until it is typed - the same ring the
+    // cursor shows for a dwell click. It appears only once the highlight has settled,
+    // so steering across the keyboard does not flash a ring on every key passed; the
+    // key is still typed at the full dwell time. Moving on cancels it.
+    // ---------------------------------------------------------------------------
+
+    private readonly System.Windows.Threading.DispatcherTimer _dwellTimer = new();
+    private readonly System.Windows.Threading.DispatcherTimer _dwellRingDelay = new();
+    private DwellKeyRing? _dwellRing;
+
+    /// <summary>How long the highlight must settle before the ring appears</summary>
+    private const double DwellRingDelaySeconds = 0.3;
+
+    /// <summary>Type the highlighted key after it has been rested on</summary>
+    public bool DwellEnabled { get; set; }
+
+    public double DwellSeconds { get; set; } = 1.5;
+
+    private void StartDwell()
+    {
+        StopDwell();
+
+        if (!DwellEnabled || _highlightedKey == null)
+        {
+            return;
+        }
+
+        double total = Math.Max(0.3, DwellSeconds);
+        double delay = Math.Min(DwellRingDelaySeconds, total);
+
+        _dwellTimer.Interval = TimeSpan.FromSeconds(total);
+        _dwellTimer.Start();
+
+        _dwellRingDelay.Interval = TimeSpan.FromSeconds(delay);
+        _dwellRingDelay.Start();
+    }
+
+    private void ShowDwellRing()
+    {
+        _dwellRingDelay.Stop();
+
+        if (_highlightedKey == null || AdornerLayer.GetAdornerLayer(_highlightedKey) is not AdornerLayer layer)
+        {
+            return;
+        }
+
+        double total = Math.Max(0.3, DwellSeconds);
+        double remaining = Math.Max(0.05, total - Math.Min(DwellRingDelaySeconds, total));
+
+        _dwellRing = new DwellKeyRing(_highlightedKey);
+        layer.Add(_dwellRing);
+        _dwellRing.BeginAnimation(DwellKeyRing.ProgressProperty,
+            new System.Windows.Media.Animation.DoubleAnimation(0, 1, new Duration(TimeSpan.FromSeconds(remaining))));
+    }
+
+    private void StopDwell()
+    {
+        _dwellTimer.Stop();
+        _dwellRingDelay.Stop();
+
+        if (_dwellRing != null)
+        {
+            AdornerLayer.GetAdornerLayer(_dwellRing.AdornedElement)?.Remove(_dwellRing);
+            _dwellRing = null;
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Fading when resting
+    //
+    // When the controller has been left alone for a while, the keyboard fades so the
+    // text behind it shows through - for when it covers what is being typed and moving
+    // it is not enough. Any use of the controller brings it straight back. It never
+    // fades while a dwell is counting down, never below a visible minimum, and while
+    // faded clicks pass through it to whatever is underneath.
+    // ---------------------------------------------------------------------------
+
+    private readonly System.Windows.Threading.DispatcherTimer _fadeIdleTimer = new();
+    private readonly System.Windows.Threading.DispatcherTimer _fadeStepTimer =
+        new() { Interval = TimeSpan.FromMilliseconds(16) };
+
+    private double _opacity = 1.0;
+    private double _targetOpacity = 1.0;
+    private double _opacityStep;
+
+    private const double FadeOutSeconds = 0.6;
+    private const double FadeInSeconds = 0.12;
+
+    public bool FadeEnabled { get; set; }
+
+    public double FadeSeconds { get; set; } = 2.0;
+
+    /// <summary>How visible the keyboard stays when faded</summary>
+    public double FadeOpacity { get; set; } = 0.3;
+
+    /// <summary>
+    /// The controller was used: show the keyboard fully and start the idle count again
+    /// </summary>
+    public void NotifyActivity()
+    {
+        if (_targetOpacity < 1.0)
+        {
+            AnimateOpacityTo(1.0, FadeInSeconds);
+        }
+
+        _fadeIdleTimer.Stop();
+
+        if (FadeEnabled && IsVisible)
+        {
+            _fadeIdleTimer.Interval = TimeSpan.FromSeconds(Math.Max(0.5, FadeSeconds));
+            _fadeIdleTimer.Start();
+        }
+    }
+
+    /// <summary>
+    /// Apply a change to the fade settings straight away
+    /// </summary>
+    public void RefreshFade()
+    {
+        if (!FadeEnabled)
+        {
+            _fadeIdleTimer.Stop();
+            AnimateOpacityTo(1.0, FadeInSeconds);
+            return;
+        }
+
+        NotifyActivity();
+    }
+
+    private void FadeIdleElapsed()
+    {
+        _fadeIdleTimer.Stop();
+
+        // Resting on a key to type it by dwell is not "left alone" - fading would hide
+        // the very ring being watched. Look again once it has finished.
+        if (_dwellTimer.IsEnabled)
+        {
+            _fadeIdleTimer.Start();
+            return;
+        }
+
+        AnimateOpacityTo(Math.Clamp(FadeOpacity, 0.2, 0.6), FadeOutSeconds);
+    }
+
+    private void AnimateOpacityTo(double target, double seconds)
+    {
+        _targetOpacity = target;
+        double frames = Math.Max(1, seconds * 1000 / _fadeStepTimer.Interval.TotalMilliseconds);
+        _opacityStep = Math.Abs(target - _opacity) / frames;
+
+        // Clicks pass through only while faded, so the text behind can be clicked into;
+        // the moment it starts coming back it catches them again.
+        SetClickThrough(target < 1.0);
+
+        if (!_fadeStepTimer.IsEnabled)
+        {
+            _fadeStepTimer.Start();
+        }
+    }
+
+    private void FadeStep()
+    {
+        _opacity = _opacity < _targetOpacity
+            ? Math.Min(_targetOpacity, _opacity + _opacityStep)
+            : Math.Max(_targetOpacity, _opacity - _opacityStep);
+
+        Opacity = _opacity;
+
+        if (Math.Abs(_opacity - _targetOpacity) < 0.001)
+        {
+            _fadeStepTimer.Stop();
+        }
+    }
+
+    private void SetClickThrough(bool on)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        int style = GetWindowLong(hwnd, GWL_EXSTYLE);
+        int updated = on ? style | WS_EX_TRANSPARENT : style & ~WS_EX_TRANSPARENT;
+        if (updated != style)
+        {
+            SetWindowLong(hwnd, GWL_EXSTYLE, updated);
+        }
+    }
+
+    /// <summary>Current visibility, 0 to 1, for tests and diagnostics</summary>
+    public double CurrentOpacity => _opacity;
 
     private void SetHighlight(Button key)
     {

@@ -19,7 +19,7 @@ ESSENTIAL CONTROLS
 
 MOVING THE CURSOR:
   Left Stick = Move mouse cursor
-  Left Trigger (hold) = Precision mode (slower, more accurate)
+  (Too fast or slow? Change the speed on the HIDra screen - it is remembered)
 
 CLICKING:
   A Button = Left Click (select things)
@@ -43,6 +43,10 @@ VIRTUAL KEYBOARD:
   A Button   = Type the highlighted key
   B Button   = Type its shifted version (£ $ % : ? and CAPITALS)
   (Big UK layout with visible shift symbols)
+  Green row at the top = Word suggestions. Push up to reach them:
+               A types the whole word, B types it with a Capital
+  Left Trigger = Move the keyboard to the top/bottom of the screen
+  (use it when the keyboard covers what you are typing)
 
 SWITCHING BETWEEN PROGRAMS:
   1. Tap Left Bumper (LB) - Opens window switcher (Alt+Shift+Tab)
@@ -88,6 +92,7 @@ Type Text:
   5. Press B for the symbol printed ABOVE the key,
      or for a CAPITAL letter (e.g. A gives 3, B gives £)
   6. Press X again to close the keyboard
+     (Keyboard covering your work? Press Left Trigger to move it)
 
   You do NOT need to aim the mouse at the keys any more.
   While the keyboard is open the left stick moves the highlight
@@ -114,7 +119,7 @@ Right Stick:
   Click Down = Undo (Ctrl+Z)
 
 Triggers:
-  Left Trigger (LT) = Precision mode (hold for slow, precise cursor)
+  Left Trigger (LT) = Move keyboard between top and bottom of screen
   Right Trigger (RT) = Click and hold (hold to drag things)
 
 Face Buttons:
@@ -149,6 +154,16 @@ VIRTUAL KEYBOARD TIPS
 - Delete sits on the right hand edge, between Backspace and Enter
 - Home and End jump to the start or end of a line, which saves
   pressing the arrow keys once per letter
+- Sentences, and I, start with a capital automatically. Press B
+  (or Shift) first for a small letter instead
+- The PHRASES key at the start of the green row swaps the
+  suggestions for your saved phrases (name, email...). Staff set
+  them on the HIDra screen
+- Keyboard covering your text? Press Left Trigger to move it, or
+  switch on "Fade when resting" so it goes see-through when you pause
+- Word suggestions appear as you type, and guess the NEXT word
+  after a space. They start fresh after arrows, Home, End or Tab,
+  because the keyboard cannot see where the text cursor went
 
 IF SOMETHING GOES WRONG
 -----------------------
@@ -172,8 +187,8 @@ Closing the window does NOT stop HIDra.
   right-click the HIDra icon near the clock and choose "Exit HIDra".
 
 Cursor moving too fast/slow?
-  - Use Left Trigger for precision mode
-  - Settings are optimized - cannot be changed
+  - Use the - and + buttons beside Cursor speed on the HIDra screen
+  - Your speed is remembered for next time
 
 Need help?
   - All buttons are shown in this guide

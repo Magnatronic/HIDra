@@ -3,14 +3,20 @@
 Control Windows with an Xbox controller. Simple, reliable, zero-config.
 
 ## Features
-- Mouse with Left Stick; LT = precision mode
+- Mouse with Left Stick (slow by default; speed is set on the main screen and remembered per student)
 - Scroll with Right Stick
 - DPad window management: Up = Maximize, Down = Minimize, Left/Right = Snap
 - X toggles onscreen keyboard (UK layout, large keys); left stick moves the highlight, A types, B gives the shifted symbol or capital - no aiming needed
+- Six word suggestions on the keyboard, from the prediction engine built into Windows - nothing extra to install
+- Dwell: click by resting the cursor (a ring by the cursor fills as the click approaches), and type by resting the keyboard highlight (both optional)
+- Keyboard extras: automatic capitals, the student's own phrases on a Phrases key, and an adjustable size
+- One main screen: a labelled controller showing what every button does, and every setting beside it
+- LT moves the keyboard between the top and bottom of the screen, so it never has to cover your work
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
 - Start opens Task View; Back opens Start menu
-- No configuration files - sensible defaults are baked in
+- No configuration files - sensible defaults are baked in; every setting on the main screen is remembered per student (see *Where settings are saved*)
+- Stops Windows' own gamepad keyboard popping up and taking over the controller (optional, on by default; puts the student's own Windows setting back if turned off)
 
 ## Reliability
 HIDra is intended to be the only way its user can operate the computer, so it is built
@@ -29,6 +35,21 @@ not to leave them stranded:
 - **Nothing is left held down.** If the controller vanishes mid-action, any held keys
   or mouse buttons are released, so a stuck Alt key cannot lock up the machine.
 
+## Where settings are saved
+HIDra is often run from a network share at logon, so each student's settings are kept
+somewhere that follows the student, not the PC. The first of these that can be written
+to is used, and the main screen shows which:
+
+1. The folder named in `HIDra-settings-folder.txt`, if that file sits beside `HIDra.UI.exe`.
+   One line, environment variables allowed - for example `H:\HIDra` or
+   `\\server\hidra-settings\%USERNAME%`. Lines starting with `#` are ignored.
+2. The student's network home drive, if Windows reports one: `%HOMESHARE%\HIDra`.
+3. `%APPDATA%\HIDra` - which also follows the student where the college uses roaming
+   profiles or folder redirection.
+
+Settings found in `%APPDATA%\HIDra` are carried over the first time a better location
+is used, so moving them never loses anything.
+
 ## Getting Started
 1) Plug in an Xbox controller (USB or Bluetooth)
 2) Launch the app
@@ -43,70 +64,51 @@ not to leave them stranded:
 - LB: Previous app (Alt+Shift+Tab)
 - Back: Windows key, Start: Win+Tab
 - DPad: Up = Maximize, Down = Minimize, Left = Win+Left, Right = Win+Right
-- LT: Precision mode, RT: Click & hold (drag)
+- LT: Move keyboard top/bottom, RT: Click & hold (drag)
 - Left/Right Stick Click: Undo (Ctrl+Z)
 
 ## System Requirements
 - **Windows 10/11** (x64)
 - **Xbox One/Series controller** (USB or Bluetooth)
-- **For compact version**: .NET 10 Desktop Runtime
-- **For portable version**: No additional requirements
+- Nothing else, unless you choose the *Needs-dotNET-10* build below
 
-## Distribution Options
+## Building a release
+Needs the .NET 10 SDK (`winget install --id Microsoft.DotNet.SDK.10`). Then run:
 
-**Two versions available to suit different needs:**
-
-### Option 1: Compact Version (Recommended)
-- **Size**: ~26 MB
-- **Requirement**: .NET 10 Desktop Runtime
-- **Best for**: Regular users, faster downloads
-- **Download runtime**: [Microsoft .NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
-
-### Option 2: Portable Version  
-- **Size**: ~198 MB
-- **Requirement**: None - completely standalone
-- **Best for**: USB sticks, computers without admin rights, portable use
-- **Trade-off**: Larger download but runs anywhere
-
-## Build and Publish (for developers)
-- **Prerequisite**: .NET 10 SDK
-- **Build the solution**: `dotnet build HIDra.sln`
-
-### Quick Build Scripts:
-- **Compact version**: Run `build-framework.bat`
-- **Portable version**: Run `build-portable.bat`  
-- **Both versions**: Run `build-both.bat`
-
-### Manual Build Commands:
-```bash
-# Framework-dependent (~26 MB folder, needs the .NET 10 Desktop Runtime)
-dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -o publish-framework --self-contained false -p:DebugType=None -p:DebugSymbols=false
-
-# Self-contained portable (~198 MB folder, needs nothing installed)
-dotnet publish src/HIDra.UI/HIDra.UI.csproj -c Release -r win-x64 --self-contained true -o publish-portable -p:DebugType=None -p:DebugSymbols=false
 ```
-Neither passes `-p:PublishSingleFile` on purpose - see Distribution below.
+build.bat
+```
+
+Everything lands in one folder, named with the version from `HIDra.UI.csproj`:
+
+```
+release\HIDra-v1.6.0\
+  README-FIRST.txt     which one to use, for whoever installs it
+  Network-share\       6 files  - for college PCs running HIDra from a share (recommended)
+  USB-portable\        ~480 files - for a USB stick or a PC where nothing can be installed
+  Needs-dotNET-10\     1 file   - smallest; only where the .NET 10 Desktop Runtime is installed
+```
+
+Each has its own `QUICK-GUIDE.txt`. All three are the same program; they differ only in
+how it is put onto a machine.
+
+**Why no single self-contained exe.** A normal single-file build unpacks WPF's native
+libraries to `%TEMP%\.net` on every launch, and managed environments routinely block
+running anything from user-writable paths - so it would fail on exactly the locked-down
+college machines HIDra is for. *Network-share* bundles all the managed code into the exe
+but leaves those five native DLLs beside it, so nothing is unpacked: one network read
+instead of ~480, and `%TEMP%\.net` is never touched (checked, not assumed). Keep the six
+files together. *Needs-dotNET-10* is a true single file safely, because everything it
+carries is managed.
+
+For day-to-day development, `dotnet run --project src/HIDra.UI` runs it straight from source.
 
 ## Smoke Test
-1) After publishing, run the executable from the publish folder
+1) Run `HIDra.UI.exe` from one of the release folders
 2) Confirm the window title reads: "HIDra - Controller to Mouse/Keyboard"
 3) Move the cursor with the Left Stick; scroll with the Right Stick
-4) Press X to toggle the onscreen keyboard; use DPad Up/Down to maximize/minimize the active window
-
-## Distribution
-Two deployment options are available to suit different environments and requirements:
-
-**Framework-dependent** (~26 MB): Requires the .NET 10 Desktop Runtime on the target
-machine. Ideal for managed environments where the runtime is deployed centrally.
-
-**Self-contained portable** (~198 MB): Carries its own runtime and runs anywhere on
-Windows x64 with nothing installed. For USB sticks and machines without admin rights.
-
-Both are published as a **folder**, not a single-file executable, and both must be kept
-whole: copy or unzip the entire folder and run `HIDra.UI.exe` from inside it. A
-single-file build extracts its native libraries to `%TEMP%\.net` on every launch, and
-managed environments routinely block execution from user-writable paths, which would
-make HIDra fail on exactly the locked-down machines it is built for.
+4) Press X to open the keyboard; push up to the green row and check word suggestions appear
+5) Change the cursor speed on the main screen, restart HIDra, and check it was remembered
 
 ## License
 MIT - see `LICENSE`.

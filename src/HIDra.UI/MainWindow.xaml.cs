@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using HIDra.Core;
+using HIDra.Core.Configuration;
 using HIDra.Models;
 using HIDra.UI.Views;
 
@@ -17,7 +18,13 @@ namespace HIDra.UI
         private VirtualKeyboardWindow? _virtualKeyboard;
         private TrayIcon? _trayIcon;
         private ModeToast? _modeToast;
+        private DwellRing? _dwellRing;
         private System.Windows.Threading.DispatcherTimer? _startRetryTimer;
+
+        /// <summary>
+        /// This student's own settings, kept between sessions
+        /// </summary>
+        private readonly UserSettings _userSettings = UserSettingsStore.Load();
 
         /// <summary>
         /// Set only when the user genuinely chooses to exit. Until then, closing the
@@ -42,14 +49,16 @@ namespace HIDra.UI
             // Hardcoded settings optimized for accessibility
             var settings = new InputSettings
             {
-                CursorSensitivity = 0.5f,           // Moderate speed for control
-                ScrollSensitivity = 0.5f,           // Optimized for smooth scrolling
+                CursorSensitivity = _userSettings.CursorSensitivity, // Saved per student (default 0.15)
+                ScrollSensitivity = _userSettings.ScrollSensitivity, // Saved per student (default 0.5)
                 PrecisionModeSensitivity = 0.3f,    // Very slow for precise work
                 Deadzone = 0.05f,                   // Low deadzone (5%) for maximum control
                 PollRateMs = 10,                    // 100Hz polling rate
                 StickCalibrationMax = 0.90f,        // Compensate for worn controllers
                 TriggerThreshold = 0.3f,            // 30% trigger press to activate
-                EnableGrid3AutoSuspend = true       // Grid 3 auto-suspend enabled by default
+                EnableGrid3AutoSuspend = _userSettings.EnableGrid3AutoSuspend, // Saved per student (default on)
+                EnableDwellClick = _userSettings.DwellClickEnabled,
+                DwellClickSeconds = _userSettings.DwellClickSeconds
             };
 
             // Hardcoded button mappings - cannot be accidentally changed
@@ -123,13 +132,38 @@ namespace HIDra.UI
                 }
             };
 
+            // The Left Trigger (keyboard position) is handled by the engine directly,
+            // because it acts on the trigger being pressed rather than on a button.
+
             return (settings, buttonMappings);
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            FitToScreen();
+
+            if (WindowsTouchKeyboard.Apply(_userSettings))
+            {
+                UserSettingsStore.Save(_userSettings);
+            }
+
+            RefreshSettingsDisplay();
             InitializeTrayIcon();
             StartEngine();
+        }
+
+        /// <summary>
+        /// The window is laid out for a normal screen. On a small laptop it shrinks to the
+        /// working area instead of running off the bottom: the controller drawing scales
+        /// and the settings scroll.
+        /// </summary>
+        private void FitToScreen()
+        {
+            var workArea = SystemParameters.WorkArea;
+            Width = Math.Min(Width, workArea.Width);
+            Height = Math.Min(Height, workArea.Height);
+            Left = workArea.Left + (workArea.Width - Width) / 2;
+            Top = workArea.Top + (workArea.Height - Height) / 2;
         }
 
         private void InitializeTrayIcon()
@@ -156,6 +190,10 @@ namespace HIDra.UI
                 _engine.ConnectionChanged += OnConnectionChanged;
                 _engine.ErrorOccurred += OnErrorOccurred;
                 _engine.VirtualKeyboardToggleRequested += OnVirtualKeyboardToggleRequested;
+                _engine.KeyboardPositionToggleRequested += OnKeyboardPositionToggleRequested;
+                _engine.DwellCountdownStarted += OnDwellCountdownStarted;
+                _engine.DwellCountdownEnded += OnDwellCountdownEnded;
+                _engine.InputActivity += OnInputActivity;
                 _engine.BatteryChanged += OnBatteryChanged;
                 _engine.ShowWindowRequested += OnShowWindowRequested;
                 _engine.StickModeChanged += OnStickModeChanged;
@@ -243,45 +281,6 @@ namespace HIDra.UI
             {
                 _engine.Pause();
             }
-        }
-
-        private void HelpButton_Click(object sender, RoutedEventArgs e)
-        {
-            var helpWindow = new HelpWindow
-            {
-                Owner = this
-            };
-            helpWindow.ShowDialog();
-        }
-
-        private void SettingsButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_engine == null)
-            {
-                MessageBox.Show("Please connect a controller first before adjusting settings.", 
-                    "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            // Get current settings from the engine
-            var settings = GetEngineSettings();
-            if (settings != null)
-            {
-                var settingsWindow = new SettingsWindow(settings)
-                {
-                    Owner = this
-                };
-                settingsWindow.ShowDialog();
-            }
-        }
-
-        private InputSettings? GetEngineSettings()
-        {
-            // Access the private _settings field via reflection
-            var engineType = typeof(HIDraEngine);
-            var settingsField = engineType.GetField("_settings", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            return settingsField?.GetValue(_engine) as InputSettings;
         }
 
         // Handlers below are raised from the controller supervision thread and use
@@ -484,7 +483,17 @@ namespace HIDra.UI
         {
             if (_virtualKeyboard == null)
             {
-                _virtualKeyboard = new VirtualKeyboardWindow();
+                _virtualKeyboard = new VirtualKeyboardWindow
+                {
+                    DwellEnabled = _userSettings.KeyboardDwellEnabled,
+                    DwellSeconds = _userSettings.KeyboardDwellSeconds,
+                    AutoCapitalise = _userSettings.AutoCapitalise,
+                    Phrases = _userSettings.Phrases,
+                    FadeEnabled = _userSettings.KeyboardFadeEnabled,
+                    FadeSeconds = _userSettings.KeyboardFadeSeconds,
+                    FadeOpacity = _userSettings.KeyboardFadeOpacity
+                };
+                _virtualKeyboard.SetScale(_userSettings.KeyboardScale);
                 _virtualKeyboard.KeyPressed += OnVirtualKeyboardKeyPressed;
                 _virtualKeyboard.TextEntered += OnVirtualKeyboardTextEntered;
                 _virtualKeyboard.KeyComboPressed += OnVirtualKeyboardKeyCombo;
@@ -508,33 +517,300 @@ namespace HIDra.UI
             // Use Dispatcher to ensure we're on the UI thread
             Dispatcher.BeginInvoke(() =>
             {
-                if (_virtualKeyboard == null)
+                InitializeVirtualKeyboard();
+
+                if (_virtualKeyboard!.IsVisible)
                 {
-                    InitializeVirtualKeyboard();
+                    _virtualKeyboard.Hide();
+                    return;
                 }
-                
-                if (_virtualKeyboard != null)
+
+                // If a phrase box on this window still has the typing cursor, whatever the
+                // student types would land in it whenever this window is in front - a
+                // Backspace could quietly erase a saved phrase. Keep the edit, lose the cursor.
+                if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox)
                 {
-                    if (_virtualKeyboard.IsVisible)
-                    {
-                        _virtualKeyboard.Hide();
-                    }
-                    else
-                    {
-                        _virtualKeyboard.Show();
+                    UserSettingsStore.Save(_userSettings);
+                    System.Windows.Input.Keyboard.ClearFocus();
+                }
 
-                        // Start with a key highlighted, so the first press types
-                        // something rather than only revealing where the highlight is.
-                        if (!_virtualKeyboard.HasHighlight)
-                        {
-                            _virtualKeyboard.MoveHighlight(KeyboardNavigationDirection.Right);
-                        }
-                    }
+                _virtualKeyboard.MoveToEdge(_userSettings.KeyboardAtTop);
+                _virtualKeyboard.Show();
 
+                // Start with a key highlighted, so the first press types
+                // something rather than only revealing where the highlight is.
+                if (!_virtualKeyboard.HasHighlight)
+                {
+                    _virtualKeyboard.MoveHighlight(KeyboardNavigationDirection.Right);
                 }
             });
         }
-        
+
+        /// <summary>
+        /// Left Trigger: flip the keyboard between the top and bottom of the screen, and
+        /// remember the choice for next time. Does nothing when the keyboard is closed,
+        /// so a stray press cannot silently change where it next appears.
+        /// </summary>
+        private void OnKeyboardPositionToggleRequested(object? sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_virtualKeyboard?.IsVisible != true) return;
+
+                _userSettings.KeyboardAtTop = !_userSettings.KeyboardAtTop;
+                UserSettingsStore.Save(_userSettings);
+                _virtualKeyboard.MoveToEdge(_userSettings.KeyboardAtTop);
+                RefreshSettingsDisplay();
+            });
+        }
+
+        private void OnDwellCountdownStarted(object? sender, double seconds)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                _dwellRing ??= new DwellRing();
+                _dwellRing.StartCountdown(seconds);
+            });
+        }
+
+        private void OnDwellCountdownEnded(object? sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(() => _dwellRing?.StopCountdown());
+        }
+
+        /// <summary>
+        /// Any use of the controller brings a faded keyboard straight back
+        /// </summary>
+        private void OnInputActivity(object? sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_virtualKeyboard?.IsVisible == true)
+                {
+                    _virtualKeyboard.NotifyActivity();
+                }
+            });
+        }
+
+        // ---------------------------------------------------------------------------
+        // Settings on the main screen
+        //
+        // Every change takes effect at once, is saved for this student straight away,
+        // and is shown back on the screen, so there is no Save or Apply to forget.
+        // ---------------------------------------------------------------------------
+
+        private static readonly Brush OnBrush = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32));
+        private static readonly Brush OffBrush = new SolidColorBrush(Color.FromRgb(0x3C, 0x3C, 0x3C));
+
+        /// <summary>
+        /// Cursor speed is shown as a percentage and moves in whole-number steps: 1% below
+        /// 20%, 5% up to 50%, 10% above. Finest at the slow end, where a small change is a
+        /// large share of the speed. A value between steps (from an older settings file)
+        /// snaps to the next step in the direction pressed.
+        /// </summary>
+        private static float StepCursorSpeed(float current, bool faster)
+        {
+            int percent = (int)MathF.Round(current * 100);
+            int next;
+
+            if (faster)
+            {
+                int step = percent < 20 ? 1 : percent < 50 ? 5 : 10;
+                next = (percent / step + 1) * step;
+            }
+            else
+            {
+                int step = percent <= 20 ? 1 : percent <= 50 ? 5 : 10;
+                next = ((percent + step - 1) / step - 1) * step;
+            }
+
+            return Math.Clamp(next, 5, 100) / 100f;
+        }
+
+        private static float Step(float current, float step, float min, float max, bool up) =>
+            Math.Clamp(MathF.Round(current + (up ? step : -step), 3), min, max);
+
+        private void CursorSlower_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.CursorSensitivity = StepCursorSpeed(s.CursorSensitivity, faster: false));
+
+        private void CursorFaster_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.CursorSensitivity = StepCursorSpeed(s.CursorSensitivity, faster: true));
+
+        private void ScrollSlower_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.ScrollSensitivity = Step(s.ScrollSensitivity, 0.1f, 0.1f, 1.0f, up: false));
+
+        private void ScrollFaster_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.ScrollSensitivity = Step(s.ScrollSensitivity, 0.1f, 0.1f, 1.0f, up: true));
+
+        private void DwellClickToggle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.DwellClickEnabled = !s.DwellClickEnabled);
+
+        private void DwellClickShorter_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.DwellClickSeconds = Step(s.DwellClickSeconds, 0.25f, 0.5f, 3.0f, up: false));
+
+        private void DwellClickLonger_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.DwellClickSeconds = Step(s.DwellClickSeconds, 0.25f, 0.5f, 3.0f, up: true));
+
+        private void KeyboardDwellToggle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardDwellEnabled = !s.KeyboardDwellEnabled);
+
+        private void KeyboardDwellShorter_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardDwellSeconds = Step(s.KeyboardDwellSeconds, 0.25f, 0.5f, 3.0f, up: false));
+
+        private void KeyboardDwellLonger_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardDwellSeconds = Step(s.KeyboardDwellSeconds, 0.25f, 0.5f, 3.0f, up: true));
+
+        private void KeyboardTop_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardAtTop = true);
+
+        private void KeyboardBottom_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardAtTop = false);
+
+        private void KeyboardSmaller_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardScale = Step(s.KeyboardScale, 0.1f,
+                UserSettings.MinKeyboardScale, UserSettings.MaxKeyboardScale, up: false));
+
+        private void KeyboardBigger_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardScale = Step(s.KeyboardScale, 0.1f,
+                UserSettings.MinKeyboardScale, UserSettings.MaxKeyboardScale, up: true));
+
+        private void KeyboardFadeToggle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardFadeEnabled = !s.KeyboardFadeEnabled);
+
+        private void KeyboardFadeShorter_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardFadeSeconds = Step(s.KeyboardFadeSeconds, 0.5f, 1.0f, 10.0f, up: false));
+
+        private void KeyboardFadeLonger_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardFadeSeconds = Step(s.KeyboardFadeSeconds, 0.5f, 1.0f, 10.0f, up: true));
+
+        private void KeyboardFadeFainter_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardFadeOpacity = Step(s.KeyboardFadeOpacity, 0.1f, 0.2f, 0.6f, up: false));
+
+        private void KeyboardFadeStronger_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.KeyboardFadeOpacity = Step(s.KeyboardFadeOpacity, 0.1f, 0.2f, 0.6f, up: true));
+
+        private void AutoCapitalToggle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.AutoCapitalise = !s.AutoCapitalise);
+
+        /// <summary>
+        /// Phrases are typed here by staff with a real keyboard. The keyboard sees each
+        /// change at once; the file is written when the box is left, not per keystroke,
+        /// because it may be on a network drive.
+        /// </summary>
+        private void Phrase_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (_refreshingSettings || sender is not System.Windows.Controls.TextBox { Tag: string tag } box
+                || !int.TryParse(tag, out int index))
+            {
+                return;
+            }
+
+            _userSettings.Phrases[index] = box.Text;
+        }
+
+        private void Phrase_LostFocus(object sender, RoutedEventArgs e) =>
+            UserSettingsStore.Save(_userSettings);
+
+        private void StopWindowsKeyboardToggle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.StopWindowsKeyboard = !s.StopWindowsKeyboard);
+
+        private void Grid3Toggle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.EnableGrid3AutoSuspend = !s.EnableGrid3AutoSuspend);
+
+        private void ChangeSettings(Action<UserSettings> change)
+        {
+            change(_userSettings);
+            ApplySettings();
+            UserSettingsStore.Save(_userSettings);
+            RefreshSettingsDisplay();
+        }
+
+        /// <summary>
+        /// Push the saved settings to everything that uses them, while it is running.
+        /// </summary>
+        private void ApplySettings()
+        {
+            if (_engine != null)
+            {
+                var input = _engine.Settings;
+                input.CursorSensitivity = _userSettings.CursorSensitivity;
+                input.ScrollSensitivity = _userSettings.ScrollSensitivity;
+                input.EnableGrid3AutoSuspend = _userSettings.EnableGrid3AutoSuspend;
+                input.EnableDwellClick = _userSettings.DwellClickEnabled;
+                input.DwellClickSeconds = _userSettings.DwellClickSeconds;
+            }
+
+            if (_virtualKeyboard != null)
+            {
+                _virtualKeyboard.DwellEnabled = _userSettings.KeyboardDwellEnabled;
+                _virtualKeyboard.DwellSeconds = _userSettings.KeyboardDwellSeconds;
+                _virtualKeyboard.AutoCapitalise = _userSettings.AutoCapitalise;
+                _virtualKeyboard.Phrases = _userSettings.Phrases;
+                _virtualKeyboard.SetScale(_userSettings.KeyboardScale);
+                _virtualKeyboard.FadeEnabled = _userSettings.KeyboardFadeEnabled;
+                _virtualKeyboard.FadeSeconds = _userSettings.KeyboardFadeSeconds;
+                _virtualKeyboard.FadeOpacity = _userSettings.KeyboardFadeOpacity;
+                _virtualKeyboard.RefreshFade();
+
+                if (_virtualKeyboard.IsVisible)
+                {
+                    _virtualKeyboard.MoveToEdge(_userSettings.KeyboardAtTop);
+                }
+            }
+
+            if (!_userSettings.DwellClickEnabled)
+            {
+                _dwellRing?.StopCountdown();
+            }
+
+            // Only this student's own Windows setting changes; the option is remembered
+            WindowsTouchKeyboard.Apply(_userSettings);
+        }
+
+        // Set while the screen is being filled from the settings, so filling the phrase
+        // boxes is not mistaken for someone typing in them
+        private bool _refreshingSettings;
+
+        private void RefreshSettingsDisplay()
+        {
+            _refreshingSettings = true;
+            KeyboardSizeValue.Text = $"{_userSettings.KeyboardScale * 100:0}%";
+            ShowToggle(AutoCapitalToggle, _userSettings.AutoCapitalise);
+            ShowToggle(KeyboardFadeToggle, _userSettings.KeyboardFadeEnabled);
+            KeyboardFadeValue.Text = $"{_userSettings.KeyboardFadeSeconds:0.0} s";
+            KeyboardFadeOpacityValue.Text = $"{_userSettings.KeyboardFadeOpacity * 100:0}%";
+            for (int i = 0; i < UserSettings.PhraseCount; i++)
+            {
+                if (FindName($"Phrase{i}") is System.Windows.Controls.TextBox box && box.Text != _userSettings.Phrases[i])
+                {
+                    box.Text = _userSettings.Phrases[i];
+                }
+            }
+            SettingsLocationText.Text = $"Saved in {UserSettingsStore.Location}";
+            _refreshingSettings = false;
+
+            // Percentages rather than the underlying fractions: "15%" means something to
+            // staff at a glance, "0.15" does not
+            CursorSpeedValue.Text = $"{_userSettings.CursorSensitivity * 100:0}%";
+            ScrollSpeedValue.Text = $"{_userSettings.ScrollSensitivity * 100:0}%";
+            DwellClickValue.Text = $"{_userSettings.DwellClickSeconds:0.0#} s";
+            KeyboardDwellValue.Text = $"{_userSettings.KeyboardDwellSeconds:0.0#} s";
+
+            ShowToggle(DwellClickToggle, _userSettings.DwellClickEnabled);
+            ShowToggle(KeyboardDwellToggle, _userSettings.KeyboardDwellEnabled);
+            ShowToggle(StopWindowsKeyboardToggle, _userSettings.StopWindowsKeyboard);
+            ShowToggle(Grid3Toggle, _userSettings.EnableGrid3AutoSuspend);
+
+            KeyboardTopButton.Background = _userSettings.KeyboardAtTop ? OnBrush : OffBrush;
+            KeyboardBottomButton.Background = _userSettings.KeyboardAtTop ? OffBrush : OnBrush;
+        }
+
+        private static void ShowToggle(System.Windows.Controls.Button button, bool on)
+        {
+            button.Content = on ? "On" : "Off";
+            button.Background = on ? OnBrush : OffBrush;
+        }
+
         private void OnVirtualKeyboardKeyPressed(object? sender, VirtualKey key)
         {
             _engine?.SendKeyPress(key);
@@ -581,8 +857,10 @@ namespace HIDra.UI
             }
 
             _startRetryTimer?.Stop();
+            UserSettingsStore.Save(_userSettings);
             _virtualKeyboard?.Close();
             _modeToast?.Close();
+            _dwellRing?.Close();
             _engine?.Stop();
             _engine?.Dispose();
             _trayIcon?.Dispose();

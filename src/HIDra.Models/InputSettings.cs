@@ -60,4 +60,11 @@ public class InputSettings
     /// Automatically suspend HIDra when Grid 3 is detected (enabled by default)
     /// </summary>
     public bool EnableGrid3AutoSuspend { get; set; } = true;
+
+    /// <summary>
+    /// Click automatically once the cursor has stopped moving for <see cref="DwellClickSeconds"/>
+    /// </summary>
+    public bool EnableDwellClick { get; set; } = false;
+
+    public float DwellClickSeconds { get; set; } = 1.0f;
 }

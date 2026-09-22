@@ -107,6 +107,23 @@ public sealed class TrayIcon : IDisposable
     {
         try
         {
+            // The embedded icon, at exactly the size the notification area draws, so
+            // Windows picks the frame drawn for that size instead of scaling one down.
+            var resource = System.Windows.Application.GetResourceStream(
+                new Uri("pack://application:,,,/HIDra.ico"));
+            if (resource != null)
+            {
+                using var stream = resource.Stream;
+                return new Icon(stream, SystemInformation.SmallIconSize);
+            }
+        }
+        catch
+        {
+            // Fall back to the icon built into the exe.
+        }
+
+        try
+        {
             string? path = Process.GetCurrentProcess().MainModule?.FileName;
             if (!string.IsNullOrEmpty(path))
             {

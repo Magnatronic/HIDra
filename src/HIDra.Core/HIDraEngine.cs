@@ -38,6 +38,30 @@ public class HIDraEngine : IDisposable
     // Stick mode swap state
     private bool _useRightStickForCursor = false;
 
+    // Dwell click: armed by cursor movement, fired once the cursor has been still long
+    // enough, then disarmed until it moves again - so resting never clicks repeatedly.
+    private readonly System.Diagnostics.Stopwatch _dwellStillTimer = new();
+    private bool _dwellArmed;
+    private bool _dwellCountingDown;
+
+    // How far the cursor has drifted since it last counted as moving
+    private double _dwellDriftX;
+    private double _dwellDriftY;
+
+    /// <summary>
+    /// Movement within this many pixels still counts as resting. Without it, the small
+    /// wobble of an unsteady hand - or a stick not quite centred - restarted the count
+    /// on every frame, so a dwell click might never arrive for the people who need it.
+    /// </summary>
+    private const double DwellMoveTolerancePixels = 6;
+
+    /// <summary>
+    /// How long the cursor must have settled before the countdown ring appears. Showing
+    /// it on the first still frame made it flash on and off beside the cursor during
+    /// any slow or hesitant movement, which looked like the cursor flickering.
+    /// </summary>
+    private const double DwellRingDelaySeconds = 0.3;
+
     // Measures how long each frame actually took, so cursor speed can be expressed in
     // pixels per second rather than per frame. Poll timing is not reliable enough to
     // treat every frame as equal.
@@ -115,6 +139,33 @@ public class HIDraEngine : IDisposable
     public event EventHandler? VirtualKeyboardToggleRequested;
 
     /// <summary>
+    /// Event raised when the keyboard should flip between the top and bottom of the
+    /// screen (Left Trigger), so it stops covering what the student is typing into
+    /// </summary>
+    public event EventHandler? KeyboardPositionToggleRequested;
+
+    /// <summary>
+    /// A dwell click has started counting down, with the seconds left until it clicks.
+    /// Lets the UI show a countdown by the cursor, so a click is never a surprise.
+    /// </summary>
+    public event EventHandler<double>? DwellCountdownStarted;
+
+    /// <summary>
+    /// A dwell countdown ended - either it clicked, or the cursor moved or a button was
+    /// pressed first.
+    /// </summary>
+    public event EventHandler? DwellCountdownEnded;
+
+    /// <summary>
+    /// The controller is being used - a button, a trigger or a stick. Raised at most a
+    /// few times a second, so the UI can wake a faded keyboard without being flooded.
+    /// </summary>
+    public event EventHandler? InputActivity;
+
+    private readonly System.Diagnostics.Stopwatch _activityThrottle = System.Diagnostics.Stopwatch.StartNew();
+    private const int ActivityThrottleMs = 150;
+
+    /// <summary>
     /// Event raised when the controller battery power source or charge level changes
     /// </summary>
     public event EventHandler<ControllerBattery>? BatteryChanged;
@@ -146,6 +197,12 @@ public class HIDraEngine : IDisposable
     /// Is the engine currently running
     /// </summary>
     public bool IsRunning => _isRunning;
+
+    /// <summary>
+    /// The live settings. Changing them takes effect on the next frame, which is how the
+    /// main screen adjusts speed and dwell while the controller is in use.
+    /// </summary>
+    public InputSettings Settings => _settings;
 
     /// <summary>
     /// True while controller input is deliberately suppressed.
@@ -482,8 +539,10 @@ public class HIDraEngine : IDisposable
 
         float deltaSeconds = (float)elapsed;
 
-        // Check for precision mode (Left Trigger)
-        bool precisionMode = _inputProcessor.IsTriggerPressed(state.LeftTrigger);
+        // The Left Trigger used to be precision mode, but it cannot be held while
+        // steering the left stick, which is exactly when precision is wanted. It moves
+        // the keyboard instead, and the default speed is slow enough not to need it.
+        const bool precisionMode = false;
 
         // While the keyboard is open the left stick is steering the highlight, so it
         // must not also drag the cursor or scroll the page underneath. The right stick
@@ -499,12 +558,15 @@ public class HIDraEngine : IDisposable
             pointerState.LeftStickY = 0f;
         }
 
+        float cursorDeltaX = 0f, cursorDeltaY = 0f;
+
         // Process mouse and scroll - swap sticks based on mode
         if (_useRightStickForCursor)
         {
             // Right stick for cursor, left stick for scroll
             var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovementFromRightStick(pointerState, precisionMode, deltaSeconds);
             _mouseSimulator.MoveMouse(mouseX, mouseY);
+            (cursorDeltaX, cursorDeltaY) = (mouseX, mouseY);
             
             var (scrollX, scrollY) = _inputProcessor.ProcessScrollFromLeftStick(pointerState);
             AccumulateAndApplyScroll(scrollX, scrollY);
@@ -514,6 +576,7 @@ public class HIDraEngine : IDisposable
             // Default: Left stick for cursor, right stick for scroll
             var (mouseX, mouseY) = _inputProcessor.ProcessMouseMovement(pointerState, precisionMode, deltaSeconds);
             _mouseSimulator.MoveMouse(mouseX, mouseY);
+            (cursorDeltaX, cursorDeltaY) = (mouseX, mouseY);
             
             var (scrollX, scrollY) = _inputProcessor.ProcessScroll(pointerState);
             AccumulateAndApplyScroll(scrollX, scrollY);
@@ -529,6 +592,9 @@ public class HIDraEngine : IDisposable
         {
             _mouseSimulator.LeftButtonUp();
         }
+
+        UpdateDwellClick(state, cursorDeltaX, cursorDeltaY, holdMode);
+        ReportActivity(state);
 
         // Recovery chord is checked before button dispatch so it can suppress the
         // second button's own action while the chord is being formed.
@@ -550,7 +616,114 @@ public class HIDraEngine : IDisposable
         // Process buttons
         if (_previousState != null)
         {
+            if (_inputProcessor.IsTriggerPressed(state.LeftTrigger) &&
+                !_inputProcessor.IsTriggerPressed(_previousState.LeftTrigger))
+            {
+                KeyboardPositionToggleRequested?.Invoke(this, EventArgs.Empty);
+            }
+
             ProcessButtons(state, _previousState);
+        }
+    }
+
+    /// <summary>
+    /// Click once when the cursor has moved and then stayed still for the dwell time.
+    ///
+    /// Only movement arms it, so leaving the controller alone never clicks, and a click
+    /// disarms it until the cursor moves again. Any button or trigger also disarms it:
+    /// someone who clicks with A should not get a second click from the dwell a moment
+    /// later. It stays out of the way while the keyboard is open, where the stick moves
+    /// the highlight rather than the cursor.
+    /// </summary>
+    private void UpdateDwellClick(ControllerState state, float deltaX, float deltaY, bool holdMode)
+    {
+        if (!_settings.EnableDwellClick || KeyboardNavigationActive)
+        {
+            DisarmDwell();
+            return;
+        }
+
+        bool anyButton = state.ButtonA || state.ButtonB || state.ButtonX || state.ButtonY
+            || state.LeftBumper || state.RightBumper || state.Back || state.Start
+            || state.LeftStickClick || state.RightStickClick
+            || state.DpadUp || state.DpadDown || state.DpadLeft || state.DpadRight
+            || holdMode || _inputProcessor.IsTriggerPressed(state.LeftTrigger);
+
+        if (anyButton)
+        {
+            DisarmDwell();
+            return;
+        }
+
+        _dwellDriftX += deltaX;
+        _dwellDriftY += deltaY;
+
+        if (Math.Sqrt(_dwellDriftX * _dwellDriftX + _dwellDriftY * _dwellDriftY) > DwellMoveTolerancePixels)
+        {
+            // A real move: cancel any countdown, and start timing again from here
+            EndCountdown();
+            _dwellArmed = true;
+            _dwellDriftX = _dwellDriftY = 0;
+            _dwellStillTimer.Restart();
+            return;
+        }
+
+        if (!_dwellArmed)
+        {
+            return;
+        }
+
+        double elapsed = _dwellStillTimer.Elapsed.TotalSeconds;
+
+        if (!_dwellCountingDown && elapsed >= Math.Min(DwellRingDelaySeconds, _settings.DwellClickSeconds))
+        {
+            _dwellCountingDown = true;
+            DwellCountdownStarted?.Invoke(this, Math.Max(0, _settings.DwellClickSeconds - elapsed));
+        }
+
+        if (elapsed >= _settings.DwellClickSeconds)
+        {
+            DisarmDwell();
+            _mouseSimulator.LeftClick();
+        }
+    }
+
+    private void ReportActivity(ControllerState state)
+    {
+        const float stickThreshold = 0.25f;
+
+        bool active = state.ButtonA || state.ButtonB || state.ButtonX || state.ButtonY
+            || state.LeftBumper || state.RightBumper || state.Back || state.Start
+            || state.LeftStickClick || state.RightStickClick
+            || state.DpadUp || state.DpadDown || state.DpadLeft || state.DpadRight
+            || _inputProcessor.IsTriggerPressed(state.LeftTrigger)
+            || _inputProcessor.IsTriggerPressed(state.RightTrigger)
+            || Math.Abs(state.LeftStickX) > stickThreshold || Math.Abs(state.LeftStickY) > stickThreshold
+            || Math.Abs(state.RightStickX) > stickThreshold || Math.Abs(state.RightStickY) > stickThreshold;
+
+        if (active && _activityThrottle.ElapsedMilliseconds >= ActivityThrottleMs)
+        {
+            _activityThrottle.Restart();
+            InputActivity?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>
+    /// Nothing more until the cursor moves again
+    /// </summary>
+    private void DisarmDwell()
+    {
+        _dwellArmed = false;
+        _dwellDriftX = _dwellDriftY = 0;
+        EndCountdown();
+    }
+
+    private void EndCountdown()
+    {
+        if (_dwellCountingDown)
+        {
+            _dwellCountingDown = false;
+            DwellCountdownEnded?.Invoke(this, EventArgs.Empty);
         }
     }
 
