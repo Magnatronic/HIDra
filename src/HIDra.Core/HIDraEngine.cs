@@ -237,6 +237,11 @@ public class HIDraEngine : IDisposable
     /// </summary>
     public event EventHandler? KeyboardSelectShiftedRequested;
 
+    /// <summary>
+    /// Type Backspace, Space or Enter on the on-screen keyboard, from LB, RB or Y.
+    /// </summary>
+    public event EventHandler<KeyboardQuickKey>? KeyboardQuickKeyRequested;
+
     // Held-direction repeat, so crossing the keyboard does not mean one press per key.
     private KeyboardNavigationDirection? _heldDirection;
     private readonly System.Diagnostics.Stopwatch _keyRepeatTimer = new();
@@ -898,9 +903,27 @@ public class HIDraEngine : IDisposable
             KeyboardSelectShiftedRequested?.Invoke(this, EventArgs.Empty);
         }
         ProcessButton("ButtonX", current.ButtonX, previous.ButtonX, activeModifier);
-        ProcessButton("ButtonY", current.ButtonY, previous.ButtonY, activeModifier);
-        ProcessButton("LeftBumper", current.LeftBumper, previous.LeftBumper, activeModifier);
-        ProcessButton("RightBumper", current.RightBumper, previous.RightBumper, activeModifier);
+        // While the keyboard is open, LB, RB and Y type Backspace, Space and Enter. After
+        // letters these are the keys pressed most, and each sits at the edge of the board,
+        // so every one was a long trip with the highlight and back. Their usual jobs -
+        // window switcher, double click, swapping the sticks - are rarely wanted in the
+        // middle of a sentence, and all come back the moment the keyboard is closed.
+        // Left and right match the direction the text moves: LB takes away, RB adds.
+        if (!KeyboardNavigationActive)
+        {
+            ProcessButton("ButtonY", current.ButtonY, previous.ButtonY, activeModifier);
+            ProcessButton("LeftBumper", current.LeftBumper, previous.LeftBumper, activeModifier);
+            ProcessButton("RightBumper", current.RightBumper, previous.RightBumper, activeModifier);
+        }
+        else
+        {
+            if (_inputProcessor.IsButtonPressed(current.LeftBumper, previous.LeftBumper))
+                KeyboardQuickKeyRequested?.Invoke(this, KeyboardQuickKey.Backspace);
+            if (_inputProcessor.IsButtonPressed(current.RightBumper, previous.RightBumper))
+                KeyboardQuickKeyRequested?.Invoke(this, KeyboardQuickKey.Space);
+            if (_inputProcessor.IsButtonPressed(current.ButtonY, previous.ButtonY))
+                KeyboardQuickKeyRequested?.Invoke(this, KeyboardQuickKey.Enter);
+        }
         // While the recovery chord is being formed, only the button pressed first runs
         // its normal action. Suppressing the second one stops the chord from also
         // firing Task View or the Start menu on top of restoring the window.

@@ -202,6 +202,7 @@ namespace HIDra.UI
                 _engine.KeyboardNavigateRequested += OnKeyboardNavigate;
                 _engine.KeyboardSelectRequested += OnKeyboardSelect;
                 _engine.KeyboardSelectShiftedRequested += OnKeyboardSelectShifted;
+                _engine.KeyboardQuickKeyRequested += OnKeyboardQuickKey;
 
                 InitializeVirtualKeyboard();
 
@@ -841,6 +842,11 @@ namespace HIDra.UI
         private void OnKeyboardSelectShifted(object? sender, EventArgs e)
         {
             Dispatcher.BeginInvoke(() => _virtualKeyboard?.ActivateHighlightShifted());
+        }
+
+        private void OnKeyboardQuickKey(object? sender, KeyboardQuickKey key)
+        {
+            Dispatcher.BeginInvoke(() => _virtualKeyboard?.PressQuickKey(key));
         }
 
         private void OnVirtualKeyboardKeyCombo(object? sender, VirtualKey[] keys)

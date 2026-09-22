@@ -844,9 +844,11 @@ public partial class VirtualKeyboardWindow : Window
     // trips across the keyboard - to Ctrl and back to the letter - each one a string of
     // deliberate movements.
     //
-    // The first four rows are the same everywhere. The last row follows the program in
-    // front - PowerPoint, Word, a web browser, File Explorer - with the things most
-    // used there.
+    // The first four rows are the same everywhere, one kind of action to a row - Edit,
+    // Select, Style, Tools - so the student can learn where a group lives rather than
+    // where each of twenty keys is. The last row follows the program in front -
+    // PowerPoint, Word, a web browser, File Explorer - and is labelled with its name,
+    // so it is plain why those keys have changed.
     // ---------------------------------------------------------------------------
 
     /// <summary>
@@ -865,35 +867,40 @@ public partial class VirtualKeyboardWindow : Window
 
     private static readonly Shortcut[] GeneralShortcuts =
     {
-        new("Undo", '\uE7A7', VirtualKey.Control, K('z')),
-        new("Redo", '\uE7A6', VirtualKey.Control, K('y')),
-        // Windows voice typing: speak instead of type, into whatever has the cursor
-        new("Voice", '\uE720', VirtualKey.LeftWindows, K('h')),
-        new("Save", '\uE74E', VirtualKey.Control, K('s')),
-        new("Files", '\uE8B7', VirtualKey.LeftWindows, K('e')),
+        // Edit
+        new("Undo", '', VirtualKey.Control, K('z')),
+        new("Redo", '', VirtualKey.Control, K('y')),
+        new("Cut", '', VirtualKey.Control, K('x')),
+        new("Copy", '', VirtualKey.Control, K('c')),
+        new("Paste", '', VirtualKey.Control, K('v')),
 
-        new("Cut", '\uE8C6', VirtualKey.Control, K('x')),
-        new("Copy", '\uE8C8', VirtualKey.Control, K('c')),
-        new("Paste", '\uE77F', VirtualKey.Control, K('v')),
-        new("Select all", '\uE8B3', VirtualKey.Control, K('a')),
-        // The whole screen, saved straight to Pictures\Screenshots - nothing to drag
-        new("Screen shot", '\uE722', VirtualKey.LeftWindows, VirtualKey.Snapshot),
-
-        new("Word left", '\uE72B', VirtualKey.Control, VirtualKey.Left),
-        new("Word right", '\uE72A', VirtualKey.Control, VirtualKey.Right),
-        new("Delete word", '\uE750', VirtualKey.Control, VirtualKey.Back),
+        // Select
         // A switch, not a shortcut: while on, moving the cursor selects text as it goes
-        new("Select", '\uE7E6'),
-        // Choose an area of the screen (drag with RT); it is copied, ready to paste
-        new("Snip", '\uE7A8', VirtualKey.LeftWindows, VirtualKey.Shift, K('s')),
+        new("Select", ''),
+        new("Select all", '', VirtualKey.Control, K('a')),
+        new("Word left", '', VirtualKey.Control, VirtualKey.Left),
+        new("Word right", '', VirtualKey.Control, VirtualKey.Right),
+        new("Delete word", '', VirtualKey.Control, VirtualKey.Back),
 
-        new("Bold", '\uE8DD', VirtualKey.Control, K('b')),
-        new("Italic", '\uE8DB', VirtualKey.Control, K('i')),
-        // Windows' emoji picker, for posters and messages
-        new("Emoji", '\uE76E', VirtualKey.LeftWindows, VirtualKey.OemPeriod),
+        // Style
+        new("Bold", '', VirtualKey.Control, K('b')),
+        new("Italic", '', VirtualKey.Control, K('i')),
+        new("Underline", '', VirtualKey.Control, K('u')),
         // Bigger and smaller text work alike in PowerPoint, Word and Publisher
-        new("Bigger", '\uE8E8', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemPeriod),
-        new("Smaller", '\uE8E7', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemComma),
+        new("Bigger", '', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemPeriod),
+        new("Smaller", '', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemComma),
+
+        // Tools
+        // Windows voice typing: speak instead of type, into whatever has the cursor
+        new("Voice", '', VirtualKey.LeftWindows, K('h')),
+        // Windows' emoji picker, for posters and messages
+        new("Emoji", '', VirtualKey.LeftWindows, VirtualKey.OemPeriod),
+        new("Save", '', VirtualKey.Control, K('s')),
+        new("Files", '', VirtualKey.LeftWindows, K('e')),
+        // Choose an area of the screen (drag with RT), or the whole screen from the
+        // bar along the top; it is copied, ready to paste. This took over from a
+        // separate whole-screen key, which saved to a folder she then had to find.
+        new("Snip", '', VirtualKey.LeftWindows, VirtualKey.Shift, K('s')),
     };
 
     private static readonly Shortcut[] PowerPointRow =
@@ -943,6 +950,7 @@ public partial class VirtualKeyboardWindow : Window
 
     private readonly Shortcut?[] _shortcuts = new Shortcut?[25];
     private Shortcut[]? _programRow;
+    private string _programRowName = "";
 
     private readonly System.Windows.Threading.DispatcherTimer _programWatch =
         new() { Interval = TimeSpan.FromMilliseconds(700) };
@@ -953,16 +961,17 @@ public partial class VirtualKeyboardWindow : Window
     /// </summary>
     private void UpdateProgramRow()
     {
-        var row = ForegroundProcessName() switch
+        // The names are short enough to sit beside the row at the smallest keyboard size
+        var (row, name) = ForegroundProcessName() switch
         {
-            "powerpnt" => PowerPointRow,
-            "winword" => WordRow,
-            "msedge" or "chrome" or "firefox" or "brave" or "opera" => BrowserRow,
+            "powerpnt" => (PowerPointRow, "Slides"),
+            "winword" => (WordRow, "Word"),
+            "msedge" or "chrome" or "firefox" or "brave" or "opera" => (BrowserRow, "Web"),
             // Also the desktop and taskbar, where the Explorer keys are harmless
-            "explorer" => ExplorerRow,
+            "explorer" => (ExplorerRow, "Folders"),
             // HIDra itself, while staff use the main screen, keeps whatever was showing
-            "hidra.ui" => _programRow ?? OtherRow,
-            _ => OtherRow
+            "hidra.ui" when _programRow != null => (_programRow, _programRowName),
+            _ => (OtherRow, "Page")
         };
 
         if (ReferenceEquals(row, _programRow))
@@ -971,6 +980,8 @@ public partial class VirtualKeyboardWindow : Window
         }
 
         _programRow = row;
+        _programRowName = name;
+        ProgramRowLabel.Text = name;
 
         for (int i = 0; i < _shortcuts.Length; i++)
         {
@@ -1090,10 +1101,16 @@ public partial class VirtualKeyboardWindow : Window
         {
             if (_shortcuts[i] is { Keys.Length: 0 } && FindName($"Shortcut{i}") is Button button)
             {
-                // Orange while on, the same as Caps Lock, so it is plain that moving will select
-                button.Background = on
-                    ? (Brush)FindResource("AccentOnBrush")
-                    : (Brush)FindResource("ShortcutBackground");
+                // Orange while on, the same as Caps Lock, so it is plain that moving will
+                // select. Off hands the key back to its row's colour.
+                if (on)
+                {
+                    button.Background = (Brush)FindResource("AccentOnBrush");
+                }
+                else
+                {
+                    button.ClearValue(BackgroundProperty);
+                }
             }
         }
     }
@@ -1140,7 +1157,9 @@ public partial class VirtualKeyboardWindow : Window
     // Keyboard size
     // ---------------------------------------------------------------------------
 
-    private const double BaseWidth = 1430;
+    // Wide enough that the letters keep the room they had before the shortcut panel
+    // gained its column of row names
+    private const double BaseWidth = 1490;
 
     // Without the shortcut panel the keyboard goes back to its compact width
     private const double CompactBaseWidth = 1050;
@@ -1161,10 +1180,10 @@ public partial class VirtualKeyboardWindow : Window
             _showShortcuts = value;
 
             ShortcutPanel.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
-            ShortcutColumn.Width = value ? new GridLength(5, GridUnitType.Star) : new GridLength(0);
+            ShortcutColumn.Width = value ? new GridLength(5.8, GridUnitType.Star) : new GridLength(0);
 
             // The highlight could be sitting on a key that has just disappeared
-            if (!value && _highlightedKey != null && ShortcutPanel.Children.Contains(_highlightedKey))
+            if (!value && _highlightedKey != null && ShortcutPanel.IsAncestorOf(_highlightedKey))
             {
                 ClearHighlight();
             }
@@ -1361,6 +1380,32 @@ public partial class VirtualKeyboardWindow : Window
         // Raise the button's own Click so every existing behaviour - shift, caps lock,
         // the Ctrl shortcut path, backspace, the arrow keys - runs unchanged.
         _highlightedKey.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent));
+    }
+
+    /// <summary>
+    /// Type Backspace, Space or Enter from their controller buttons, wherever the
+    /// highlight is. The highlight stays put, so the student carries on from the letter
+    /// she was on.
+    /// </summary>
+    public void PressQuickKey(KeyboardQuickKey key)
+    {
+        StopDwell();
+        NotifyActivity();
+
+        // The same paths as the keys themselves, so word suggestions, automatic
+        // capitals and Select follow along exactly as they do for a press on screen
+        switch (key)
+        {
+            case KeyboardQuickKey.Backspace:
+                RaiseKeyPressed(VirtualKey.Back);
+                break;
+            case KeyboardQuickKey.Space:
+                RaiseTextEntered(" ");
+                break;
+            case KeyboardQuickKey.Enter:
+                RaiseKeyPressed(VirtualKey.Return);
+                break;
+        }
     }
 
     /// <summary>

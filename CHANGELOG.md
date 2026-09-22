@@ -4,6 +4,25 @@ HIDra is distributed as a folder that gets copied onto machines and USB sticks, 
 version number is often the only way to tell two copies apart. This file says what
 changed between them.
 
+## Unreleased
+
+### Orange, and fewer trips across the keyboard
+
+- **Orange is the one accent colour** - the student's favourite. An orange border shows
+  where you are (the keyboard highlight, which was yellow, and the setting under the
+  pointer); an orange fill shows something is on (toggles, Shift, Ctrl, Caps, Select,
+  which were a mix of green and blue). Warnings such as a low battery are now yellow,
+  so they cannot be mistaken for it.
+- **LB, RB and Y type Backspace, Space and Enter** while the keyboard is open, from
+  wherever the highlight is. After letters these are the keys used most, and each sat
+  at the edge of the board. The keys show LB, RB and Y on them. Their usual jobs come
+  back when the keyboard closes.
+- **The shortcut panel is in labelled rows**: Edit, Select, Style and Tools, each its
+  own colour, and a bottom row named for the program in front (Slides, Word, Web,
+  Folders). The keys used to run in no particular order. Underline is new; the
+  whole-screen screenshot key is gone, as Snip does the same job and puts the picture
+  where it can be pasted.
+
 ## v1.6.0
 
 ### Keyboard that gets out of the way, and a slower start
