@@ -73,7 +73,7 @@
                                                  own style says it is. -->
                                             <ColorAnimation Storyboard.TargetName="border"
                                                           Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                          To="#4CAF50"
+                                                          To="#B85400"
                                                           Duration="0:0:0.1"
                                                           AutoReverse="True"
                                                           FillBehavior="Stop"/>
@@ -88,9 +88,11 @@
             <Style.Triggers>
                 <!-- Only the border reacts to the mouse. Recolouring the background would
                      wipe out the difference between a typing key and a function key, and
-                     fight the blue and green that modifier keys use to show their state. -->
+                     fight the orange that Shift, Ctrl, Caps and Select use to show they are
+                     on. Pale grey, not orange: an orange border is the stick's highlight,
+                     and two of them would leave it unclear which key A will type. -->
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderBrush" Value="#0078D4"/>
+                    <Setter Property="BorderBrush" Value="#BBBBBB"/>
                 </Trigger>
             </Style.Triggers>
         </Style>

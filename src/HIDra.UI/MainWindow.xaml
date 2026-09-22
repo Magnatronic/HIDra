@@ -18,7 +18,7 @@
         a pointer the student may be steering with the very controller being set up.
 
         The settings are aimed at with that same pointer, so every control is large, well
-        spaced, and shows that the pointer is over it with a thick green border.
+        spaced, and shows that the pointer is over it with a thick orange border.
     -->
     <Window.Resources>
         <Style x:Key="BigButton" TargetType="Button">
@@ -43,11 +43,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#4CAF50"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
                                 <Setter TargetName="border" Property="BorderThickness" Value="4"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#4CAF50"/>
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource AccentOnBrush}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Foreground" Value="#666666"/>
@@ -59,7 +59,7 @@
             </Setter>
         </Style>
 
-        <!-- On/off and choice buttons: the code paints them green when selected -->
+        <!-- On/off and choice buttons: the code paints them orange when selected -->
         <Style x:Key="ToggleButtonStyle" TargetType="Button" BasedOn="{StaticResource BigButton}">
             <Setter Property="Width" Value="88"/>
             <Setter Property="FontSize" Value="18"/>
@@ -77,7 +77,7 @@
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#4CAF50"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
             <Setter Property="Margin" Value="0,10,0,2"/>
         </Style>
 
@@ -131,7 +131,7 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,28,0">
                     <Image Source="HIDra.ico" Width="36" Height="36" Margin="0,0,10,0"/>
-                    <TextBlock Text="HIDra" FontSize="28" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                    <TextBlock Text="HIDra" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">

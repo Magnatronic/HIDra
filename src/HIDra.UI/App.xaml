@@ -4,6 +4,19 @@
              xmlns:local="clr-namespace:HIDra.UI"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <!--
+            One accent, the student's favourite colour, with one meaning each way it is used:
+
+              AccentBrush     a border: where you are - the keyboard highlight, the
+                              setting under the pointer
+              AccentOnBrush   a fill: this is switched on - a toggle, Shift, Ctrl, Caps,
+                              Select. Dark enough for white text to stay readable.
+
+            Warnings are yellow, not orange, so a low battery is never mistaken for a
+            highlight.
+        -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF9A1F"/>
+        <SolidColorBrush x:Key="AccentOnBrush" Color="#B85400"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#F2C12E"/>
     </Application.Resources>
 </Application>

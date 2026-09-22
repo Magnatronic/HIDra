@@ -39,7 +39,7 @@ SWAP MODES:
 
 VIRTUAL KEYBOARD:
   X Button = Open/close on-screen keyboard
-  Left Stick = Move the yellow highlight between keys
+  Left Stick = move the orange highlight between keys
   A Button   = Type the highlighted key
   B Button   = Type its shifted version (£ $ % : ? and CAPITALS)
   (Big UK layout with visible shift symbols)
@@ -85,7 +85,7 @@ Open a Program:
 Type Text:
   1. Click into the box you want to type in
   2. Press X Button (opens the keyboard)
-  3. Use the LEFT STICK to move the yellow highlight to a letter
+  3. Use the LEFT STICK to move the orange highlight to a letter
      (hold a direction to travel quickly across the keyboard)
      (the D-pad also works, if you prefer it)
   4. Press A to type the highlighted letter
@@ -165,7 +165,7 @@ VIRTUAL KEYBOARD TIPS
   Undo, Voice (speak instead of typing), Save, Files, Copy, Paste,
   Screen shot, Delete word, Bold, Emoji, bigger text and more. The
   bottom row changes to suit PowerPoint, Word, the web or File Explorer
-- SELECT (the highlighter key) turns green: now the arrows and word
+- SELECT (the highlighter key) turns orange: now the arrows and word
   keys highlight text as they move. Then press Copy, Cut, Bold or
   just type. B on an arrow selects one step
 - APPS (top left) shows your programs with their logos - PowerPoint,

@@ -304,31 +304,31 @@ public partial class VirtualKeyboardWindow : Window
 
     private void UpdateModifierButtons()
     {
-        var blueColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 212));
+        // Orange fill means "on" everywhere in HIDra - the main screen's toggles too
+        var onColor = (Brush)FindResource("AccentOnBrush");
         // The resting colour has to be the one FunctionKeyStyle paints, or a modifier key
         // quietly changes shade the first time its state is refreshed.
         var grayColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(86, 86, 86));
-        var greenColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80));
 
         // Visual feedback for Shift key
         var shiftKey = this.FindName("ShiftKey") as Button;
         if (shiftKey != null)
         {
-            shiftKey.Background = _shiftPressed ? blueColor : grayColor;
+            shiftKey.Background = _shiftPressed ? onColor : grayColor;
         }
 
         // Visual feedback for Ctrl key
         var ctrlKey = this.FindName("CtrlKey") as Button;
         if (ctrlKey != null)
         {
-            ctrlKey.Background = _ctrlPressed ? blueColor : grayColor;
+            ctrlKey.Background = _ctrlPressed ? onColor : grayColor;
         }
 
-        // Visual feedback for Caps Lock key (green when on)
+        // Visual feedback for Caps Lock key
         var capsLockKey = this.FindName("CapsLockKey") as Button;
         if (capsLockKey != null)
         {
-            capsLockKey.Background = _capsLockOn ? greenColor : grayColor;
+            capsLockKey.Background = _capsLockOn ? onColor : grayColor;
         }
     }
 
@@ -1090,9 +1090,9 @@ public partial class VirtualKeyboardWindow : Window
         {
             if (_shortcuts[i] is { Keys.Length: 0 } && FindName($"Shortcut{i}") is Button button)
             {
-                // Green while on, the same as Caps Lock, so it is plain that moving will select
+                // Orange while on, the same as Caps Lock, so it is plain that moving will select
                 button.Background = on
-                    ? new SolidColorBrush(Color.FromRgb(76, 175, 80))
+                    ? (Brush)FindResource("AccentOnBrush")
                     : (Brush)FindResource("ShortcutBackground");
             }
         }
@@ -1215,7 +1215,7 @@ public partial class VirtualKeyboardWindow : Window
     /// fight over the same key.
     /// </summary>
     private static readonly Brush HighlightBrush =
-        new SolidColorBrush(Color.FromRgb(0xFF, 0xD4, 0x00));
+        (Brush)Application.Current.FindResource("AccentBrush");
 
     private const double HighlightBorderThickness = 4;
 
