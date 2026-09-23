@@ -182,6 +182,10 @@ screen, pages needed scrolling on a laptop, and Practice was more play than prac
   follows - slowly for a small push, quickly for a big one - never off the screen. A tap
   of LT still flips it between top and bottom; that now happens when LT is let go, once
   it is clear it was a tap. With the keyboard closed, LT acts on the press as before.
+- **The icon's controller has a dark outline**, so it stands out from the orange, and
+  the logo at the top left of the main screen is sharp instead of blocky.
+- **No "HIDra is still running" pop-up** every time the window is closed - it got in
+  the way. The Guide says how to bring the window back.
 - **No close key on the keyboard.** The button that opens it closes it; the red key was
   one overshoot from ending typing by mistake.
 

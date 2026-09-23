@@ -231,7 +231,8 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,28,0">
-                    <Image Source="HIDra.ico" Width="36" Height="36" Margin="0,0,10,0"/>
+                    <!-- The full-size logo, smoothly scaled: the .ico's small frames looked blocky here -->
+                    <Image Source="HIDra-logo.png" Width="36" Height="36" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock Text="HIDra" FontSize="28" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center"/>
                 </StackPanel>
 

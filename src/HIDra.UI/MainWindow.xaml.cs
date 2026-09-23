@@ -2497,9 +2497,9 @@ namespace HIDra.UI
             if (!_exitConfirmed)
             {
                 e.Cancel = true;
+                // No pop-up to say so: it came up every time and got in the way. The
+                // Guide says how to bring the window back (hold Back and Start).
                 Hide();
-                _trayIcon?.ShowMessage("HIDra is still running",
-                    "Your controller still works. Hold Back and Start together to bring this window back.");
                 return;
             }
 
