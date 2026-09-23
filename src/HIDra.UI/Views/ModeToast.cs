@@ -59,7 +59,7 @@ public sealed class ModeToast : Window
         Content = new Border
         {
             Background = new SolidColorBrush(Color.FromArgb(0xEE, 0x1E, 0x1E, 0x1E)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4)),
+            BorderBrush = (Brush)Application.Current.FindResource("AccentBrush"),
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(10),
             Padding = new Thickness(32, 20, 32, 20),

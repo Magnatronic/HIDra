@@ -15,3 +15,14 @@ public enum KeyboardNavigationDirection
     Left,
     Right
 }
+
+/// <summary>
+/// The keys typed most often after letters, given their own controller buttons while the
+/// on-screen keyboard is open (LB, RB and Y), so none of them costs a trip across it.
+/// </summary>
+public enum KeyboardQuickKey
+{
+    Backspace,
+    Space,
+    Enter
+}

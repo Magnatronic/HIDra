@@ -202,6 +202,7 @@ namespace HIDra.UI
                 _engine.KeyboardNavigateRequested += OnKeyboardNavigate;
                 _engine.KeyboardSelectRequested += OnKeyboardSelect;
                 _engine.KeyboardSelectShiftedRequested += OnKeyboardSelectShifted;
+                _engine.KeyboardQuickKeyRequested += OnKeyboardQuickKey;
 
                 InitializeVirtualKeyboard();
 
@@ -324,7 +325,7 @@ namespace HIDra.UI
                     : battery.Description;
 
                 BatteryText.Foreground = battery.NeedsAttention
-                    ? new SolidColorBrush(Color.FromRgb(0xFF, 0x98, 0x00))
+                    ? (Brush)FindResource("WarningBrush")
                     : new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
 
                 _trayIcon?.UpdateStatus(_engine?.Controller?.IsConnected == true, battery);
@@ -461,7 +462,7 @@ namespace HIDra.UI
             var fillColor = status switch
             {
                 ConnectionStatus.Connected => Color.FromRgb(0x4C, 0xAF, 0x50), // Green #4CAF50
-                ConnectionStatus.Connecting => Color.FromRgb(0xFF, 0x98, 0x00), // Orange
+                ConnectionStatus.Connecting => Color.FromRgb(0xF2, 0xC1, 0x2E), // Yellow - orange is the accent
                 ConnectionStatus.Disconnected => Color.FromRgb(0xDC, 0x35, 0x45), // Red #DC3545
                 ConnectionStatus.Error => Color.FromRgb(0xDC, 0x35, 0x45), // Red
                 _ => Color.FromRgb(0x66, 0x66, 0x66) // Gray
@@ -600,7 +601,8 @@ namespace HIDra.UI
         // and is shown back on the screen, so there is no Save or Apply to forget.
         // ---------------------------------------------------------------------------
 
-        private static readonly Brush OnBrush = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32));
+        // Orange, the same as Shift, Caps and Select on the keyboard: one colour for "on"
+        private static readonly Brush OnBrush = (Brush)Application.Current.FindResource("AccentOnBrush");
         private static readonly Brush OffBrush = new SolidColorBrush(Color.FromRgb(0x3C, 0x3C, 0x3C));
 
         /// <summary>
@@ -840,6 +842,11 @@ namespace HIDra.UI
         private void OnKeyboardSelectShifted(object? sender, EventArgs e)
         {
             Dispatcher.BeginInvoke(() => _virtualKeyboard?.ActivateHighlightShifted());
+        }
+
+        private void OnKeyboardQuickKey(object? sender, KeyboardQuickKey key)
+        {
+            Dispatcher.BeginInvoke(() => _virtualKeyboard?.PressQuickKey(key));
         }
 
         private void OnVirtualKeyboardKeyCombo(object? sender, VirtualKey[] keys)

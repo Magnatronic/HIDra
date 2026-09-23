@@ -44,7 +44,7 @@ public sealed class DwellRing : Window
 
         _progress = new Ellipse
         {
-            Stroke = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)),
+            Stroke = new SolidColorBrush(Color.FromRgb(0xFF, 0x9A, 0x1F)),
             StrokeThickness = Thickness,
             StrokeDashArray = new DoubleCollection { _dashLength, _dashLength },
             StrokeDashOffset = _dashLength,

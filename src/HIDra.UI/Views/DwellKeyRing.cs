@@ -33,7 +33,7 @@ public sealed class DwellKeyRing : Adorner
     private const double Thickness = 5;
 
     private static readonly Pen TrackPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF))), Thickness));
-    private static readonly Pen FillPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50))), Thickness)
+    private static readonly Pen FillPen = Freeze(new Pen(Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0x9A, 0x1F))), Thickness)
     {
         StartLineCap = PenLineCap.Round,
         EndLineCap = PenLineCap.Round
