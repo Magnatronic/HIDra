@@ -463,58 +463,97 @@
                  drawn as they look on the controller -->
             <Border Grid.Column="1" Style="{StaticResource Panel}" Padding="14,12,14,4">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="How do I..." Style="{StaticResource PanelTitle}" Margin="0,0,0,10"/>
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBlock Text="How do I..." Style="{StaticResource PanelTitle}"/>
+                        <TextBlock x:Name="HowToModeText" Style="{StaticResource SettingHint}" FontSize="14"/>
+                    </StackPanel>
+                    <!-- One set of cards for each side of the switch, so only what can be
+                         done right now is shown -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <Border Style="{StaticResource HowToCard}">
-                                <StackPanel>
-                                    <TextBlock Text="Click on something" Style="{StaticResource HowToTitle}"/>
-                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Move the pointer with the left stick."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="clicks, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="right-clicks. Hold "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="RT"/></InlineUIContainer><Run Text="to drag."/></TextBlock>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource HowToCard}">
-                                <StackPanel>
-                                    <TextBlock Text="Type" Style="{StaticResource HowToTitle}"/>
-                                    <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="opens the keyboard. Steer the orange box with the left stick. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="types, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="types a capital."/></TextBlock>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource HowToCard}">
-                                <StackPanel>
-                                    <TextBlock Text="Type faster" Style="{StaticResource HowToTitle}"/>
-                                    <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LB"/></InlineUIContainer><Run Text="deletes, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="RB"/></InlineUIContainer><Run Text="space, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeY}"/></InlineUIContainer><Run Text="Enter."/><LineBreak/><Run Text="Push up from the top row to pick a green word."/></TextBlock>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource HowToCard}">
-                                <StackPanel>
-                                    <TextBlock Text="Type numbers and symbols" Style="{StaticResource HowToTitle}"/>
-                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Go to 123 #+ at the bottom left and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><LineBreak/><Run Text="abc, in the same place, brings the letters back."/></TextBlock>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource HowToCard}">
-                                <StackPanel>
-                                    <TextBlock Text="Open a program" Style="{StaticResource HowToTitle}"/>
-                                    <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="for the keyboard, then go to Apps at the top left. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="on a program opens it."/></TextBlock>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource HowToCard}">
-                                <StackPanel>
-                                    <TextBlock Text="Switch programs" Style="{StaticResource HowToTitle}"/>
-                                    <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LB"/></InlineUIContainer><Run Text="shows them; press it again to move along. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="picks one, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="goes back."/></TextBlock>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource HowToCard}">
-                                <StackPanel>
-                                    <TextBlock Text="Copy and paste" Style="{StaticResource HowToTitle}"/>
-                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="On the keyboard: Select, then move to highlight the text, then Copy. Go to where it belongs, then Paste."/></TextBlock>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource HowToCard}">
-                                <StackPanel>
-                                    <TextBlock Text="Keyboard in the way?" Style="{StaticResource HowToTitle}"/>
-                                    <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LT"/></InlineUIContainer><Run Text="moves it to the top or bottom of the screen. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="closes it."/></TextBlock>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
+                        <Grid>
+                            <StackPanel x:Name="HowToPointer">
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Click on something" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Move the pointer with the left stick."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="clicks, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="right-clicks, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="RB"/></InlineUIContainer><Run Text="double-clicks. Hold "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="RT"/></InlineUIContainer><Run Text="to drag."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Scroll a page" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Push the right stick the way you want to go."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeY}"/></InlineUIContainer><Run Text="swaps the sticks, if the other hand is easier."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Arrange windows" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="D-pad up makes a window full screen, down hides it."/><LineBreak/><Run Text="Left or right puts it on that half of the screen."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Switch programs" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LB"/></InlineUIContainer><Run Text="shows them; press it again to move along. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="picks one, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="goes back."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Open a program" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="for the keyboard, then go to Apps at the top left. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="on a program opens it."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Start typing" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Click where the words should go, then press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="for the keyboard."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            <StackPanel x:Name="HowToTyping" Visibility="Collapsed">
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Type" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Steer the orange box with the left stick."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="types the key, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="types a capital or the symbol on top."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Type faster" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LB"/></InlineUIContainer><Run Text="deletes, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="RB"/></InlineUIContainer><Run Text="space, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeY}"/></InlineUIContainer><Run Text="Enter."/><LineBreak/><Run Text="Push up from the top row to pick a green word."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Type numbers and symbols" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Go to 123 #+ at the bottom left and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><LineBreak/><Run Text="abc, in the same place, brings the letters back."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Type a saved phrase" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Go up to Phrases, at the start of the green row, and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="- then pick the phrase. Staff set them on the Settings tab."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Copy and paste" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Select, then move to highlight the text, then Copy. Go to where it belongs, then Paste."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Keyboard in the way?" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LT"/></InlineUIContainer><Run Text="moves it to the top or bottom of the screen. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="closes it."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource HowToCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="Open a program" Style="{StaticResource HowToTitle}"/>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Go to Apps at the top left and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="on the program."/></TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
                     </ScrollViewer>
                 </DockPanel>
             </Border>

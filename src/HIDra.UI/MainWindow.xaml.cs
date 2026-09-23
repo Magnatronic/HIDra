@@ -688,6 +688,10 @@ namespace HIDra.UI
 
         private void UpdateGuideText()
         {
+            HowToPointer.Visibility = _guideTyping ? Visibility.Collapsed : Visibility.Visible;
+            HowToTyping.Visibility = _guideTyping ? Visibility.Visible : Visibility.Collapsed;
+            HowToModeText.Text = _guideTyping ? "While the keyboard is open" : "While using the pointer";
+
             ActLT.Text = "Keyboard to top or bottom";
             ActRT.Text = "Hold to click and drag";
             ActLB.Text = _guideTyping ? "Backspace" : "Show open programs";
