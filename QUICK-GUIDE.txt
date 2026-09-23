@@ -54,7 +54,8 @@ VIRTUAL KEYBOARD:
                A types the whole word, B types it with a Capital
   Right Stick  = Jump: up to the green words, right to the shortcuts,
                  left or down back to the letters
-  Left Trigger = Move the keyboard to the top/bottom of the screen
+  Left Trigger = Tap: move the keyboard to the top/bottom of the screen.
+                 Hold it and push the left stick: drag the keyboard anywhere
   (use it when the keyboard covers what you are typing)
 
 SWITCHING BETWEEN PROGRAMS:
@@ -134,8 +135,9 @@ Right Stick:
   Click Down = Undo (Ctrl+Z)
 
 Triggers:
-  Left Trigger (LT) = Move keyboard between top and bottom of screen,
-                      while it is open. While it is closed, whatever staff
+  Left Trigger (LT) = While the keyboard is open: tap to move it between
+                      the top and bottom of the screen, or hold LT and
+                      push the left stick to drag it anywhere. While it is closed, whatever staff
                       chose on the Buttons tab - normally Escape (closes
                       a menu or box)
   Right Trigger (RT) = Click and hold (hold to drag things)

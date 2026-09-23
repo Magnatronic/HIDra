@@ -149,6 +149,8 @@ namespace HIDra.UI
                 _engine.KeyboardSelectRequested += OnKeyboardSelect;
                 _engine.KeyboardSelectShiftedRequested += OnKeyboardSelectShifted;
                 _engine.KeyboardQuickKeyRequested += OnKeyboardQuickKey;
+                _engine.KeyboardDragRequested += (_, move) =>
+                    Dispatcher.BeginInvoke(() => _virtualKeyboard?.MoveBy(move.X, move.Y));
                 _engine.KeyboardSectionJumpRequested += (_, direction) =>
                     Dispatcher.BeginInvoke(() => _virtualKeyboard?.JumpSection(direction));
                 _engine.ActiveControlsChanged += OnActiveControlsChanged;
@@ -956,7 +958,8 @@ namespace HIDra.UI
             startTyping.Add("for the keyboard.");
             WriteText(HowToStartTypingText, startTyping);
 
-            var inTheWay = new List<object> { TextBadge("LT"), "moves it to the top or bottom of the screen. " };
+            var inTheWay = new List<object> { "Tap ", TextBadge("LT"), "to move it to the top or bottom, or hold ", TextBadge("LT"),
+                "and push the left stick to drag it anywhere. " };
             inTheWay.AddRange(Keyboard());
             inTheWay.Add("closes it.");
             WriteText(HowToKeyboardWayText, inTheWay);

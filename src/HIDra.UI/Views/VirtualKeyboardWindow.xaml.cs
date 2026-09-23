@@ -113,6 +113,18 @@ public partial class VirtualKeyboardWindow : Window
         this.Top = atTop ? workArea.Top + 10 : workArea.Bottom - this.Height - 10;
     }
 
+    /// <summary>
+    /// Drag the keyboard (LT held, left stick), never off the screen. Where it is dragged
+    /// to lasts until it closes; it opens at the top or bottom as usual.
+    /// </summary>
+    public void MoveBy(double x, double y)
+    {
+        NotifyActivity();
+        var workArea = SystemParameters.WorkArea;
+        this.Left = Math.Clamp(this.Left + x, workArea.Left, Math.Max(workArea.Left, workArea.Right - this.ActualWidth));
+        this.Top = Math.Clamp(this.Top + y, workArea.Top, Math.Max(workArea.Top, workArea.Bottom - this.ActualHeight));
+    }
+
     private void KeyButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.Button button) return;

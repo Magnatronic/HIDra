@@ -178,6 +178,10 @@ screen, pages needed scrolling on a laptop, and Practice was more play than prac
   Escape. D-pad up and down still move the orange box. Whichever button opens a
   student's keyboard keeps closing it, even if it is Back, Start or the left stick. The
   Guide's Typing view, a new "Fix a mistake" card and the Buttons tab say so.
+- **Drag the keyboard anywhere**: hold LT and push the left stick, and the keyboard
+  follows - slowly for a small push, quickly for a big one - never off the screen. A tap
+  of LT still flips it between top and bottom; that now happens when LT is let go, once
+  it is clear it was a tap. With the keyboard closed, LT acts on the press as before.
 - **No close key on the keyboard.** The button that opens it closes it; the red key was
   one overshoot from ending typing by mistake.
 

@@ -102,7 +102,7 @@ public static class ButtonJobCatalogue
     /// </summary>
     public static readonly IReadOnlyList<RemappableButton> Buttons = new[]
     {
-        new RemappableButton(LeftTrigger, "LT", "escape", false, "Keyboard to top or bottom"),
+        new RemappableButton(LeftTrigger, "LT", "escape", false, "Tap: top or bottom. Hold: drag"),
         new RemappableButton("ButtonA", "A", Click, false, "Type the key"),
         new RemappableButton("ButtonB", "B", "right-click", false, "Capital, or the symbol on top"),
         new RemappableButton("ButtonX", "X", Keyboard, true),

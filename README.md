@@ -21,7 +21,7 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - While the keyboard is open, the right stick jumps between its parts: up to the word row, right to the shortcuts, back to the letters
 - An Apps key that opens PowerPoint, Word, Edge and other installed programs in one press
 - One main screen with four tabs. For the student: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks - and **Practice** - the pointer and typing tests and a record of every run. For staff: **Buttons** (each button's job), **Pointer** (speed, feel, Grid 3, and exporting or importing a student's settings) and **Keyboard** (keyboard, shortcut and Apps keys, phrases, Windows' own keyboard). Every page fits a 1366x768 laptop screen without scrolling
-- LT moves the keyboard between the top and bottom of the screen while it is open, so it never has to cover your work. While it is closed, LT does a job chosen per student: Escape (the default), any other button job, zoom in and out with Windows Magnifier, or a slow pointer switched on and off
+- LT moves the keyboard while it is open, so it never has to cover your work: a tap flips it between the top and bottom of the screen, and holding LT while pushing the left stick drags it anywhere. While it is closed, LT does a job chosen per student: Escape (the default), any other button job, zoom in and out with Windows Magnifier, or a slow pointer switched on and off
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
 - Start opens Task View; Back opens Start menu

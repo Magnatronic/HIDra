@@ -148,6 +148,23 @@ public class HIDraEngine : IDisposable
     public event EventHandler? KeyboardPositionToggleRequested;
 
     /// <summary>
+    /// Move the keyboard by this many pixels across and down: LT held while the left
+    /// stick is pushed, so the keyboard can be put anywhere, not only top or bottom
+    /// </summary>
+    public event EventHandler<(double X, double Y)>? KeyboardDragRequested;
+
+    // LT while the keyboard is open: a tap flips it top or bottom (on release, once it is
+    // clear the stick was not used), a hold with the left stick drags it
+    private bool _leftTriggerHeld;
+    private bool _keyboardDragged;
+
+    /// <summary>
+    /// The keyboard's fastest drag, in pixels a second, at a full push. The speed rises
+    /// with the square of the push, so a small push gives fine placement.
+    /// </summary>
+    private const double KeyboardDragSpeed = 1500;
+
+    /// <summary>
     /// A dwell click has started counting down, with the seconds left until it clicks.
     /// Lets the UI show a countdown by the cursor, so a click is never a surprise.
     /// </summary>
@@ -665,7 +682,16 @@ public class HIDraEngine : IDisposable
         // While the on-screen keyboard is open the D-pad drives it. Window snapping is
         // unavailable for that time, which is a fair trade: typing is far more frequent
         // than window management, and this is what removes aiming from every keystroke.
-        if (KeyboardNavigationActive)
+        bool leftTrigger = _inputProcessor.IsTriggerPressed(state.LeftTrigger);
+
+        if (KeyboardNavigationActive && _leftTriggerHeld && leftTrigger)
+        {
+            // Dragging: the left stick moves the keyboard, not the orange box
+            DragKeyboard(state, deltaSeconds);
+            _heldDirection = null;
+            _keyRepeatTimer.Reset();
+        }
+        else if (KeyboardNavigationActive)
         {
             UpdateKeyboardNavigation(state);
             UpdateSectionJump(state);
@@ -681,10 +707,29 @@ public class HIDraEngine : IDisposable
         // Process buttons
         if (_previousState != null)
         {
-            if (_inputProcessor.IsTriggerPressed(state.LeftTrigger) &&
-                !_inputProcessor.IsTriggerPressed(_previousState.LeftTrigger))
+            bool wasLeftTrigger = _inputProcessor.IsTriggerPressed(_previousState.LeftTrigger);
+
+            if (leftTrigger && !wasLeftTrigger)
             {
-                KeyboardPositionToggleRequested?.Invoke(this, EventArgs.Empty);
+                if (KeyboardNavigationActive)
+                {
+                    // Wait to see whether this is a tap or a drag
+                    _leftTriggerHeld = true;
+                    _keyboardDragged = false;
+                }
+                else
+                {
+                    // Keyboard closed: LT's own job, straight away
+                    KeyboardPositionToggleRequested?.Invoke(this, EventArgs.Empty);
+                }
+            }
+            else if (!leftTrigger && wasLeftTrigger && _leftTriggerHeld)
+            {
+                _leftTriggerHeld = false;
+                if (!_keyboardDragged && KeyboardNavigationActive)
+                {
+                    KeyboardPositionToggleRequested?.Invoke(this, EventArgs.Empty);
+                }
             }
 
             ProcessButtons(state, _previousState);
@@ -956,6 +1001,26 @@ public class HIDraEngine : IDisposable
         }
 
         ProcessButton(buttonName, current, previous, modifier);
+    }
+
+    private void DragKeyboard(ControllerState state, float deltaSeconds)
+    {
+        const float deadzone = 0.2f;
+        float x = state.LeftStickX, y = state.LeftStickY;
+        double magnitude = Math.Sqrt(x * x + y * y);
+        if (magnitude < deadzone)
+        {
+            return;
+        }
+
+        _keyboardDragged = true;
+
+        // 0 at the edge of the deadzone, 1 at a full push, squared for fine control
+        double push = Math.Min(1, (magnitude - deadzone) / (1 - deadzone));
+        double speed = KeyboardDragSpeed * push * push * deltaSeconds;
+
+        // Pushing the stick up gives a positive Y; up the screen is a smaller one
+        KeyboardDragRequested?.Invoke(this, (x / magnitude * speed, -y / magnitude * speed));
     }
 
     private void UpdateSectionJump(ControllerState state)
