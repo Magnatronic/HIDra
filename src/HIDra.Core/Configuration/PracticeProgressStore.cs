@@ -14,8 +14,8 @@ public static class PracticeProgressStore
 {
     private const string FileName = "practice.json";
 
-    /// <summary>About two school years of days with practice</summary>
-    private const int MaxDays = 400;
+    /// <summary>Plenty for years of practice, while keeping the file small</summary>
+    private const int MaxRuns = 2000;
 
     public static string Location => Path.Combine(UserSettingsStore.Folder, FileName);
 
@@ -31,7 +31,8 @@ public static class PracticeProgressStore
                 var progress = JsonConvert.DeserializeObject<PracticeProgress>(File.ReadAllText(Location));
                 if (progress != null)
                 {
-                    progress.Days ??= new List<PracticeDay>();
+                    progress.PointerRuns ??= new List<PointerRun>();
+                    progress.TypingRuns ??= new List<TypingRun>();
                     return progress;
                 }
             }
@@ -51,11 +52,8 @@ public static class PracticeProgressStore
     {
         try
         {
-            if (progress.Days.Count > MaxDays)
-            {
-                progress.Days.RemoveRange(0, progress.Days.Count - MaxDays);
-            }
-
+            Trim(progress.PointerRuns);
+            Trim(progress.TypingRuns);
             Directory.CreateDirectory(UserSettingsStore.Folder);
             File.WriteAllText(Location, JsonConvert.SerializeObject(progress, Formatting.Indented));
         }
@@ -65,35 +63,43 @@ public static class PracticeProgressStore
         }
     }
 
-    /// <summary>
-    /// Today's entry, added if this is the first practice today
-    /// </summary>
-    public static PracticeDay Today(PracticeProgress progress)
+    private static void Trim<T>(List<T> runs)
     {
-        string today = DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        if (progress.Days.Count > 0 && progress.Days[^1].Date == today)
+        if (runs.Count > MaxRuns)
         {
-            return progress.Days[^1];
+            runs.RemoveRange(0, runs.Count - MaxRuns);
         }
-
-        var day = new PracticeDay { Date = today, SmallestCircle = progress.CircleLevel };
-        progress.Days.Add(day);
-        return day;
     }
 
     /// <summary>
-    /// Write every day as a spreadsheet (CSV), for a review. True if it was written.
+    /// Every run as a spreadsheet (CSV), oldest first, for a review. True if written.
     /// </summary>
-    public static bool ExportCsv(PracticeProgress progress, string path, Func<int, string> circleSize)
+    public static bool ExportCsv(PracticeProgress progress, string path, Func<int, string> circleSize, Func<int, string> typingLevel)
     {
         try
         {
             var csv = new StringBuilder();
-            csv.AppendLine("Date,Circles hit,Circles missed,Smallest circle,Words typed,Wrong letters,Keyboard opened and closed");
-            foreach (var day in progress.Days)
+            csv.AppendLine("Date,Time,Test,Size or level,Seconds,Circles,Misses,Needed a scroll,Scrolled past,Speed score (bits a second),"
+                + "Letters,Letters a minute,Wrong letters,Corrections,Keyboard moved,Skipped");
+
+            var rows = new List<(DateTime When, string Line)>();
+            foreach (var run in progress.PointerRuns)
             {
-                csv.AppendLine(string.Join(",", day.Date, day.CircleHits, day.CircleMisses,
-                    circleSize(day.SmallestCircle), day.WordsTyped, day.WrongLetters, day.KeyboardRounds));
+                rows.Add((run.When, string.Join(",", run.When.ToString("yyyy-MM-dd,HH:mm", CultureInfo.InvariantCulture),
+                    "Pointer", circleSize(run.Size), Number(run.Seconds), run.Targets, run.Misses, run.Scrolled,
+                    run.Overshoots, Number(run.Throughput), "", "", "", "", "", "")));
+            }
+            foreach (var run in progress.TypingRuns)
+            {
+                rows.Add((run.When, string.Join(",", run.When.ToString("yyyy-MM-dd,HH:mm", CultureInfo.InvariantCulture),
+                    "Typing", typingLevel(run.Level), Number(run.Seconds), "", "", "", "", "",
+                    run.Characters, Number(run.LettersPerMinute), run.WrongLetters, run.Corrections, run.KeyboardMoves, run.Skipped)));
+            }
+
+            rows.Sort((a, b) => a.When.CompareTo(b.When));
+            foreach (var row in rows)
+            {
+                csv.AppendLine(row.Line);
             }
 
             File.WriteAllText(path, csv.ToString(), Encoding.UTF8);
@@ -104,4 +110,6 @@ public static class PracticeProgressStore
             return false;
         }
     }
+
+    private static string Number(double value) => value.ToString("0.0", CultureInfo.InvariantCulture);
 }

@@ -113,9 +113,10 @@ public class UserSettings
     public bool GentleCurve { get; set; } = false;
 
     /// <summary>
-    /// What LT does while the keyboard is closed. While it is open, LT always moves it.
+    /// LT's job in settings saved before LT joined <see cref="ButtonJobs"/>. Read once,
+    /// moved into ButtonJobs, and cleared. Null for every newer file.
     /// </summary>
-    public LeftTriggerAction LeftTrigger { get; set; } = LeftTriggerAction.Magnifier;
+    public LeftTriggerAction? LeftTrigger { get; set; }
 
     /// <summary>
     /// The pointer's speed while Slow pointer is on, as a percentage of its normal speed

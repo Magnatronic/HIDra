@@ -148,6 +148,23 @@ public class HIDraEngine : IDisposable
     public event EventHandler? KeyboardPositionToggleRequested;
 
     /// <summary>
+    /// Move the keyboard by this many pixels across and down: LT held while the left
+    /// stick is pushed, so the keyboard can be put anywhere, not only top or bottom
+    /// </summary>
+    public event EventHandler<(double X, double Y)>? KeyboardDragRequested;
+
+    // LT while the keyboard is open: a tap flips it top or bottom (on release, once it is
+    // clear the stick was not used), a hold with the left stick drags it
+    private bool _leftTriggerHeld;
+    private bool _keyboardDragged;
+
+    /// <summary>
+    /// The keyboard's fastest drag, in pixels a second, at a full push. The speed rises
+    /// with the square of the push, so a small push gives fine placement.
+    /// </summary>
+    private const double KeyboardDragSpeed = 1500;
+
+    /// <summary>
     /// A dwell click has started counting down, with the seconds left until it clicks.
     /// Lets the UI show a countdown by the cursor, so a click is never a surprise.
     /// </summary>
@@ -236,6 +253,15 @@ public class HIDraEngine : IDisposable
 
     /// <summary>Move the on-screen keyboard highlight one key.</summary>
     public event EventHandler<KeyboardNavigationDirection>? KeyboardNavigateRequested;
+
+    /// <summary>
+    /// Jump the keyboard highlight to another part of the keyboard - the word row, the
+    /// letters, the shortcuts - from the right stick, so crossing it is one push
+    /// </summary>
+    public event EventHandler<KeyboardNavigationDirection>? KeyboardSectionJumpRequested;
+
+    // A jump happens once per push; the stick must come back to the middle before the next
+    private bool _sectionJumpHeld;
 
     /// <summary>Press the highlighted key on the on-screen keyboard.</summary>
     public event EventHandler? KeyboardSelectRequested;
@@ -457,6 +483,14 @@ public class HIDraEngine : IDisposable
     }
 
     /// <summary>
+    /// Run a button's job straight away - for LT, whose job the main window runs
+    /// </summary>
+    public void RunAction(ActionMapping action)
+    {
+        _buttonActionHandler.ExecuteAction(action);
+    }
+
+    /// <summary>
     /// Send a key press (for virtual keyboard)
     /// </summary>
     public void SendKeyPress(VirtualKey key)
@@ -593,6 +627,14 @@ public class HIDraEngine : IDisposable
             pointerState = state.Clone();
             pointerState.LeftStickX = 0f;
             pointerState.LeftStickY = 0f;
+
+            // The right stick jumps between parts of the keyboard instead of scrolling -
+            // unless the sticks are swapped, when it is the pointer and stays so
+            if (!_useRightStickForCursor)
+            {
+                pointerState.RightStickX = 0f;
+                pointerState.RightStickY = 0f;
+            }
         }
 
         float cursorDeltaX = 0f, cursorDeltaY = 0f;
@@ -640,23 +682,54 @@ public class HIDraEngine : IDisposable
         // While the on-screen keyboard is open the D-pad drives it. Window snapping is
         // unavailable for that time, which is a fair trade: typing is far more frequent
         // than window management, and this is what removes aiming from every keystroke.
-        if (KeyboardNavigationActive)
+        bool leftTrigger = _inputProcessor.IsTriggerPressed(state.LeftTrigger);
+
+        if (KeyboardNavigationActive && _leftTriggerHeld && leftTrigger)
+        {
+            // Dragging: the left stick moves the keyboard, not the orange box
+            DragKeyboard(state, deltaSeconds);
+            _heldDirection = null;
+            _keyRepeatTimer.Reset();
+        }
+        else if (KeyboardNavigationActive)
         {
             UpdateKeyboardNavigation(state);
+            UpdateSectionJump(state);
+            UpdateTextCursor(state);
         }
         else
         {
             _heldDirection = null;
             _keyRepeatTimer.Reset();
+            _heldCursorKey = null;
         }
 
         // Process buttons
         if (_previousState != null)
         {
-            if (_inputProcessor.IsTriggerPressed(state.LeftTrigger) &&
-                !_inputProcessor.IsTriggerPressed(_previousState.LeftTrigger))
+            bool wasLeftTrigger = _inputProcessor.IsTriggerPressed(_previousState.LeftTrigger);
+
+            if (leftTrigger && !wasLeftTrigger)
             {
-                KeyboardPositionToggleRequested?.Invoke(this, EventArgs.Empty);
+                if (KeyboardNavigationActive)
+                {
+                    // Wait to see whether this is a tap or a drag
+                    _leftTriggerHeld = true;
+                    _keyboardDragged = false;
+                }
+                else
+                {
+                    // Keyboard closed: LT's own job, straight away
+                    KeyboardPositionToggleRequested?.Invoke(this, EventArgs.Empty);
+                }
+            }
+            else if (!leftTrigger && wasLeftTrigger && _leftTriggerHeld)
+            {
+                _leftTriggerHeld = false;
+                if (!_keyboardDragged && KeyboardNavigationActive)
+                {
+                    KeyboardPositionToggleRequested?.Invoke(this, EventArgs.Empty);
+                }
             }
 
             ProcessButtons(state, _previousState);
@@ -869,16 +942,127 @@ public class HIDraEngine : IDisposable
         return y > 0 ? KeyboardNavigationDirection.Up : KeyboardNavigationDirection.Down;
     }
 
+    // D-pad left or right held while typing: the text cursor repeats, as the highlight does
+    private KeyboardQuickKey? _heldCursorKey;
+    private readonly System.Diagnostics.Stopwatch _cursorRepeatTimer = new();
+    private int _cursorRepeatCount;
+
+    private void UpdateTextCursor(ControllerState state)
+    {
+        KeyboardQuickKey? key = state.DpadLeft ? KeyboardQuickKey.CursorLeft
+            : state.DpadRight ? KeyboardQuickKey.CursorRight
+            : null;
+
+        if (key == null)
+        {
+            _heldCursorKey = null;
+            return;
+        }
+
+        if (key != _heldCursorKey)
+        {
+            _heldCursorKey = key;
+            _cursorRepeatCount = 0;
+            _cursorRepeatTimer.Restart();
+            KeyboardQuickKeyRequested?.Invoke(this, key.Value);
+            return;
+        }
+
+        int due = _cursorRepeatCount == 0 ? KeyRepeatDelayMs : KeyRepeatIntervalMs;
+        if (_cursorRepeatTimer.ElapsedMilliseconds >= due)
+        {
+            _cursorRepeatCount++;
+            _cursorRepeatTimer.Restart();
+            KeyboardQuickKeyRequested?.Invoke(this, key.Value);
+        }
+    }
+
+    /// <summary>
+    /// Whether this button's job is opening and closing the keyboard. That button keeps
+    /// its job while typing, whichever it is, or the keyboard could not be closed.
+    /// </summary>
+    private bool OpensKeyboard(string buttonName) =>
+        _buttonMappings.TryGetValue(buttonName, out var mapping)
+        && string.Equals(mapping.Default?.Action, "ToggleOnScreenKeyboard", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A button with a typing job while the keyboard is open, unless it is the one that
+    /// closes the keyboard
+    /// </summary>
+    private void ProcessTypingButton(string buttonName, bool current, bool previous, KeyboardQuickKey typingKey, string? modifier)
+    {
+        if (KeyboardNavigationActive && !OpensKeyboard(buttonName))
+        {
+            if (_inputProcessor.IsButtonPressed(current, previous))
+            {
+                KeyboardQuickKeyRequested?.Invoke(this, typingKey);
+            }
+            return;
+        }
+
+        ProcessButton(buttonName, current, previous, modifier);
+    }
+
+    private void DragKeyboard(ControllerState state, float deltaSeconds)
+    {
+        const float deadzone = 0.2f;
+        float x = state.LeftStickX, y = state.LeftStickY;
+        double magnitude = Math.Sqrt(x * x + y * y);
+        if (magnitude < deadzone)
+        {
+            return;
+        }
+
+        _keyboardDragged = true;
+
+        // 0 at the edge of the deadzone, 1 at a full push, squared for fine control
+        double push = Math.Min(1, (magnitude - deadzone) / (1 - deadzone));
+        double speed = KeyboardDragSpeed * push * push * deltaSeconds;
+
+        // Pushing the stick up gives a positive Y; up the screen is a smaller one
+        KeyboardDragRequested?.Invoke(this, (x / magnitude * speed, -y / magnitude * speed));
+    }
+
+    private void UpdateSectionJump(ControllerState state)
+    {
+        if (_useRightStickForCursor)
+        {
+            _sectionJumpHeld = false;
+            return;
+        }
+
+        float x = state.RightStickX, y = state.RightStickY;
+        float threshold = _sectionJumpHeld ? KeyboardStickReleaseThreshold : KeyboardStickEngageThreshold;
+        bool pushed = Math.Abs(x) >= threshold || Math.Abs(y) >= threshold;
+
+        if (!pushed)
+        {
+            _sectionJumpHeld = false;
+            return;
+        }
+
+        if (_sectionJumpHeld)
+        {
+            return;
+        }
+
+        _sectionJumpHeld = true;
+        var direction = Math.Abs(x) >= Math.Abs(y)
+            ? (x > 0 ? KeyboardNavigationDirection.Right : KeyboardNavigationDirection.Left)
+            : (y > 0 ? KeyboardNavigationDirection.Up : KeyboardNavigationDirection.Down);
+        KeyboardSectionJumpRequested?.Invoke(this, direction);
+    }
+
     private void UpdateKeyboardNavigation(ControllerState state)
     {
         // The left stick is the primary control: the D-pad asks for more precise finger
         // placement than it is reasonable to require. The D-pad still works, because
         // supporting both costs nothing and leaves the choice open.
+        // D-pad left and right move the text cursor instead (UpdateTextCursor), so a
+        // mistake a few letters back can be reached without leaving the keys
         KeyboardNavigationDirection? direction =
             DirectionFromStick(state.LeftStickX, state.LeftStickY)
-            ?? (state.DpadLeft ? KeyboardNavigationDirection.Left
-              : state.DpadRight ? KeyboardNavigationDirection.Right
-              : state.DpadUp ? KeyboardNavigationDirection.Up
+            ?? (state.DpadUp ? KeyboardNavigationDirection.Up
               : state.DpadDown ? KeyboardNavigationDirection.Down
               : null);
 
@@ -985,10 +1169,11 @@ public class HIDraEngine : IDisposable
         // While the recovery chord is being formed, only the button pressed first runs
         // its normal action. Suppressing the second one stops the chord from also
         // firing Task View or the Start menu on top of restoring the window.
+        // While typing, Back is Escape and Start is Caps Lock
         if (!(current.Back && current.Start))
         {
-            ProcessButton("Back", current.Back, previous.Back, activeModifier);
-            ProcessButton("Start", current.Start, previous.Start, activeModifier);
+            ProcessTypingButton("Back", current.Back, previous.Back, KeyboardQuickKey.Escape, activeModifier);
+            ProcessTypingButton("Start", current.Start, previous.Start, KeyboardQuickKey.CapsLock, activeModifier);
         }
 
         if (!KeyboardNavigationActive)
@@ -998,7 +1183,8 @@ public class HIDraEngine : IDisposable
             ProcessButton("DpadLeft", current.DpadLeft, previous.DpadLeft, activeModifier);
             ProcessButton("DpadRight", current.DpadRight, previous.DpadRight, activeModifier);
         }
-        ProcessButton("LeftStickClick", current.LeftStickClick, previous.LeftStickClick, activeModifier);
+        // While typing, pressing the left stick in swaps to the numbers and symbols
+        ProcessTypingButton("LeftStickClick", current.LeftStickClick, previous.LeftStickClick, KeyboardQuickKey.SymbolLayer, activeModifier);
         ProcessButton("RightStickClick", current.RightStickClick, previous.RightStickClick, activeModifier);
     }
 

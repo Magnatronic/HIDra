@@ -17,12 +17,19 @@ public enum KeyboardNavigationDirection
 }
 
 /// <summary>
-/// The keys typed most often after letters, given their own controller buttons while the
-/// on-screen keyboard is open (LB, RB and Y), so none of them costs a trip across it.
+/// Keys given their own controller buttons while the on-screen keyboard is open, so none
+/// of them costs a trip across it: the keys typed most after letters (LB, RB, Y), moving
+/// the text cursor to fix a mistake (D-pad left and right), and the numbers and symbols,
+/// Caps Lock and Escape (left stick press, Start, Back).
 /// </summary>
 public enum KeyboardQuickKey
 {
     Backspace,
     Space,
-    Enter
+    Enter,
+    CursorLeft,
+    CursorRight,
+    SymbolLayer,
+    CapsLock,
+    Escape
 }

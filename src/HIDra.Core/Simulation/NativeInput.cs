@@ -97,6 +97,7 @@ internal static class NativeInput
         VirtualKey.LeftWindows or VirtualKey.RightWindows or VirtualKey.Applications => true,
         VirtualKey.RightControl or VirtualKey.RightAlt => true,
         VirtualKey.NumLock or VirtualKey.Pause => true,
+        VirtualKey.BrowserBack or VirtualKey.VolumeMute or VirtualKey.VolumeDown or VirtualKey.VolumeUp => true,
         _ => false
     };
 

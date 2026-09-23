@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Media;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
@@ -148,6 +149,10 @@ namespace HIDra.UI
                 _engine.KeyboardSelectRequested += OnKeyboardSelect;
                 _engine.KeyboardSelectShiftedRequested += OnKeyboardSelectShifted;
                 _engine.KeyboardQuickKeyRequested += OnKeyboardQuickKey;
+                _engine.KeyboardDragRequested += (_, move) =>
+                    Dispatcher.BeginInvoke(() => _virtualKeyboard?.MoveBy(move.X, move.Y));
+                _engine.KeyboardSectionJumpRequested += (_, direction) =>
+                    Dispatcher.BeginInvoke(() => _virtualKeyboard?.JumpSection(direction));
                 _engine.ActiveControlsChanged += OnActiveControlsChanged;
 
                 InitializeVirtualKeyboard();
@@ -465,7 +470,6 @@ namespace HIDra.UI
 
                     // The guide shows what the buttons do right now
                     SetGuideMode(typing: _virtualKeyboard?.IsVisible == true);
-                    PracticeKeyboardChanged(open: _virtualKeyboard?.IsVisible == true);
                 };
             }
         }
@@ -486,9 +490,9 @@ namespace HIDra.UI
                 // If a phrase box on this window still has the typing cursor, whatever the
                 // student types would land in it whenever this window is in front - a
                 // Backspace could quietly erase a saved phrase. Keep the edit, lose the cursor.
-                // The Practice word box is the exception: it is there to be typed into.
+                // The Practice typing box is the exception: it is there to be typed into.
                 if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox box
-                    && box != WordTypingBox)
+                    && box != TypingBox)
                 {
                     UserSettingsStore.Save(_userSettings);
                     System.Windows.Input.Keyboard.ClearFocus();
@@ -507,14 +511,9 @@ namespace HIDra.UI
         }
 
         /// <summary>
-        /// Left Trigger: flip the keyboard between the top and bottom of the screen, and
-        /// remember the choice for next time. Does nothing when the keyboard is closed,
-        /// so a stray press cannot silently change where it next appears.
-        /// </summary>
-        /// <summary>
         /// LT while the keyboard is closed: whatever job staff have given it for this
-        /// student. Each says what it did in the same message as swapping the sticks, so
-        /// nothing changes without the student seeing why.
+        /// student. Zoom and Slow pointer say what they did in the same message as
+        /// swapping the sticks, so nothing changes without the student seeing why.
         /// </summary>
         private void UseLeftTrigger()
         {
@@ -523,9 +522,10 @@ namespace HIDra.UI
                 return;
             }
 
-            switch (_userSettings.LeftTrigger)
+            var job = Jobs[ButtonJobCatalogue.LeftTrigger];
+            switch (job.Id)
             {
-                case LeftTriggerAction.Magnifier:
+                case "zoom":
                     bool zoomed = System.Diagnostics.Process.GetProcessesByName("Magnify") is { Length: > 0 } running
                         && DisposeAll(running);
                     _engine.SendKeyCombo(zoomed
@@ -534,13 +534,13 @@ namespace HIDra.UI
                     ShowToast(zoomed ? "Zoom off" : "Zoomed in\nLT again to zoom out");
                     break;
 
-                case LeftTriggerAction.Escape:
-                    _engine.SendKeyPress(VirtualKey.Escape);
-                    break;
-
-                case LeftTriggerAction.SlowPointer:
+                case "slow-pointer":
                     _engine.SlowPointer = !_engine.SlowPointer;
                     ShowToast(_engine.SlowPointer ? "Slow pointer on\nLT again for normal speed" : "Slow pointer off");
+                    break;
+
+                default:
+                    _engine.RunAction(job.ToMapping());
                     break;
             }
         }
@@ -574,6 +574,7 @@ namespace HIDra.UI
                 UserSettingsStore.Save(_userSettings);
                 _virtualKeyboard.MoveToEdge(_userSettings.KeyboardAtTop);
                 RefreshSettingsDisplay();
+                PracticeKeyboardMoved();
             });
         }
 
@@ -625,6 +626,7 @@ namespace HIDra.UI
         {
             JobsDrawing.EnableEditing();
             JobsDrawing.PartChosen += (_, part) => ChooseJobPart(part);
+            SetUpHowTo();
 
             SetGuideMode(typing: _virtualKeyboard?.IsVisible == true);
             ShowPage("Guide");
@@ -651,15 +653,20 @@ namespace HIDra.UI
             {
                 (GuidePage, GuideTabButton),
                 (PracticePage, PracticeTabButton),
-                (ControllerPage, ControllerTabButton),
+                (ButtonsPage, ButtonsTabButton),
+                (PointerPage, PointerTabButton),
                 (KeyboardPage, KeyboardTabButton),
             };
 
+            var accent = (Brush)FindResource("AccentBrush");
             foreach (var (element, tab) in pages)
             {
                 bool showing = (string)tab.Tag == page;
                 element.Visibility = showing ? Visibility.Visible : Visibility.Collapsed;
-                tab.Background = showing ? OnBrush : OffBrush;
+
+                // The page showing has the orange bar under its name
+                tab.Background = showing ? accent : Brushes.Transparent;
+                tab.Foreground = showing ? Brushes.White : new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB));
             }
         }
 
@@ -675,6 +682,62 @@ namespace HIDra.UI
             UpdateGuideText();
         }
 
+        // "How do I..." shows one answer at a time: click a question to open it. All the
+        // answers at once needed a scroll bar on a laptop screen, and a scroll bar is one
+        // more thing to aim at.
+        private readonly Dictionary<StackPanel, Border?> _openHowTo = new();
+
+        private void SetUpHowTo()
+        {
+            var accent = (Brush)FindResource("AccentBrush");
+            foreach (var list in new[] { HowToPointer, HowToTyping })
+            {
+                foreach (var child in list.Children)
+                {
+                    if (child is Border card)
+                    {
+                        card.Cursor = System.Windows.Input.Cursors.Hand;
+                        card.MouseEnter += (_, _) => card.BorderBrush = accent;
+                        card.MouseLeave += (_, _) => card.BorderBrush = Brushes.Transparent;
+                        card.MouseLeftButtonUp += (_, _) => OpenHowTo(list, card);
+                    }
+                }
+                OpenHowTo(list, null);
+            }
+        }
+
+        /// <summary>
+        /// Open one card and close the rest. Null keeps the open card if it is still
+        /// showing, or opens the first one that is.
+        /// </summary>
+        private void OpenHowTo(StackPanel list, Border? open)
+        {
+            if (open == null && _openHowTo.TryGetValue(list, out var current) && current?.Visibility == Visibility.Visible)
+            {
+                open = current;
+            }
+
+            var cards = new List<Border>();
+            foreach (var child in list.Children)
+            {
+                if (child is Border { Child: StackPanel { Children.Count: >= 2 } } card)
+                {
+                    cards.Add(card);
+                }
+            }
+            open ??= cards.Find(card => card.Visibility == Visibility.Visible);
+            _openHowTo[list] = open;
+
+            var accent = (Brush)FindResource("AccentBrush");
+            foreach (var card in cards)
+            {
+                var parts = ((StackPanel)card.Child).Children;
+                bool isOpen = card == open;
+                parts[1].Visibility = isOpen ? Visibility.Visible : Visibility.Collapsed;
+                ((TextBlock)parts[0]).Foreground = isOpen ? accent : Brushes.White;
+                }
+        }
+
         /// <summary>This student's job for every button that can be given one</summary>
         private Dictionary<string, ButtonJob> Jobs => ButtonJobCatalogue.Resolve(_userSettings.ButtonJobs);
 
@@ -688,13 +751,6 @@ namespace HIDra.UI
             ("LeftStickClick", "Left stick"), ("RightStickClick", "Right stick")
         };
 
-        private string LeftTriggerLabel => _userSettings.LeftTrigger switch
-        {
-            LeftTriggerAction.Magnifier => "Zoom in and out",
-            LeftTriggerAction.Escape => "Close a menu (Escape)",
-            LeftTriggerAction.SlowPointer => "Slow pointer on and off",
-            _ => "Only used while typing"
-        };
 
         private void UpdateGuideText()
         {
@@ -702,11 +758,12 @@ namespace HIDra.UI
             HowToTyping.Visibility = _guideTyping ? Visibility.Visible : Visibility.Collapsed;
             HowToModeText.Text = _guideTyping ? "While the keyboard is open" : "While using the pointer";
 
-            (string title, string text) = _userSettings.LeftTrigger switch
+            // A card of its own for LT's jobs that are about seeing and aiming; any other
+            // job it has is named on the card for that job
+            (string title, string text) = Jobs[ButtonJobCatalogue.LeftTrigger].Id switch
             {
-                LeftTriggerAction.Magnifier => ("See small things", "zooms in around the pointer. Press it again to zoom out."),
-                LeftTriggerAction.Escape => ("Close a menu", "closes a menu or box opened by mistake, or ends a slideshow."),
-                LeftTriggerAction.SlowPointer => ("Hit small things", "makes the pointer slow. Press it again for normal speed."),
+                "zoom" => ("See small things", "zooms in around the pointer. Press it again to zoom out."),
+                "slow-pointer" => ("Hit small things", "makes the pointer slow. Press it again for normal speed."),
                 _ => ("", "")
             };
             HowToLeftTriggerTitle.Text = title;
@@ -724,6 +781,13 @@ namespace HIDra.UI
             FillDrawing(JobsDrawing, typing: false);
 
             WriteHowTo();
+
+            // A card may have been hidden or shown by the buttons this student has
+            if (_openHowTo.Count > 0)
+            {
+                OpenHowTo(HowToPointer, null);
+                OpenHowTo(HowToTyping, null);
+            }
         }
 
         /// <summary>
@@ -735,8 +799,12 @@ namespace HIDra.UI
             var jobs = Jobs;
 
             // The button that opens the keyboard is the one that closes it
+            // While typing: the button that opens the keyboard closes it, the typing
+            // buttons type, and the rest keep their jobs
             string Job(string name) =>
-                typing && jobs[name].Id == ButtonJobCatalogue.Keyboard ? "Close the keyboard" : jobs[name].Label;
+                !typing ? jobs[name].Label
+                : jobs[name].Id == ButtonJobCatalogue.Keyboard ? "Close the keyboard"
+                : ButtonJobCatalogue.Button(name)?.TypingJob ?? jobs[name].Label;
 
             // The D-pad and the stick presses are more than one button under one label:
             // one job for them all is said once, different jobs each get a line
@@ -747,7 +815,7 @@ namespace HIDra.UI
                     return standard;
                 }
 
-                if (Array.TrueForAll(parts, p => jobs[p.Name] == jobs[parts[0].Name]))
+                if (Array.TrueForAll(parts, p => Job(p.Name) == Job(parts[0].Name)))
                 {
                     return Job(parts[0].Name);
                 }
@@ -769,17 +837,17 @@ namespace HIDra.UI
                 _ => "Right:"
             };
 
-            drawing.ActLT.Text = typing ? "Keyboard to top or bottom" : LeftTriggerLabel;
+            drawing.ActLT.Text = Job(ButtonJobCatalogue.LeftTrigger);
             drawing.ActRT.Text = "Hold to click and drag";
-            drawing.ActLB.Text = typing ? "Backspace" : Job("LeftBumper");
-            drawing.ActRB.Text = typing ? "Space" : Job("RightBumper");
-            drawing.ActY.Text = typing ? "Enter" : Job("ButtonY");
-            drawing.ActB.Text = typing ? "Capital, or the symbol on top" : Job("ButtonB");
+            drawing.ActLB.Text = Job("LeftBumper");
+            drawing.ActRB.Text = Job("RightBumper");
+            drawing.ActY.Text = Job("ButtonY");
+            drawing.ActB.Text = Job("ButtonB");
             drawing.ActX.Text = Job("ButtonX");
-            drawing.ActA.Text = typing ? "Type the key" : Job("ButtonA");
+            drawing.ActA.Text = Job("ButtonA");
             drawing.ActBack.Text = Job("Back");
             drawing.ActStart.Text = Job("Start");
-            drawing.ActDPad.Text = typing ? "Move the orange box" : Several(DPadParts, "Maximise, minimise, snap");
+            drawing.ActDPad.Text = typing ? "Up, down: the orange box\nLeft, right: the text cursor" : Several(DPadParts, "Maximise, minimise, snap");
             drawing.ActStickPress.Text = Several(StickPressParts, null);
 
             // Four jobs in one label need a smaller size to fit
@@ -789,7 +857,7 @@ namespace HIDra.UI
             // While typing, the left stick always steers the keyboard. Otherwise the
             // sticks follow the swap.
             drawing.ActLeftStick.Text = typing ? "Move the orange box" : _sticksSwapped ? "Scroll" : "Move the pointer";
-            drawing.ActRightStick.Text = _sticksSwapped ? "Move the pointer" : "Scroll";
+            drawing.ActRightStick.Text = _sticksSwapped ? "Move the pointer" : typing ? "Jump to words or shortcuts" : "Scroll";
         }
 
         /// <summary>
@@ -890,7 +958,8 @@ namespace HIDra.UI
             startTyping.Add("for the keyboard.");
             WriteText(HowToStartTypingText, startTyping);
 
-            var inTheWay = new List<object> { TextBadge("LT"), "moves it to the top or bottom of the screen. " };
+            var inTheWay = new List<object> { "Tap ", TextBadge("LT"), "to move it to the top or bottom, or hold ", TextBadge("LT"),
+                "and push the left stick to drag it anywhere. " };
             inTheWay.AddRange(Keyboard());
             inTheWay.Add("closes it.");
             WriteText(HowToKeyboardWayText, inTheWay);
@@ -898,18 +967,10 @@ namespace HIDra.UI
             var keyboardHint = new List<object>(Keyboard()) { "opens and closes it" };
             WriteText(KeyboardButtonHint, keyboardHint);
 
-            var openStep = new List<object> { "Open the keyboard: press " };
-            openStep.AddRange(Keyboard());
-            WriteText(KeyboardStepOpenText, openStep);
-
-            var closeStep = new List<object> { "Now close it: press " };
-            closeStep.AddRange(Keyboard());
-            WriteText(KeyboardStepCloseText, closeStep);
-
             var practiceHint = new List<object> { "Click in the box, then " };
             practiceHint.AddRange(Keyboard());
             practiceHint.Add("for the keyboard");
-            WriteText(WordTypingHint, practiceHint);
+            WriteText(TypingHint, practiceHint);
         }
 
         /// <summary>
@@ -986,9 +1047,9 @@ namespace HIDra.UI
             else
             {
                 _jobPart = part;
+                _jobPage = -1;
                 _jobButton = part switch
                 {
-                    "LeftTrigger" => null,
                     "DPad" => DPadParts[0].Name,
                     "StickPress" => StickPressParts[0].Name,
                     _ => part
@@ -1002,37 +1063,25 @@ namespace HIDra.UI
         {
             JobsDrawing.Select(_jobPart);
             JobParts.Children.Clear();
+            JobPages.Children.Clear();
             JobChoices.Children.Clear();
+            JobChoices.RowDefinitions.Clear();
+            JobChoices.ColumnDefinitions.Clear();
             JobLockedText.Visibility = Visibility.Collapsed;
+            JobHoverText.Text = "";
 
-            if (_jobPart == null)
+            bool chosen = _jobPart != null;
+            JobIntro.Visibility = chosen ? Visibility.Collapsed : Visibility.Visible;
+            JobCard.Visibility = chosen ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!chosen)
             {
-                JobChooserTitle.Text = "Choose a button";
-                JobChooserHint.Text = "Click a label on the drawing to see what that button can do. "
-                    + "The sticks and RT cannot be changed.\n\n"
+                JobChooserHint.Text = "Click a label, or a button on the drawing, to choose what it does for this student "
+                    + "while the keyboard is closed. The sticks and RT cannot be changed.\n\n"
                     + "Holding Back and Start together always brings HIDra back, whatever Back and Start are given here. "
                     + "Some button always clicks, and some button always opens the keyboard.";
-                return;
-            }
-
-            if (_jobPart == "LeftTrigger")
-            {
-                JobChooserTitle.Text = "LT, while the keyboard is closed";
-                JobChooserHint.Text = "While the keyboard is open, LT always moves it to the top or bottom of the screen.";
-
-                foreach (var (action, label, description) in new[]
-                {
-                    (LeftTriggerAction.Magnifier, "Zoom", "Windows Magnifier: bigger around the pointer. LT again zooms out"),
-                    (LeftTriggerAction.Escape, "Escape", "Closes a menu or box opened by mistake, or ends a slideshow"),
-                    (LeftTriggerAction.SlowPointer, "Slow pointer", "A slower pointer for small targets, on and off. Its speed is under Pointer"),
-                    (LeftTriggerAction.Nothing, "Nothing", "LT is only used while the keyboard is open"),
-                })
-                {
-                    var choice = EditorKey("JobChoice", label, description: description);
-                    choice.Background = _userSettings.LeftTrigger == action ? OnBrush : OffBrush;
-                    choice.Click += (_, _) => ChangeSettings(s => s.LeftTrigger = action);
-                    JobChoices.Children.Add(choice);
-                }
+                ShowChangedButtons();
+                JobHoverText.Text = "Changes are saved for this student straight away.";
                 return;
             }
 
@@ -1049,6 +1098,7 @@ namespace HIDra.UI
                 {
                     Style = (Style)FindResource("ToggleButtonStyle"),
                     Width = 118,
+                    Height = 40,
                     Margin = new Thickness(0, 0, 8, 0),
                     Content = label,
                     Background = name == _jobButton ? OnBrush : OffBrush
@@ -1056,19 +1106,41 @@ namespace HIDra.UI
                 pick.Click += (_, _) =>
                 {
                     _jobButton = name;
+                    _jobPage = -1;
                     BuildJobChooser();
                 };
                 JobParts.Children.Add(pick);
             }
+            JobParts.Visibility = parts.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
             var button = ButtonJobCatalogue.Button(_jobButton!)!;
             var current = Jobs[button.Name];
+            var standard = ButtonJobCatalogue.Find(button.StandardJob)!;
             string? locked = ButtonJobCatalogue.WhyLocked(_userSettings.ButtonJobs, button.Name);
 
-            JobChooserTitle.Text = $"What {button.Label} does";
-            JobChooserHint.Text = button.KeepsJobWhileTyping
-                ? "It does this while the keyboard is open, too."
-                : "While the keyboard is open it types instead, so this is its job with the pointer.";
+            // The card: which button, what it does now, while typing, and normally
+            var badge = new ContentControl
+            {
+                Style = (Style)FindResource(button.Name switch
+                {
+                    "ButtonA" => "BadgeA",
+                    "ButtonB" => "BadgeB",
+                    "ButtonX" => "BadgeX",
+                    "ButtonY" => "BadgeY",
+                    _ => "Badge"
+                }),
+                Content = button.Name is "ButtonA" or "ButtonB" or "ButtonX" or "ButtonY" ? button.Label.Trim() : button.Label,
+                LayoutTransform = new ScaleTransform(1.5, 1.5)
+            };
+            JobBadgeHost.Child = badge;
+            JobCurrentText.Text = current.Label;
+            WriteLabelled(JobDoesText, "Does", current.Description);
+            WriteLabelled(JobTypingText, "While typing", button.TypingJob == null
+                ? "the same"
+                : current.Id == ButtonJobCatalogue.Keyboard ? "closes the keyboard" : button.TypingJob);
+            WriteLabelled(JobStandardText, "Standard", standard.Label);
+            JobResetButton.IsEnabled = current != standard && locked == null;
+            JobResetButton.Opacity = JobResetButton.IsEnabled ? 1 : 0.5;
 
             if (locked != null)
             {
@@ -1076,20 +1148,310 @@ namespace HIDra.UI
                 JobLockedText.Visibility = Visibility.Visible;
             }
 
-            foreach (var job in ButtonJobCatalogue.All)
-            {
-                bool allowed = ButtonJobCatalogue.Allowed(button, job);
-                string description = !allowed ? "Only on X, Back, Start or a stick press, so it can close the keyboard too"
-                    : job.Id == button.StandardJob ? "Standard for this button" : job.Description;
+            // The jobs, a row or two for each kind, four across, the rows sharing the height
+            // there is so the buttons grow on a bigger screen
+            JobChoices.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(84) });
+            JobChoices.ColumnDefinitions.Add(new ColumnDefinition());
 
-                var choice = EditorKey("JobChoice", job.Label, description: description);
-                choice.Background = job == current ? OnBrush : OffBrush;
-                choice.IsEnabled = allowed && (locked == null || job == current);
-                choice.Opacity = choice.IsEnabled ? 1 : 0.6;
-                choice.Click += (_, _) => SetButtonJob(button, job);
-                JobChoices.Children.Add(choice);
+            string resting = "Point at a job for what it does. Dot: standard.";
+            JobHoverText.Text = resting;
+            int row = 0;
+            // Which page: the one staff picked, else the one holding the current job
+            int page = _jobPage >= 0 ? _jobPage
+                : Array.Exists(JobGroups, g => g.Page == 1 && Array.IndexOf(g.Ids, current.Id) >= 0) ? 1 : 0;
+            for (int i = 0; i < JobPageNames.Length; i++)
+            {
+                int target = i;
+                var tab = new Button
+                {
+                    Style = (Style)FindResource("ToggleButtonStyle"),
+                    Width = 160,
+                    Height = 36,
+                    FontSize = 15,
+                    Margin = new Thickness(0, 0, 8, 0),
+                    Content = JobPageNames[i],
+                    Background = i == page ? OnBrush : OffBrush
+                };
+                tab.Click += (_, _) =>
+                {
+                    _jobPage = target;
+                    BuildJobChooser();
+                };
+                JobPages.Children.Add(tab);
+            }
+
+            foreach (var (groupPage, group, ids) in JobGroups)
+            {
+                if (groupPage != page)
+                {
+                    continue;
+                }
+
+                var jobs = new List<ButtonJob>();
+                foreach (var id in ids)
+                {
+                    var job = ButtonJobCatalogue.Find(id)!;
+                    if (job.OnlyOn == null || job.OnlyOn == button.Name)
+                    {
+                        jobs.Add(job);
+                    }
+                }
+
+                int firstRow = row;
+                for (int start = 0; start < jobs.Count; start += 4)
+                {
+                    JobChoices.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star), MinHeight = 42, MaxHeight = 66 });
+                    var line = new UniformGrid { Columns = 4, Rows = 1 };
+                    for (int i = start; i < Math.Min(start + 4, jobs.Count); i++)
+                    {
+                        var job = jobs[i];
+                        bool allowed = ButtonJobCatalogue.Allowed(button, job);
+                        bool usable = allowed && (locked == null || job == current);
+                        string why = !allowed ? "Only on X, Back, Start or a stick press, so it can close the keyboard too."
+                            : !usable ? locked! : job.Description + ".";
+
+                        var tile = JobTile(job, job == current, job == standard, usable);
+                        tile.MouseEnter += (_, _) => JobHoverText.Text = $"{job.Label}: {why}";
+                        tile.MouseLeave += (_, _) => JobHoverText.Text = resting;
+                        if (usable)
+                        {
+                            tile.Click += (_, _) => SetButtonJob(button, job);
+                        }
+                        line.Children.Add(tile);
+                    }
+                    Grid.SetRow(line, row);
+                    Grid.SetColumn(line, 1);
+                    JobChoices.Children.Add(line);
+                    row++;
+                }
+
+                var name = new TextBlock
+                {
+                    Text = group,
+                    FontSize = 14,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA)),
+                    TextWrapping = TextWrapping.Wrap,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 8, 0)
+                };
+                Grid.SetRow(name, firstRow);
+                Grid.SetRowSpan(name, row - firstRow);
+                JobChoices.Children.Add(name);
             }
         }
+
+        /// <summary>
+        /// A job to choose: its icon and name, orange when it is the button's job, marked
+        /// when it is the standard one, and dimmed with a lock when it cannot go here.
+        /// Left enabled even then, so pointing at it can say why.
+        /// </summary>
+        private Button JobTile(ButtonJob job, bool current, bool standard, bool usable)
+        {
+            var text = new SolidColorBrush(usable ? Colors.White : Color.FromRgb(0x99, 0x99, 0x99));
+            // Icon on the left, the name taking the rest and wrapping onto a second line
+            // when the tile is narrow
+            var content = new DockPanel { LastChildFill = true };
+            var glyph = new TextBlock
+            {
+                Text = (usable ? JobIcon(job.Id) : LockIcon).ToString(),
+                FontFamily = ShortcutCatalogue.IconFont,
+                FontSize = 17,
+                FontWeight = FontWeights.Normal,
+                Foreground = text,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(2, 0, 7, 0)
+            };
+            DockPanel.SetDock(glyph, Dock.Left);
+            content.Children.Add(glyph);
+
+            // A dot marks the standard job, beside the name rather than over it
+            if (standard)
+            {
+                var dot = new Ellipse
+                {
+                    Width = 7,
+                    Height = 7,
+                    Fill = new SolidColorBrush(Color.FromRgb(0xDD, 0xDD, 0xDD)),
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(5, 0, 0, 0)
+                };
+                DockPanel.SetDock(dot, Dock.Right);
+                content.Children.Add(dot);
+            }
+
+            content.Children.Add(new TextBlock
+            {
+                // Shorter names in the Windows row, which already says "window"
+                Text = job.Id switch
+                {
+                    "maximise" => "Maximise",
+                    "minimise" => "Minimise",
+                    "snap-left" => "Snap left",
+                    "snap-right" => "Snap right",
+                    "close-window" => "Close",
+                    _ => job.Label
+                },
+                FontSize = 13.5,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = text,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var face = new Grid();
+            face.Children.Add(content);
+
+            return new Button
+            {
+                Style = (Style)FindResource("JobChoice"),
+                Content = face,
+                Background = current ? OnBrush : usable ? OffBrush : new SolidColorBrush(Color.FromRgb(0x2C, 0x2C, 0x2C)),
+                Cursor = usable ? System.Windows.Input.Cursors.Hand : System.Windows.Input.Cursors.Arrow,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                VerticalContentAlignment = VerticalAlignment.Stretch
+            };
+        }
+
+        private const char LockIcon = '\uE72E';
+
+        /// <summary>
+        /// The icon for each job, from the same Windows icon font as the shortcut keys
+        /// </summary>
+        private static char JobIcon(string id) => id switch
+        {
+            "click" => '\uE7C9',
+            "right-click" => '\uE700',
+            "double-click" => '\uE8E5',
+            "keyboard" => '\uE765',
+            "swap-sticks" => '\uE8AB',
+            "zoom" => '\uE8A3',
+            "slow-pointer" => '\uE916',
+            "switch-programs" => '\uE8A9',
+            "start-menu" => '\uE80F',
+            "all-windows" => '\uE7C4',
+            "close-window" => '\uE8BB',
+            "maximise" => '\uE922',
+            "minimise" => '\uE921',
+            "snap-left" => '\uE76B',
+            "snap-right" => '\uE76C',
+            "undo" => '\uE7A7',
+            "redo" => '\uE7A6',
+            "copy" => '\uE8C8',
+            "paste" => '\uE77F',
+            "escape" => '\uE711',
+            "enter" => '\uE751',
+            "tab" => '\uE7FD',
+            "voice" => '\uE720',
+            "captions" => '\uE7F0',
+            "magnify" => '\uE8A3',
+            "magnify-off" => '\uE71F',
+            "emoji" => '\uE76E',
+            "snip" => '\uE7A8',
+            "clipboard" => '\uE81C',
+            "find" => '\uE721',
+            "save" => '\uE74E',
+            "file-explorer" => '\uE8B7',
+            "desktop" => '\uE8FC',
+            "notifications" => '\uE7E7',
+            "web-back" => '\uE72B',
+            "page-up" => '\uE70E',
+            "page-down" => '\uE70D',
+            "volume-up" => '\uE995',
+            "volume-down" => '\uE993',
+            "mute" => '\uE74F',
+            _ => '\uE738'
+        };
+
+        /// <summary>"Label: text", the label in bold</summary>
+        private static void WriteLabelled(TextBlock block, string label, string text)
+        {
+            block.Inlines.Clear();
+            block.Inlines.Add(new Run(label + ":  ") { FontWeight = FontWeights.SemiBold, Foreground = Brushes.White });
+            block.Inlines.Add(new Run(text));
+        }
+
+        /// <summary>
+        /// Every button changed from standard for this student, each one click from its
+        /// jobs - so a student's set-up can be seen at a glance
+        /// </summary>
+        private void ShowChangedButtons()
+        {
+            JobChangedList.Children.Clear();
+            var jobs = Jobs;
+            foreach (var button in ButtonJobCatalogue.Buttons)
+            {
+                var job = jobs[button.Name];
+                if (job.Id == button.StandardJob)
+                {
+                    continue;
+                }
+
+                var line = new Button
+                {
+                    Style = (Style)FindResource("ToggleButtonStyle"),
+                    Width = double.NaN,
+                    Height = 38,
+                    FontSize = 15,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                    Margin = new Thickness(0, 0, 0, 6),
+                    Content = new TextBlock
+                    {
+                        Text = $"{button.Label}:  {job.Label}   (standard {ButtonJobCatalogue.Find(button.StandardJob)!.Label})",
+                        Margin = new Thickness(12, 0, 12, 0)
+                    }
+                };
+                string name = button.Name;
+                line.Click += (_, _) =>
+                {
+                    string part = name.StartsWith("Dpad") ? "DPad" : name.EndsWith("StickClick") ? "StickPress" : name;
+                    ChooseJobPart(part);
+                    _jobButton = name;
+                    BuildJobChooser();
+                };
+                JobChangedList.Children.Add(line);
+            }
+
+            if (JobChangedList.Children.Count == 0)
+            {
+                JobChangedList.Children.Add(new TextBlock
+                {
+                    Text = "Nothing - every button does its standard job.",
+                    Style = (Style)FindResource("SettingHint"),
+                    FontSize = 15
+                });
+            }
+        }
+
+        private void JobReset_Click(object sender, RoutedEventArgs e)
+        {
+            if (_jobButton != null && ButtonJobCatalogue.Button(_jobButton) is { } button)
+            {
+                SetButtonJob(button, ButtonJobCatalogue.Find(button.StandardJob)!);
+            }
+        }
+
+        // Two pages of jobs, so each fits without scrolling: the everyday ones, and
+        // Windows' own tools
+        private static readonly string[] JobPageNames = { "Everyday", "Windows tools" };
+
+        private static readonly (int Page, string Group, string[] Ids)[] JobGroups =
+        {
+            (0, "Clicks", new[] { "click", "right-click", "double-click" }),
+            (0, "Keyboard and pointer", new[] { "keyboard", "swap-sticks", "zoom", "slow-pointer" }),
+            (0, "Windows", new[] { "switch-programs", "start-menu", "all-windows", "close-window",
+                "maximise", "minimise", "snap-left", "snap-right" }),
+            (0, "Editing", new[] { "undo", "redo", "copy", "paste" }),
+            (0, "Keys", new[] { "escape", "enter", "tab", "nothing" }),
+            (1, "Talk and see", new[] { "voice", "captions", "magnify", "magnify-off" }),
+            (1, "Tools", new[] { "emoji", "snip", "clipboard", "find", "save", "file-explorer", "desktop", "notifications" }),
+            (1, "Pages", new[] { "web-back", "page-up", "page-down" }),
+            (1, "Sound", new[] { "volume-up", "volume-down", "mute" }),
+        };
+
+        // The page of jobs showing; -1 shows the page with the button's current job
+        private int _jobPage = -1;
 
         private void SetButtonJob(RemappableButton button, ButtonJob job)
         {
@@ -1110,64 +1472,46 @@ namespace HIDra.UI
         private void ButtonsStandard_Click(object sender, RoutedEventArgs e)
         {
             _jobPart = _jobButton = null;
-            ChangeSettings(s =>
-            {
-                s.ButtonJobs = null;
-                s.LeftTrigger = LeftTriggerAction.Magnifier;
-            });
+            ChangeSettings(s => s.ButtonJobs = null);
         }
 
         // ---------------------------------------------------------------------------
         // Practice
         //
-        // Three activities, each getting a little harder as the student gets better:
-        // clicking a circle that shrinks, typing a word, opening and closing the
-        // keyboard. Also for staff to try a setting straight after changing it. Every
-        // hit, miss and word is counted into today's line of the student's record, which
-        // staff can look back on, or save as a spreadsheet, for a review. Feedback is
-        // all on screen - some students cannot hear it.
+        // Two tests of everyday skills - pointing (with scrolling) and typing - each the
+        // same every time at a given size or level, so one run compares fairly with the
+        // last. Every run is kept in the student's practice record, shown beside the
+        // tests and saved as a spreadsheet for reviews. Feedback is all on screen: some
+        // students cannot hear it.
         // ---------------------------------------------------------------------------
 
-        private readonly Random _random = new();
         private PracticeProgress _progress = PracticeProgressStore.Load();
-        private System.Windows.Threading.DispatcherTimer? _progressSaveTimer;
-        private string _activity = "Circles";
+        private string _activity = "Pointer";
 
         private void InitializeTryItOut()
         {
             _progress.CircleLevel = Math.Clamp(_progress.CircleLevel, 0, CircleSizes.Length - 1);
+            _progress.TypingLevel = Math.Clamp(_progress.TypingLevel, 0, TypingItems.Length - 1);
 
             _target = new Border
             {
                 Background = OffBrush,
                 BorderBrush = (Brush)FindResource("AccentBrush"),
                 BorderThickness = new Thickness(4),
-                Cursor = System.Windows.Input.Cursors.Hand
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Visibility = Visibility.Collapsed
             };
             _target.MouseEnter += (_, _) => _target.Background = OnBrush;
             _target.MouseLeave += (_, _) => _target.Background = OffBrush;
             _target.MouseLeftButtonDown += (_, e) =>
             {
                 e.Handled = true;
-                CircleClicked(hit: true);
+                TargetHit(e.GetPosition(PointerCanvas));
             };
-            TargetCanvas.Children.Add(_target);
-            SizeTarget();
+            PointerCanvas.Children.Add(_target);
 
-            for (int i = 1; i <= 40; i++)
-            {
-                TryScrollList.Children.Add(new TextBlock
-                {
-                    Text = $"Line {i}",
-                    FontSize = 17,
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(0, 3, 0, 3)
-                });
-            }
-
-            ShowTargetScore();
-            NextWord();
-            ShowKeyboardStep();
+            ShowPointerStart();
+            ShowTypingStart();
             ShowActivity(_activity);
             ShowProgress();
         }
@@ -1183,447 +1527,574 @@ namespace HIDra.UI
         private void ShowActivity(string activity)
         {
             _activity = activity;
-            (UIElement Page, Button Button, string Name)[] activities =
-            {
-                (CirclesActivity, ActivityCirclesButton, "Circles"),
-                (WordActivity, ActivityWordButton, "Word"),
-                (KeyboardActivity, ActivityKeyboardButton, "Keyboard"),
-            };
-
-            foreach (var (page, button, name) in activities)
-            {
-                page.Visibility = name == activity ? Visibility.Visible : Visibility.Collapsed;
-                button.Background = name == activity ? OnBrush : OffBrush;
-            }
+            PointerActivity.Visibility = activity == "Pointer" ? Visibility.Visible : Visibility.Collapsed;
+            TypingActivity.Visibility = activity == "Typing" ? Visibility.Visible : Visibility.Collapsed;
+            ActivityPointerButton.Background = activity == "Pointer" ? OnBrush : OffBrush;
+            ActivityTypingButton.Background = activity == "Typing" ? OnBrush : OffBrush;
+            ActivityScore.Text = "";
         }
 
-        /// <summary>
-        /// Count something into today's line, and save a moment later - not on every
-        /// click, as the file may be on a network drive
-        /// </summary>
-        private void Record(Action<PracticeDay> change)
+        private void SaveProgress()
         {
-            change(PracticeProgressStore.Today(_progress));
+            PracticeProgressStore.Save(_progress);
             ShowProgress();
-
-            if (_progressSaveTimer == null)
-            {
-                _progressSaveTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-                _progressSaveTimer.Tick += (_, _) =>
-                {
-                    _progressSaveTimer.Stop();
-                    PracticeProgressStore.Save(_progress);
-                };
-            }
-
-            _progressSaveTimer.Stop();
-            _progressSaveTimer.Start();
         }
 
-        // --- Circles ---
+        // --- Pointer test ---
 
         /// <summary>
-        /// The circle's width at each level. The first is easy to hit with a very slow
+        /// The circle's width at each size. The first is easy to hit with a very slow
         /// pointer; the last is the size of a small button in an ordinary program.
         /// </summary>
         private static readonly double[] CircleSizes = { 150, 124, 102, 84, 70, 58, 48, 40 };
 
-        /// <summary>Hits in a round, before the circle may get smaller</summary>
-        private const int CircleRound = 5;
+        /// <summary>
+        /// Where the circles appear, in order, the same every run: across as a share of
+        /// the width, down in screens of the page, which is three screens tall. Four need
+        /// a scroll to reach - down the page, and back up again - and the distances vary,
+        /// so near and far pointing are both measured.
+        /// </summary>
+        private static readonly (double X, double Y)[] CirclePlaces =
+        {
+            (0.15, 0.25), (0.85, 0.70), (0.30, 0.80), (0.70, 0.20),
+            (0.50, 1.60), (0.20, 2.40), (0.80, 2.70), (0.40, 0.30),
+            (0.90, 0.50), (0.10, 0.60), (0.60, 1.90), (0.35, 0.45),
+        };
+
+        private const double PageScreens = 3;
 
         private Border _target = new();
-        private int _roundHits;
-        private int _roundMisses;
-        private int _sessionHits;
-        private int _sessionMisses;
-        private System.Windows.Threading.DispatcherTimer? _circleMessageTimer;
+        private bool _pointerRunning;
+        private int _circle;
+        private int _runMisses;
+        private int _runScrolled;
+        private int _runOvershoots;
+        private readonly System.Diagnostics.Stopwatch _runTimer = new();
+        private readonly System.Diagnostics.Stopwatch _circleTimer = new();
+        private readonly List<double> _throughputs = new();
 
-        private void CircleClicked(bool hit)
+        // The circle showing: whether it was in sight when it appeared (so pointing at it
+        // measures pointing alone), whether it has been in sight since, and where the
+        // last click was, which is where the pointer set off from
+        private bool _circleStartedInView;
+        private bool _circleSeen;
+        private Point? _lastClick;
+
+        private void ShowPointerStart(string? title = null, string? text = null)
         {
-            if (hit)
-            {
-                _roundHits++;
-                _sessionHits++;
-                Record(day => day.CircleHits++);
-            }
-            else
-            {
-                _roundMisses++;
-                _sessionMisses++;
-                Record(day => day.CircleMisses++);
-            }
-
-            // Five hits with no more than one miss: smaller. More misses than hits in a
-            // round: bigger, so a hard patch never becomes a wall.
-            if (_roundHits >= CircleRound)
-            {
-                if (_roundMisses <= 1 && _progress.CircleLevel < CircleSizes.Length - 1)
-                {
-                    ChangeCircleLevel(+1, "Well done! A smaller circle");
-                }
-                _roundHits = _roundMisses = 0;
-            }
-            else if (_roundMisses > CircleRound)
-            {
-                if (_progress.CircleLevel > 0)
-                {
-                    ChangeCircleLevel(-1, "A bigger circle");
-                }
-                _roundHits = _roundMisses = 0;
-            }
-
-            if (hit)
-            {
-                _target.Background = OffBrush;
-                Place(_target);
-            }
-
-            ShowTargetScore();
+            PointerStartTitle.Text = title ?? "Pointer test";
+            PointerStartText.Text = text ?? $"Click each circle as it appears - {CirclePlaces.Length} in all. "
+                + "Some are further down or up the page: scroll to find them with the right stick.\n"
+                + $"Circle size {_progress.CircleLevel + 1} of {CircleSizes.Length}.";
+            PointerStartButton.Content = title == null ? "Start" : "Go again";
+            PointerStartPanel.Visibility = Visibility.Visible;
+            _target.Visibility = Visibility.Collapsed;
+            ScrollHintTop.Visibility = ScrollHintBottom.Visibility = Visibility.Collapsed;
         }
 
-        private void ChangeCircleLevel(int change, string message)
+        private void PointerStart_Click(object sender, RoutedEventArgs e)
         {
-            _progress.CircleLevel = Math.Clamp(_progress.CircleLevel + change, 0, CircleSizes.Length - 1);
-            Record(day => day.SmallestCircle = Math.Max(day.SmallestCircle, _progress.CircleLevel));
-            SizeTarget();
-            ShowMessage(CircleMessage, ref _circleMessageTimer, message);
-        }
+            PointerStartPanel.Visibility = Visibility.Collapsed;
+            PointerScroll.UpdateLayout();
+            SizePointerPage();
+            PointerScroll.ScrollToTop();
 
-        /// <summary>
-        /// Show a message for a couple of seconds
-        /// </summary>
-        private static void ShowMessage(TextBlock text, ref System.Windows.Threading.DispatcherTimer? timer, string message)
-        {
-            text.Text = message;
-            timer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
-            var clearing = timer;
-            clearing.Stop();
-            clearing.Tick -= ClearMessage;
-            clearing.Tag = text;
-            clearing.Tick += ClearMessage;
-            clearing.Start();
-        }
+            _pointerRunning = true;
+            _circle = 0;
+            _runMisses = _runScrolled = _runOvershoots = 0;
+            _throughputs.Clear();
+            _lastClick = null;
 
-        private static void ClearMessage(object? sender, EventArgs e)
-        {
-            if (sender is System.Windows.Threading.DispatcherTimer { Tag: TextBlock text } timer)
-            {
-                timer.Stop();
-                text.Text = "";
-            }
-        }
-
-        private void SizeTarget()
-        {
             double size = CircleSizes[_progress.CircleLevel];
             _target.Width = _target.Height = size;
             _target.CornerRadius = new CornerRadius(size / 2);
-            Place(_target);
+            _target.Visibility = Visibility.Visible;
 
-            CircleLevelDots.Children.Clear();
-            for (int level = 0; level < CircleSizes.Length; level++)
+            _runTimer.Restart();
+            ShowCircle();
+        }
+
+        /// <summary>The page is three screens of the box tall, whatever size the box is</summary>
+        private void SizePointerPage()
+        {
+            PointerCanvas.Width = Math.Max(0, PointerScroll.ViewportWidth);
+            PointerCanvas.Height = Math.Max(0, PointerScroll.ViewportHeight * PageScreens);
+        }
+
+        private void PointerScroll_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            SizePointerPage();
+            if (_pointerRunning)
             {
-                double dot = 26 - level * 2;
-                CircleLevelDots.Children.Add(new Ellipse
-                {
-                    Width = dot,
-                    Height = dot,
-                    Margin = new Thickness(0, 0, 6, 0),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Fill = level <= _progress.CircleLevel ? OnBrush : OffBrush,
-                    Stroke = (Brush)FindResource("AccentBrush"),
-                    StrokeThickness = level == _progress.CircleLevel ? 2 : 0
-                });
+                PlaceCircle();
             }
         }
 
-        private void TargetCanvas_SizeChanged(object sender, SizeChangedEventArgs e) => Place(_target);
-
-        private void TargetArea_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) =>
-            CircleClicked(hit: false);
-
-        /// <summary>
-        /// Back to the biggest circle, for a new student or a bad day. Counts already
-        /// made are kept.
-        /// </summary>
-        private void TargetReset_Click(object sender, RoutedEventArgs e)
+        private void ShowCircle()
         {
-            _roundHits = _roundMisses = _sessionHits = _sessionMisses = 0;
-            _progress.CircleLevel = 0;
-            PracticeProgressStore.Save(_progress);
-            SizeTarget();
-            ShowTargetScore();
+            PlaceCircle();
+            _circleStartedInView = CircleInView();
+            _circleSeen = _circleStartedInView;
+            if (!_circleStartedInView)
+            {
+                _runScrolled++;
+            }
+            _circleTimer.Restart();
+            ShowScrollHint();
+            ActivityScore.Text = $"Circle {_circle + 1} of {CirclePlaces.Length}    Misses {_runMisses}";
         }
 
-        private void ShowTargetScore() =>
-            TargetScore.Text = $"Hits {_sessionHits}    Misses {_sessionMisses}    Circle {_progress.CircleLevel + 1} of {CircleSizes.Length}";
-
-        /// <summary>
-        /// Somewhere new in the box, away from where it was
-        /// </summary>
-        private void Place(Border target)
+        private void PlaceCircle()
         {
-            double width = TargetCanvas.ActualWidth, height = TargetCanvas.ActualHeight;
-            if (width <= 0 || height <= 0)
+            var (x, y) = CirclePlaces[_circle];
+            double size = _target.Width, viewport = PointerScroll.ViewportHeight;
+            Canvas.SetLeft(_target, Math.Clamp(x * PointerCanvas.Width - size / 2, 0, Math.Max(0, PointerCanvas.Width - size)));
+            Canvas.SetTop(_target, Math.Clamp(y * viewport - size / 2, 0, Math.Max(0, PointerCanvas.Height - size)));
+        }
+
+        /// <summary>Whether the whole circle is on screen</summary>
+        private bool CircleInView()
+        {
+            double top = Canvas.GetTop(_target), offset = PointerScroll.VerticalOffset;
+            return top >= offset && top + _target.Height <= offset + PointerScroll.ViewportHeight;
+        }
+
+        private void ShowScrollHint()
+        {
+            bool running = _pointerRunning && PracticePage.Visibility == Visibility.Visible;
+            double top = Canvas.GetTop(_target), offset = PointerScroll.VerticalOffset;
+            ScrollHintTop.Visibility = running && top + _target.Height <= offset ? Visibility.Visible : Visibility.Collapsed;
+            ScrollHintBottom.Visibility = running && top >= offset + PointerScroll.ViewportHeight ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void PointerScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            // The box has only just been given its size (the page was hidden until now):
+            // size the page of circles to match
+            if (e.ViewportHeightChange != 0 || e.ViewportWidthChange != 0)
+            {
+                SizePointerPage();
+                if (_pointerRunning)
+                {
+                    PlaceCircle();
+                }
+            }
+
+            if (!_pointerRunning)
             {
                 return;
             }
 
-            double oldX = Canvas.GetLeft(target), oldY = Canvas.GetTop(target);
-            for (int attempt = 0; attempt < 30; attempt++)
+            // Scrolled into view and then out of it again, the other way: past it
+            bool inView = CircleInView();
+            if (_circleSeen && !inView && e.VerticalChange != 0)
             {
-                double x = _random.NextDouble() * Math.Max(0, width - target.Width);
-                double y = _random.NextDouble() * Math.Max(0, height - target.Height);
-
-                // A new place a fair way off, so every hit means moving the pointer
-                bool farEnough = double.IsNaN(oldX) || Math.Abs(x - oldX) + Math.Abs(y - oldY) > target.Width * 1.5;
-                if (farEnough || attempt == 29)
+                bool gone = e.VerticalChange > 0
+                    ? Canvas.GetTop(_target) + _target.Height <= PointerScroll.VerticalOffset
+                    : Canvas.GetTop(_target) >= PointerScroll.VerticalOffset + PointerScroll.ViewportHeight;
+                if (gone)
                 {
-                    Canvas.SetLeft(target, x);
-                    Canvas.SetTop(target, y);
-                    return;
+                    _runOvershoots++;
+                    _circleSeen = false;
                 }
             }
+            _circleSeen |= inView;
+
+            ShowScrollHint();
         }
 
-        // --- Type the word ---
+        private void PointerCanvas_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (_pointerRunning)
+            {
+                _runMisses++;
+                ActivityScore.Text = $"Circle {_circle + 1} of {CirclePlaces.Length}    Misses {_runMisses}";
+            }
+        }
+
+        private void TargetHit(Point click)
+        {
+            if (!_pointerRunning)
+            {
+                return;
+            }
+
+            // Fitts's law: how hard the move was (distance against size, in bits) over
+            // how long it took. Only for circles in sight from the start, and not the
+            // first, whose starting point is the Start button.
+            double seconds = _circleTimer.Elapsed.TotalSeconds;
+            if (_circleStartedInView && _lastClick is Point from && seconds > 0)
+            {
+                var centre = new Point(Canvas.GetLeft(_target) + _target.Width / 2, Canvas.GetTop(_target) + _target.Height / 2);
+                double distance = (centre - from).Length;
+                double difficulty = Math.Log2(distance / _target.Width + 1);
+                _throughputs.Add(difficulty / seconds);
+            }
+            _lastClick = click;
+
+            _circle++;
+            if (_circle < CirclePlaces.Length)
+            {
+                ShowCircle();
+                return;
+            }
+
+            FinishPointerRun();
+        }
+
+        private void FinishPointerRun()
+        {
+            _pointerRunning = false;
+            _runTimer.Stop();
+
+            var run = new PointerRun
+            {
+                When = DateTime.Now,
+                Size = _progress.CircleLevel,
+                Targets = CirclePlaces.Length,
+                Seconds = Math.Round(_runTimer.Elapsed.TotalSeconds, 1),
+                Misses = _runMisses,
+                Scrolled = _runScrolled,
+                Overshoots = _runOvershoots,
+                Throughput = _throughputs.Count > 0 ? Math.Round(_throughputs.Average(), 2) : 0
+            };
+
+            // The best before this run, at this size - the fair comparison
+            double? best = null;
+            foreach (var earlier in _progress.PointerRuns)
+            {
+                if (earlier.Size == run.Size && (best == null || earlier.Seconds < best))
+                {
+                    best = earlier.Seconds;
+                }
+            }
+            _progress.PointerRuns.Add(run);
+
+            string verdict = best == null ? "Your first run at this size."
+                : run.Seconds < best ? $"Your fastest yet at this size! (was {best:0.0} s)"
+                : $"Your best at this size: {best:0.0} s";
+
+            // At most one miss: smaller circles next time. Half or more missed: bigger.
+            string next = "";
+            if (run.Misses <= 1 && _progress.CircleLevel < CircleSizes.Length - 1)
+            {
+                _progress.CircleLevel++;
+                next = "\nSmaller circles next time!";
+            }
+            else if (run.Misses >= CirclePlaces.Length / 2 && _progress.CircleLevel > 0)
+            {
+                _progress.CircleLevel--;
+                next = "\nBigger circles next time.";
+            }
+
+            SaveProgress();
+            ActivityScore.Text = "";
+            ShowPointerStart("Done!",
+                $"{run.Targets} circles in {run.Seconds:0.0} seconds, {run.Misses} {(run.Misses == 1 ? "miss" : "misses")}.\n{verdict}{next}");
+        }
+
+        // --- Typing test ---
+
+        private static readonly string[] TypingLevelNames = { "Words", "Phrases", "Sentences" };
 
         /// <summary>
-        /// Short, everyday words, shortest first. The words offered grow longer as more
-        /// are typed.
+        /// The same items every time at each level, so runs compare. Everyday words the
+        /// students use, UK spelling, and only the punctuation a sentence needs.
         /// </summary>
-        private static readonly string[] PracticeWords =
+        private static readonly string[][] TypingItems =
         {
-            "cat", "dog", "sun", "red", "hat", "cup", "bus", "yes", "no", "hi",
-            "blue", "home", "book", "cake", "fish", "tree", "rain", "milk", "shop", "game",
-            "hello", "happy", "music", "water", "phone", "apple", "chair", "pizza", "horse", "smile",
-            "orange", "school", "friend", "garden", "family", "dinner", "pencil", "monkey", "summer", "yellow",
-            "holiday", "picture", "chicken", "weekend", "birthday", "computer", "sandwich", "football",
+            new[] { "cat", "sun", "home", "happy", "music", "water", "friend", "orange" },
+            new[] { "good morning", "thank you", "see you soon", "I like music", "a cup of tea" },
+            new[] { "I am going to the shop.", "The bus is late today.", "Can I have a drink please?", "My favourite colour is orange." },
         };
 
-        private string _word = "";
-        private int _sessionWords;
-        private int _sessionWrongLetters;
+        private bool _typingRunning;
+        private int _item;
+        private string _itemText = "";
         private int _lastTypedLength;
-        private System.Windows.Threading.DispatcherTimer? _wordMessageTimer;
-        private System.Windows.Threading.DispatcherTimer? _nextWordTimer;
+        private readonly System.Diagnostics.Stopwatch _itemTimer = new();
+        private TypingRun _typingRun = new();
+        private System.Windows.Threading.DispatcherTimer? _nextItemTimer;
 
-        private void NextWord()
+        private void TypingLevel_Click(object sender, RoutedEventArgs e)
         {
-            // Three-letter words first; one letter longer for every ten typed
-            int typed = 0;
-            foreach (var day in _progress.Days)
+            if (sender is Button { Tag: string tag } && int.TryParse(tag, out int level))
             {
-                typed += day.WordsTyped;
+                _progress.TypingLevel = level;
+                PracticeProgressStore.Save(_progress);
+                _typingRunning = false;
+                ShowTypingStart();
             }
-            int longest = 3 + typed / 10;
-
-            var pool = Array.FindAll(PracticeWords, w => w.Length <= longest && w != _word);
-            _word = pool[_random.Next(pool.Length)];
-
-            _lastTypedLength = 0;
-            if (WordTypingBox.Text.Length > 0)
-            {
-                WordTypingBox.Text = "";
-            }
-            ShowWord();
         }
 
-        /// <summary>
-        /// The word, with the letters typed right so far in orange
-        /// </summary>
-        private void ShowWord()
+        private void ShowTypingStart(string? title = null, string? text = null)
         {
-            string typed = WordTypingBox.Text.TrimEnd();
+            int level = _progress.TypingLevel;
+            for (int i = 0; i < TypingItems.Length; i++)
+            {
+                ((Button)FindName($"TypingLevel{i}")).Background = i == level ? OnBrush : OffBrush;
+            }
+
+            TypingStartTitle.Text = title ?? $"Typing test: {TypingLevelNames[level].ToLowerInvariant()}";
+            TypingStartText.Text = text ?? $"Type each of the {TypingItems[level].Length} {TypingLevelNames[level].ToLowerInvariant()} as it appears. "
+                + "The box moves between the top and bottom of the page: if the keyboard covers it, move the keyboard with LT.";
+            TypingStartPanel.Visibility = Visibility.Visible;
+            TypingItem.Visibility = Visibility.Collapsed;
+            TypingMessage.Text = "";
+        }
+
+        private void TypingStart_Click(object sender, RoutedEventArgs e)
+        {
+            TypingStartPanel.Visibility = Visibility.Collapsed;
+            _typingRunning = true;
+            _item = 0;
+            _typingRun = new TypingRun { Level = _progress.TypingLevel };
+            ShowItem();
+        }
+
+        private void ShowItem()
+        {
+            _itemText = TypingItems[_typingRun.Level][_item];
+            _itemTimer.Reset();
+            _lastTypedLength = 0;
+            TypingBox.Text = "";
+            TypingMessage.Text = "";
+
+            // Top for one, bottom for the next, so wherever the keyboard opens it is in
+            // the way some of the time
+            TypingItem.VerticalAlignment = _item % 2 == 0 ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+            TypingItem.Visibility = Visibility.Visible;
+            ShowItemProgress();
+            TypingBox.Focus();
+
+            ActivityScore.Text = $"{_item + 1} of {TypingItems[_typingRun.Level].Length}";
+        }
+
+        /// <summary>The item, with what has been typed right so far in orange</summary>
+        private void ShowItemProgress()
+        {
+            string typed = TypingBox.Text;
             int right = 0;
-            while (right < typed.Length && right < _word.Length
-                && char.ToLowerInvariant(typed[right]) == _word[right])
+            while (right < typed.Length && right < _itemText.Length
+                && char.ToLowerInvariant(typed[right]) == char.ToLowerInvariant(_itemText[right]))
             {
                 right++;
             }
 
-            WordTarget.Inlines.Clear();
-            WordTarget.Inlines.Add(new Run(_word[..right]) { Foreground = (Brush)FindResource("AccentBrush") });
-            WordTarget.Inlines.Add(new Run(_word[right..]));
-
-            WordScore.Text = $"Words {_sessionWords}    Wrong letters {_sessionWrongLetters}";
+            TypingTarget.Inlines.Clear();
+            TypingTarget.Inlines.Add(new Run(_itemText[..right]) { Foreground = (Brush)FindResource("AccentBrush") });
+            TypingTarget.Inlines.Add(new Run(_itemText[right..]));
         }
 
-        private void WordTypingBox_TextChanged(object sender, TextChangedEventArgs e)
+        private void TypingBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string text = WordTypingBox.Text;
-
-            // A letter added that does not fit the word is a wrong letter. Taking one away
-            // is not counted, and nor is a space after the word, which a word suggestion adds.
-            string trimmed = text.TrimEnd();
-            if (text.Length > _lastTypedLength && trimmed.Length == text.Length
-                && !_word.StartsWith(trimmed, StringComparison.OrdinalIgnoreCase))
-            {
-                _sessionWrongLetters++;
-                Record(day => day.WrongLetters++);
-            }
-            _lastTypedLength = text.Length;
-
-            ShowWord();
-
-            if (trimmed.Equals(_word, StringComparison.OrdinalIgnoreCase) && _nextWordTimer?.IsEnabled != true)
-            {
-                _sessionWords++;
-                Record(day => day.WordsTyped++);
-                ShowWord();
-                ShowMessage(WordMessage, ref _wordMessageTimer, "Well done!");
-
-                // A moment to see it finished, then the next one
-                _nextWordTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2) };
-                _nextWordTimer.Tick -= NextWordTick;
-                _nextWordTimer.Tick += NextWordTick;
-                _nextWordTimer.Start();
-            }
-        }
-
-        private void NextWordTick(object? sender, EventArgs e)
-        {
-            _nextWordTimer?.Stop();
-            NextWord();
-        }
-
-        private void WordSkip_Click(object sender, RoutedEventArgs e)
-        {
-            _nextWordTimer?.Stop();
-            NextWord();
-        }
-
-        // --- Keyboard on and off ---
-
-        private bool _keyboardStepClose;
-        private int _sessionKeyboardRounds;
-        private readonly System.Diagnostics.Stopwatch _keyboardRoundTimer = new();
-        private System.Windows.Threading.DispatcherTimer? _keyboardMessageTimer;
-
-        /// <summary>
-        /// The keyboard opened or closed. Counts only while the activity is on screen, so
-        /// ordinary typing elsewhere is not mistaken for practice.
-        /// </summary>
-        private void PracticeKeyboardChanged(bool open)
-        {
-            if (PracticePage.Visibility != Visibility.Visible || _activity != "Keyboard")
+            if (!_typingRunning || _nextItemTimer?.IsEnabled == true)
             {
                 return;
             }
 
-            if (open && !_keyboardStepClose)
+            string text = TypingBox.Text;
+            if (text.Length > 0 && !_itemTimer.IsRunning)
             {
-                _keyboardStepClose = true;
-                _keyboardRoundTimer.Restart();
-                ShowMessage(KeyboardMessage, ref _keyboardMessageTimer, "Open! Now close it");
-            }
-            else if (!open && _keyboardStepClose)
-            {
-                _keyboardStepClose = false;
-                _sessionKeyboardRounds++;
-                Record(day => day.KeyboardRounds++);
-                ShowMessage(KeyboardMessage, ref _keyboardMessageTimer,
-                    $"Well done! {_keyboardRoundTimer.Elapsed.TotalSeconds:0.0} seconds");
+                _itemTimer.Start();
             }
 
-            ShowKeyboardStep();
+            // A letter added that does not fit is a wrong letter; anything taken away is
+            // a correction. A space after the last word, which a word suggestion adds, is
+            // neither.
+            if (text.Length > _lastTypedLength)
+            {
+                string fits = text.TrimEnd();
+                if (fits.Length == text.Length && !_itemText.StartsWith(fits, StringComparison.OrdinalIgnoreCase))
+                {
+                    _typingRun.WrongLetters++;
+                }
+            }
+            else if (text.Length < _lastTypedLength)
+            {
+                _typingRun.Corrections++;
+            }
+            _lastTypedLength = text.Length;
+
+            ShowItemProgress();
+
+            if (Matches(text, _itemText))
+            {
+                _itemTimer.Stop();
+                _typingRun.Seconds += _itemTimer.Elapsed.TotalSeconds;
+                _typingRun.Characters += _itemText.Length;
+                NextItemSoon("Well done!");
+            }
         }
 
-        private void ShowKeyboardStep()
+        /// <summary>
+        /// Done, whatever the capitals, extra spaces, or a missing full stop at the end
+        /// </summary>
+        private static bool Matches(string typed, string item)
         {
-            var accent = (Brush)FindResource("AccentBrush");
-            var cardBorder = (Brush)FindResource("CardBorderBrush");
+            static string Plain(string s) => string.Join(' ', s.Trim().TrimEnd('.').Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            return Plain(typed).Equals(Plain(item), StringComparison.OrdinalIgnoreCase);
+        }
 
-            KeyboardStepOpen.BorderBrush = _keyboardStepClose ? cardBorder : accent;
-            KeyboardStepClose.BorderBrush = _keyboardStepClose ? accent : cardBorder;
-            KeyboardStepOpen.Opacity = _keyboardStepClose ? 0.6 : 1;
-            KeyboardStepClose.Opacity = _keyboardStepClose ? 1 : 0.6;
-            KeyboardStepOpenMark.Text = _keyboardStepClose ? "\u2713" : "1";
+        private void TypingSkip_Click(object sender, RoutedEventArgs e)
+        {
+            if (_typingRunning && _nextItemTimer?.IsEnabled != true)
+            {
+                _typingRun.Skipped++;
+                NextItemSoon("Skipped");
+            }
+        }
 
-            KeyboardScore.Text = $"Done {_sessionKeyboardRounds} times";
+        /// <summary>A moment to see it finished, then the next one</summary>
+        private void NextItemSoon(string message)
+        {
+            TypingMessage.Text = message;
+            TypingItem.Visibility = Visibility.Collapsed;
+            _nextItemTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _nextItemTimer.Tick -= NextItemTick;
+            _nextItemTimer.Tick += NextItemTick;
+            _nextItemTimer.Start();
+        }
+
+        private void NextItemTick(object? sender, EventArgs e)
+        {
+            _nextItemTimer?.Stop();
+            _item++;
+            if (_item < TypingItems[_typingRun.Level].Length)
+            {
+                ShowItem();
+            }
+            else
+            {
+                FinishTypingRun();
+            }
+        }
+
+        /// <summary>LT moved the keyboard: counted while a typing run is on</summary>
+        private void PracticeKeyboardMoved()
+        {
+            if (_typingRunning)
+            {
+                _typingRun.KeyboardMoves++;
+            }
+        }
+
+        private void FinishTypingRun()
+        {
+            _typingRunning = false;
+            var run = _typingRun;
+            run.When = DateTime.Now;
+            run.Seconds = Math.Round(run.Seconds, 1);
+
+            double? best = null;
+            foreach (var earlier in _progress.TypingRuns)
+            {
+                if (earlier.Level == run.Level && earlier.Characters > 0 && (best == null || earlier.LettersPerMinute > best))
+                {
+                    best = earlier.LettersPerMinute;
+                }
+            }
+            _progress.TypingRuns.Add(run);
+            SaveProgress();
+
+            string verdict = run.Characters == 0 ? "Nothing typed this time."
+                : best == null ? "Your first run at this level."
+                : run.LettersPerMinute > best ? $"Your fastest yet! (was {best:0})"
+                : $"Your best at this level: {best:0} letters a minute";
+
+            // Few slips: time for the next level
+            string next = run.Skipped == 0 && run.WrongLetters <= 2 && run.Level < TypingItems.Length - 1
+                ? $"\nReady for {TypingLevelNames[run.Level + 1].ToLowerInvariant()}?"
+                : "";
+
+            ActivityScore.Text = "";
+            ShowTypingStart("Done!",
+                $"{run.LettersPerMinute:0} letters a minute. {run.WrongLetters} wrong {(run.WrongLetters == 1 ? "letter" : "letters")}, "
+                + $"{run.Corrections} {(run.Corrections == 1 ? "correction" : "corrections")}.\n{verdict}{next}");
         }
 
         // --- The record ---
 
         /// <summary>
-        /// The last week of practice, newest first, as a small table
+        /// The latest runs of each test, newest first, with the best so far
         /// </summary>
         private void ShowProgress()
         {
-            ProgressTable.Children.Clear();
-            ProgressTable.RowDefinitions.Clear();
-            ProgressTable.ColumnDefinitions.Clear();
-
-            string[] headings = { "Day", "Circles hit", "Missed", "Smallest", "Words", "Wrong letters", "Keyboard" };
-            foreach (var _ in headings)
+            var pointer = new List<string[]>();
+            for (int i = _progress.PointerRuns.Count - 1; i >= 0 && pointer.Count < 6; i--)
             {
-                ProgressTable.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                var run = _progress.PointerRuns[i];
+                pointer.Add(new[] { RunDay(run.When), $"{run.Size + 1}", $"{run.Seconds:0.0} s", $"{run.Misses}", $"{run.Throughput:0.0}" });
             }
-            ProgressTable.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+            FillTable(PointerTable, new[] { "When", "Size", "Time", "Misses", "Speed" }, pointer);
 
-            void Cell(int row, int column, string text, bool heading = false)
+            var typing = new List<string[]>();
+            for (int i = _progress.TypingRuns.Count - 1; i >= 0 && typing.Count < 6; i--)
+            {
+                var run = _progress.TypingRuns[i];
+                typing.Add(new[] { RunDay(run.When), TypingLevelNames[Math.Clamp(run.Level, 0, 2)], $"{run.LettersPerMinute:0}", $"{run.WrongLetters}", $"{run.Corrections}" });
+            }
+            FillTable(TypingTable, new[] { "When", "Level", "A minute", "Wrong", "Fixed" }, typing);
+
+            PointerBest.Text = _progress.PointerRuns.Count == 0 ? "No runs yet"
+                : $"Circle size now {_progress.CircleLevel + 1} of {CircleSizes.Length}. Speed is in bits a second - higher is better.";
+            TypingBest.Text = _progress.TypingRuns.Count == 0 ? "No runs yet"
+                : $"Level now: {TypingLevelNames[_progress.TypingLevel].ToLowerInvariant()}. Letters typed a minute.";
+        }
+
+        private static void FillTable(Grid table, string[] headings, List<string[]> rows)
+        {
+            table.Children.Clear();
+            table.RowDefinitions.Clear();
+            table.ColumnDefinitions.Clear();
+            for (int column = 0; column < headings.Length; column++)
+            {
+                table.ColumnDefinitions.Add(new ColumnDefinition { Width = column == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(62) });
+            }
+
+            void Cell(int row, int column, string text, bool heading)
             {
                 var cell = new TextBlock
                 {
                     Text = text,
-                    FontSize = heading ? 12.5 : 15,
+                    FontSize = heading ? 12.5 : 14.5,
                     FontWeight = heading ? FontWeights.SemiBold : FontWeights.Normal,
                     Foreground = heading ? new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA)) : Brushes.White,
                     TextAlignment = column == 0 ? TextAlignment.Left : TextAlignment.Right,
-                    TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = column == 0 ? double.PositiveInfinity : 62,
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Margin = new Thickness(column == 0 ? 0 : 10, 3, 0, 3)
+                    Margin = new Thickness(0, 2, 0, 2)
                 };
                 Grid.SetRow(cell, row);
                 Grid.SetColumn(cell, column);
-                ProgressTable.Children.Add(cell);
+                table.Children.Add(cell);
             }
 
-            ProgressTable.RowDefinitions.Add(new RowDefinition());
+            if (rows.Count == 0)
+            {
+                return;
+            }
+
+            table.RowDefinitions.Add(new RowDefinition());
             for (int column = 0; column < headings.Length; column++)
             {
                 Cell(0, column, headings[column], heading: true);
             }
-
-            var days = _progress.Days;
-            if (days.Count == 0)
+            for (int row = 0; row < rows.Count; row++)
             {
-                ProgressTable.RowDefinitions.Add(new RowDefinition());
-                Cell(1, 0, "No practice yet");
-                return;
-            }
-
-            int row = 1;
-            for (int i = days.Count - 1; i >= 0 && row <= 7; i--, row++)
-            {
-                var day = days[i];
-                ProgressTable.RowDefinitions.Add(new RowDefinition());
-                Cell(row, 0, DayName(day.Date));
-                Cell(row, 1, day.CircleHits.ToString());
-                Cell(row, 2, day.CircleMisses.ToString());
-                Cell(row, 3, $"{day.SmallestCircle + 1} of {CircleSizes.Length}");
-                Cell(row, 4, day.WordsTyped.ToString());
-                Cell(row, 5, day.WrongLetters.ToString());
-                Cell(row, 6, day.KeyboardRounds.ToString());
+                table.RowDefinitions.Add(new RowDefinition());
+                for (int column = 0; column < headings.Length; column++)
+                {
+                    Cell(row + 1, column, rows[row][column], heading: false);
+                }
             }
         }
 
-        private static string DayName(string date)
-        {
-            if (!DateTime.TryParseExact(date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.None, out var day))
-            {
-                return date;
-            }
-
-            return day.Date == DateTime.Today ? "Today"
-                : day.Date == DateTime.Today.AddDays(-1) ? "Yesterday"
-                : day.ToString("ddd d MMM");
-        }
+        private static string RunDay(DateTime when) =>
+            when.Date == DateTime.Today ? $"Today {when:HH:mm}"
+            : when.Date == DateTime.Today.AddDays(-1) ? $"Yesterday {when:HH:mm}"
+            : when.ToString("ddd d MMM");
 
         /// <summary>
-        /// Every day of practice as a spreadsheet, for a review
+        /// Every run as a spreadsheet, for a review
         /// </summary>
         private void ExportProgress_Click(object sender, RoutedEventArgs e)
         {
@@ -1640,7 +2111,8 @@ namespace HIDra.UI
                 return;
             }
 
-            ProgressStatus.Text = PracticeProgressStore.ExportCsv(_progress, dialog.FileName, level => $"{level + 1} of {CircleSizes.Length}")
+            ProgressStatus.Text = PracticeProgressStore.ExportCsv(_progress, dialog.FileName,
+                    level => $"Circle {level + 1} of {CircleSizes.Length}", level => TypingLevelNames[Math.Clamp(level, 0, 2)])
                 ? $"Saved to {dialog.FileName}"
                 : "Could not write that file. Try another folder.";
         }
@@ -1649,9 +2121,10 @@ namespace HIDra.UI
         // Shortcut keys and the Apps key, chosen per student
         //
         // A copy of the keyboard's four shortcut rows, and of the Apps row: click a place
-        // to see what can go there, then click a choice. Choices come from fixed lists of
-        // keys and installed programs, never typed-in key combinations. Choosing a key
-        // already elsewhere in the row swaps the two, rather than having it twice.
+        // to see what can go there, then click a choice. Choices come from a fixed list
+        // of keys and the programs on the Start menu, never typed-in key combinations.
+        // Choosing a key already elsewhere in the row swaps the two, rather than having
+        // it twice.
         // ---------------------------------------------------------------------------
 
         private static readonly string[] ShortcutRowNames = { "Edit", "Select", "Style", "Tools" };
@@ -1671,15 +2144,15 @@ namespace HIDra.UI
                 {
                     Text = glyph.ToString(),
                     FontFamily = ShortcutCatalogue.IconFont,
-                    FontSize = 24,
+                    FontSize = 19,
                     FontWeight = FontWeights.Normal,
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(0, 0, 0, 3)
+                    Margin = new Thickness(0, 0, 0, 2)
                 });
             }
             else if (logo != null)
             {
-                content.Children.Add(new Image { Source = logo, Width = 28, Height = 28, Margin = new Thickness(0, 0, 0, 3) });
+                content.Children.Add(new Image { Source = logo, Width = 24, Height = 24, Margin = new Thickness(0, 0, 0, 2) });
             }
 
             content.Children.Add(new TextBlock
@@ -1743,32 +2216,29 @@ namespace HIDra.UI
 
         private void ChooseShortcutSlot(int slot)
         {
-            // Clicking the place being changed again puts the list away
-            _editingShortcutSlot = slot == _editingShortcutSlot ? -1 : slot;
+            _editingShortcutSlot = slot;
+            _editingAppSlot = -1;
             BuildShortcutEditor();
-            ShortcutChooser.Visibility = _editingShortcutSlot < 0 ? Visibility.Collapsed : Visibility.Visible;
-            if (_editingShortcutSlot < 0)
-            {
-                return;
-            }
+            BuildAppEditor();
 
             int row = slot / ShortcutCatalogue.RowLength;
             var current = ShortcutCatalogue.Resolve(_userSettings.ShortcutKeys)[slot];
-            ShortcutChooserTitle.Text = $"Choose a key for the {ShortcutRowNames[row]} row";
 
-            ShortcutChoices.Children.Clear();
+            var choices = new List<Button>();
             foreach (var key in ShortcutCatalogue.InGroup(ShortcutCatalogue.GroupOfRow(row)))
             {
                 var choice = EditorKey("ChoiceKey", key.Label, key.Icon, description: key.Description);
                 choice.Background = key == current ? OnBrush : OffBrush;
                 choice.Click += (_, _) => SetShortcut(slot, key.Id);
-                ShortcutChoices.Children.Add(choice);
+                choices.Add(choice);
             }
 
             var empty = EditorKey("ChoiceKey", "Empty", description: "Leave this place empty");
             empty.Background = current == null ? OnBrush : OffBrush;
             empty.Click += (_, _) => SetShortcut(slot, "");
-            ShortcutChoices.Children.Add(empty);
+            choices.Add(empty);
+
+            ShowKeyChooser($"Choose a key for the {ShortcutRowNames[row]} row", choices, search: false);
         }
 
         private void SetShortcut(int slot, string id)
@@ -1782,15 +2252,13 @@ namespace HIDra.UI
             }
             ids[slot] = id;
 
-            _editingShortcutSlot = -1;
-            ShortcutChooser.Visibility = Visibility.Collapsed;
+            HideKeyChooser();
             ChangeSettings(s => s.ShortcutKeys = ids);
         }
 
         private void ShortcutsStandard_Click(object sender, RoutedEventArgs e)
         {
-            _editingShortcutSlot = -1;
-            ShortcutChooser.Visibility = Visibility.Collapsed;
+            HideKeyChooser();
             ChangeSettings(s => s.ShortcutKeys = null);
         }
 
@@ -1812,29 +2280,35 @@ namespace HIDra.UI
 
         private void ChooseAppSlot(int slot)
         {
-            _editingAppSlot = slot == _editingAppSlot ? -1 : slot;
+            _editingAppSlot = slot;
+            _editingShortcutSlot = -1;
+            BuildShortcutEditor();
             BuildAppEditor();
-            AppChooser.Visibility = _editingAppSlot < 0 ? Visibility.Collapsed : Visibility.Visible;
-            if (_editingAppSlot < 0)
-            {
-                return;
-            }
+
+            // Reading the Start menu takes a moment the first time; say so rather than
+            // looking stuck
+            Cursor = System.Windows.Input.Cursors.Wait;
+            var programs = AppLauncher.Choices;
+            Cursor = null;
 
             var current = AppLauncher.Chosen(_userSettings.AppKeys, AppSlots)[slot];
 
-            AppChoices.Children.Clear();
-            foreach (var app in AppLauncher.Installed)
-            {
-                var choice = EditorKey("ChoiceKey", app.Name, logo: app.Icon);
-                choice.Background = app == current ? OnBrush : OffBrush;
-                choice.Click += (_, _) => SetApp(slot, app.Id);
-                AppChoices.Children.Add(choice);
-            }
-
+            var choices = new List<Button>();
             var empty = EditorKey("ChoiceKey", "Empty", description: "Leave this place empty");
             empty.Background = current == null ? OnBrush : OffBrush;
             empty.Click += (_, _) => SetApp(slot, "");
-            AppChoices.Children.Add(empty);
+            choices.Add(empty);
+
+            foreach (var app in programs)
+            {
+                var choice = EditorKey("ChoiceKey", app.Name, logo: app.Icon);
+                choice.Background = app.Id == current?.Id ? OnBrush : OffBrush;
+                choice.Tag = app.Name;
+                choice.Click += (_, _) => SetApp(slot, app.Id);
+                choices.Add(choice);
+            }
+
+            ShowKeyChooser("Choose a program for this place", choices, search: true);
         }
 
         private void SetApp(int slot, string id)
@@ -1852,16 +2326,65 @@ namespace HIDra.UI
             }
             ids[slot] = id;
 
-            _editingAppSlot = -1;
-            AppChooser.Visibility = Visibility.Collapsed;
+            HideKeyChooser();
             ChangeSettings(s => s.AppKeys = ids);
         }
 
         private void AppsStandard_Click(object sender, RoutedEventArgs e)
         {
-            _editingAppSlot = -1;
-            AppChooser.Visibility = Visibility.Collapsed;
+            HideKeyChooser();
             ChangeSettings(s => s.AppKeys = null);
+        }
+
+        // The choices open over the Keyboard tab, where there is room for all of them -
+        // a program list can be long - without the page ever needing to scroll
+
+        private void ShowKeyChooser(string title, List<Button> choices, bool search)
+        {
+            KeyChooserTitle.Text = title;
+            KeyChoices.Children.Clear();
+            foreach (var choice in choices)
+            {
+                KeyChoices.Children.Add(choice);
+            }
+
+            AppSearchRow.Visibility = search ? Visibility.Visible : Visibility.Collapsed;
+            AppSearchBox.Text = "";
+            KeyChooserOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void HideKeyChooser()
+        {
+            KeyChooserOverlay.Visibility = Visibility.Collapsed;
+            _editingShortcutSlot = _editingAppSlot = -1;
+            BuildShortcutEditor();
+            BuildAppEditor();
+        }
+
+        private void KeyChooserClose_Click(object sender, RoutedEventArgs e) => HideKeyChooser();
+
+        /// <summary>A click on the dark edge, not on the choices, puts them away</summary>
+        private void KeyChooserOverlay_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource == KeyChooserOverlay)
+            {
+                HideKeyChooser();
+            }
+        }
+
+        /// <summary>Show only the programs whose name has the words typed</summary>
+        private void AppSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string find = AppSearchBox.Text.Trim();
+            foreach (var child in KeyChoices.Children)
+            {
+                if (child is Button { Tag: string name } choice)
+                {
+                    choice.Visibility = find.Length == 0 || name.Contains(find, StringComparison.CurrentCultureIgnoreCase)
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+                }
+            }
         }
 
         // ---------------------------------------------------------------------------
@@ -2119,7 +2642,7 @@ namespace HIDra.UI
                 _engine.SetButtonMappings(ButtonJobCatalogue.ToMappings(_userSettings.ButtonJobs));
 
                 // Slow pointer only stays on while LT is what switches it
-                if (_userSettings.LeftTrigger != LeftTriggerAction.SlowPointer)
+                if (Jobs[ButtonJobCatalogue.LeftTrigger].Id != "slow-pointer")
                 {
                     _engine.SlowPointer = false;
                 }
@@ -2263,9 +2786,9 @@ namespace HIDra.UI
             if (!_exitConfirmed)
             {
                 e.Cancel = true;
+                // No pop-up to say so: it came up every time and got in the way. The
+                // Guide says how to bring the window back (hold Back and Start).
                 Hide();
-                _trayIcon?.ShowMessage("HIDra is still running",
-                    "Your controller still works. Hold Back and Start together to bring this window back.");
                 return;
             }
 

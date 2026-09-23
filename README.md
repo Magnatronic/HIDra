@@ -11,16 +11,18 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - Dwell: click by resting the cursor (a ring by the cursor fills as the click approaches), and type by resting the keyboard highlight (both optional)
 - Keyboard extras: automatic capitals, the student's own phrases on a Phrases key, and an adjustable size
 - A shortcut panel on the keyboard, with icons, in labelled rows - Edit (Undo, Copy, Paste...), Select (a Select switch for highlighting text, word moves), Style (Bold, Italic, Underline, text size), Tools (emoji, Live Captions, voice typing, Save, Snip) - and a row that follows the program in front (PowerPoint, Word, web browser, File Explorer); it can be switched off
-- Shortcut keys and the Apps key's programs are chosen per student on the Keyboard tab, from fixed lists of safe keys (Read aloud, Print, Magnify, Clipboard history, Find...) and installed programs (Excel, OneNote, Outlook, Notepad...); a place can be left empty
-- While the keyboard is open, LB types Backspace, RB Space and Y Enter, from wherever the highlight is
+- Shortcut keys and the Apps key's programs are chosen per student on the Keyboard tab, from a fixed list of safe keys (Read aloud, Print, Magnify, Clipboard history, Find...) and any program on the Start menu, Store apps such as the new Outlook included, with a Find box; a place can be left empty
+- While the keyboard is open, LB types Backspace, RB Space and Y Enter, from wherever the highlight is; D-pad left and right move the text cursor, pressing the left stick in swaps to numbers and symbols, Start is Caps Lock and Back is Escape
 - Read aloud: a Read key (added per student) reads the selected text in any program, with the voices built into Windows
 - For unsteady hands: stick smoothing, ignoring a repeat press that comes too soon after letting go, and a Gentle pointer curve (slower for a small push, faster for a big one)
 - Settings can be exported from one student and imported for another, as a starting point
-- Button jobs chosen per student on the Controller tab, by clicking the button on a drawing of the controller and picking from a fixed list; Back + Start held together, a button that clicks and a button that opens the keyboard can never be lost, and the Guide always names the buttons this student has
-- Practice with progress: a circle that shrinks as accuracy improves, typing a shown word, and opening and closing the keyboard, with each day's counts kept per student and saved as a spreadsheet for reviews
+- Windows' own tools can go on a button: voice typing, live captions, magnify, emoji, snip, clipboard history, find, save, File Explorer, show desktop, back a page, page up and down, and the volume
+- Button jobs chosen per student on the Buttons tab, by clicking the button on a drawing of the controller and picking from a fixed list; Back + Start held together, a button that clicks and a button that opens the keyboard can never be lost, and the Guide always names the buttons this student has
+- Practice tests that measure progress: a pointer test (twelve circles in fixed places, some needing a scroll to reach, shrinking as accuracy improves; time, misses, overshoots and a Fitts's-law speed score) and a typing test (words, phrases or sentences, the box sometimes where the keyboard covers it; letters a minute, wrong letters and corrections). Every run is kept per student and can be saved as a spreadsheet for reviews
+- While the keyboard is open, the right stick jumps between its parts: up to the word row, right to the shortcuts, back to the letters
 - An Apps key that opens PowerPoint, Word, Edge and other installed programs in one press
-- One main screen with four tabs. For the student: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks - and **Practice** - a shrinking circle to click, a word to type, the keyboard to open and close, and a record of each day's practice. For staff: **Controller** (button jobs, pointer, and exporting or importing a student's settings) and **Keyboard** (keyboard, phrases, Windows' own keyboard)
-- LT moves the keyboard between the top and bottom of the screen while it is open, so it never has to cover your work. While it is closed, LT does a job chosen per student: zoom in and out with Windows Magnifier (the default), Escape, a slow pointer switched on and off, or nothing
+- One main screen with four tabs. For the student: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks - and **Practice** - the pointer and typing tests and a record of every run. For staff: **Buttons** (each button's job), **Pointer** (speed, feel, Grid 3, and exporting or importing a student's settings) and **Keyboard** (keyboard, shortcut and Apps keys, phrases, Windows' own keyboard). Every page fits a 1366x768 laptop screen without scrolling
+- LT moves the keyboard while it is open, so it never has to cover your work: a tap flips it between the top and bottom of the screen, and holding LT while pushing the left stick drags it anywhere. While it is closed, LT does a job chosen per student: Escape (the default), any other button job, zoom in and out with Windows Magnifier, or a slow pointer switched on and off
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
 - Start opens Task View; Back opens Start menu
@@ -69,7 +71,7 @@ is used, so moving them never loses anything.
 
 ## Button Mapping
 The standard jobs. Staff can give any button except the sticks and RT a different job
-for a student, on the Controller tab.
+for a student, on the Buttons tab.
 
 - A: Left click
 - B: Right click
@@ -79,7 +81,7 @@ for a student, on the Controller tab.
 - LB: Previous app (Alt+Shift+Tab)
 - Back: Windows key, Start: Win+Tab
 - DPad: Up = Maximize, Down = Minimize, Left = Win+Left, Right = Win+Right
-- LT: Move keyboard top/bottom, RT: Click & hold (drag)
+- LT: Escape (move keyboard top/bottom while it is open), RT: Click & hold (drag)
 - Left/Right Stick Click: Undo (Ctrl+Z)
 
 ## System Requirements

@@ -38,6 +38,7 @@
     <!-- Also embedded, so the notification area can load it at its own small size
          rather than shrinking the 32px copy Windows extracts from the exe. -->
     <Resource Include="HIDra.ico" />
+    <Resource Include="HIDra-logo.png" />
   </ItemGroup>
 
   <!-- Conditional publishing settings for self-contained builds -->

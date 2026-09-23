@@ -17,18 +17,17 @@
     <!--
         No title bar, and drawn as a see-through window, so that it can fade to let the
         text behind it show through. Windows ignores fading for a window that has the
-        standard title bar. Nothing is lost: the keyboard has its own close key, it is
+        standard title bar. Nothing is lost: the controller button that opens it closes it, it is
         positioned by HIDra (LT, or the main screen), and a title bar could not be used
         from the controller anyway.
     -->
 
     <!--
-        Three kinds of key, and the difference between them is meant to be visible at a
+        Two kinds of key, and the difference between them is meant to be visible at a
         glance rather than only in the markup:
 
           typing keys    dark, large glyph - the letters, digits and symbols
           function keys  lighter, smaller word - everything that acts rather than types
-          the close key  red - the only key here that a press cannot take back
 
         The four backgrounds this file used to carry (#3C3C3C, #424242, #383838,
         #4A4A4A) differed by two to six values per channel, which is invisible on
@@ -117,15 +116,6 @@
             <Setter Property="FontSize" Value="22"/>
         </Style>
 
-        <!-- Closing the keyboard is the one thing here that a press cannot undo, so it
-             does not get to look like every other key. -->
-        <Style x:Key="CloseKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
-            <Setter Property="Background" Value="#5A2E2E"/>
-            <Setter Property="BorderBrush" Value="#A85454"/>
-            <Setter Property="Foreground" Value="#FF9090"/>
-            <Setter Property="FontSize" Value="22"/>
-        </Style>
-
         <!-- Word suggestions: a distinct green so they read as offers, not as keys that
              type a single character. Normal weight keeps longer words from crowding. -->
         <!-- Shortcuts: one row per kind of action, each row its own muted colour with a
@@ -196,7 +186,7 @@
              when empty, so the rows below never shift and the highlight's routes stay
              where the user has learned them. Pushing up from the number row reaches
              them; A types the rest of the word and a space, B the same capitalised. -->
-        <Grid Grid.Row="0">
+        <Grid x:Name="TopRow" Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="0.8*"/>
                 <ColumnDefinition Width="0.8*"/>
@@ -247,11 +237,10 @@
                 <ColumnDefinition Width="1.5*"/>
                 <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
-            <!-- Close sat beside the up arrow, one step from keys that editing text uses
-                 constantly, where an overshoot ended the typing session. The top left
-                 corner is the one place on the board nothing routes through: you arrive
-                 here only by deciding to. -->
-            <Button Grid.Column="0" Style="{StaticResource CloseKeyStyle}" Content="✕" Click="CloseButton_Click"/>
+            <!-- Column 0 is left empty: the indent at the start of the row, as on a real
+                 keyboard. There is no close key - the button that opens the keyboard
+                 closes it, and a key that ends typing was one overshoot away from doing
+                 so by mistake. -->
             <UniformGrid x:Name="LettersRow1" Grid.Column="1" Rows="1" Columns="10">
                 <Button x:Name="KeyQ" Style="{StaticResource LetterKeyStyle}" Content="q" Click="KeyButton_Click" Tag="Q"/>
                 <Button x:Name="KeyW" Style="{StaticResource LetterKeyStyle}" Content="w" Click="KeyButton_Click" Tag="W"/>

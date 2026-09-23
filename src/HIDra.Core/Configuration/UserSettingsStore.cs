@@ -140,9 +140,19 @@ public static class UserSettingsStore
         settings.StickSmoothing = Math.Clamp(settings.StickSmoothing, 0, UserSettings.MaxStickSmoothing);
         settings.IgnoreRepeatSeconds = Math.Clamp(settings.IgnoreRepeatSeconds, 0f, 1f);
         settings.SlowPointerPercent = Math.Clamp(settings.SlowPointerPercent, 10, 80);
-        if (!Enum.IsDefined(settings.LeftTrigger))
+        // LT used to have its own setting. Carry a student's choice over, so nobody's LT
+        // changes under them now that new students start on Escape.
+        if (settings.LeftTrigger is LeftTriggerAction old)
         {
-            settings.LeftTrigger = LeftTriggerAction.Magnifier;
+            settings.ButtonJobs ??= new Dictionary<string, string>();
+            settings.ButtonJobs.TryAdd(ButtonJobCatalogue.LeftTrigger, old switch
+            {
+                LeftTriggerAction.Escape => "escape",
+                LeftTriggerAction.SlowPointer => "slow-pointer",
+                LeftTriggerAction.Nothing => ButtonJobCatalogue.Nothing,
+                _ => "zoom"
+            });
+            settings.LeftTrigger = null;
         }
 
         // A hand-edited or imported file cannot leave a student without a click or a

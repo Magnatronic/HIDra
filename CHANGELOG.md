@@ -130,6 +130,77 @@ what is on the keyboard is now chosen per student rather than the same for every
     `practice.json` beside the student's settings. **Save for a review...** writes every
     day as a spreadsheet. Exporting settings does not copy it.
 
+### Tabs that look like tabs, pages that fit, and tests that measure progress
+
+From trying the last round: the tabs looked like buttons, the drawing blew up on a big
+screen, pages needed scrolling on a laptop, and Practice was more play than practice.
+
+- **Real tabs**: a word with an orange bar under the page showing. **Guide, Practice**,
+  then under Settings **Buttons, Pointer, Keyboard** - the Controller tab is split in
+  two, so nothing is below the fold.
+- **Every page fits** a 1366x768 laptop without scrolling, and the window cannot be made
+  smaller than that. On a big screen the Guide's drawing stops growing instead of
+  blowing its words up. **How do I...** opens one answer at a time - click a question.
+- **Settings rows line up**: every row has the same columns - its On/Off switch, then
+  its value between - and + (or its two choices) - so the controls form straight lines
+  down the page.
+- **Windows' own tools as button jobs**, on a second page of the Buttons tab: **Voice
+  typing** (one press to start talking instead of typing - powerful for a student who
+  can speak), Live captions, Magnify and Magnify off, Emoji, Snip, Clipboard history,
+  Find, Save, File Explorer, Show desktop, Alerts, Back a page, Page up and down, and
+  Louder, Quieter and Sound on and off.
+- **Scroll bars are wide, with a bright thumb** that turns orange under the pointer -
+  the Windows ones were thin and pale on the dark page, hard to see and to aim at.
+- **LT can have any job**, the same list as the other buttons, plus Zoom and Slow
+  pointer. New students start on **Escape**; a student's earlier choice is kept.
+- **Buttons tab**: beside the drawing, a card for the chosen button - what it **does**,
+  what it does **while typing**, and its **standard** job with **Reset this button** -
+  then its possible jobs, grouped (Clicks, Keyboard and pointer, Windows, Editing,
+  Keys), each with an icon, growing to fill a bigger screen. A dot marks the standard
+  job; a job that cannot go on the button shows a lock, and pointing at any job says
+  what it does, or why not, in the line at the bottom. With no button chosen, the panel
+  lists every button changed for this student, each one click from its jobs.
+- **Keyboard tab**: the shortcut rows and the Apps row together, with the choices
+  opening over the page, where there is room for them all.
+- **The Apps key can open any program on the Start menu** - Store apps too, such as the
+  new Outlook, which HIDra could not see before - with a Find box to pick it out.
+- **Practice is two repeatable tests**, the same every time, so each run compares with
+  the last:
+  - **Pointer test**: twelve circles, one at a time, in the same places every run. Four
+    are further down or up the page, so reaching them means scrolling as well as
+    pointing; an orange "Scroll down" or "Scroll up" says which way. Time, misses,
+    overshoots (scrolling past a circle) and a speed score are kept. The speed score is
+    Fitts's law, as in ISO 9241-9: how hard each move was for its distance and size,
+    over how long it took - so it stays comparable as the circles shrink. At most one
+    miss makes the circles smaller next time; a bad run makes them bigger.
+  - **Typing test**: words, phrases or sentences, a fixed set for each. The box is at
+    the top of the page for one and the bottom for the next, so the keyboard is
+    sometimes in the way and has to be moved with LT. Letters a minute, wrong letters,
+    corrections and keyboard moves are kept; a clean run suggests the next level.
+  - The scroll list and "Keyboard on and off" are gone. The right of the page shows the
+    latest runs of each test and the best so far. **Save for a review...** writes every
+    run as a spreadsheet.
+- **The right stick jumps around the keyboard** while it is open: up to the word row,
+  right to the shortcuts, back to the letters - landing on the nearest key - instead of
+  a long walk across it. (With the sticks swapped it stays the pointer.)
+- **More buttons type while the keyboard is open**, as on Windows' own gamepad
+  keyboard: **D-pad left and right move the text cursor** (repeating when held), so a
+  mistake a few letters back is reached without leaving the keys; **pressing the left
+  stick in** swaps to the numbers and symbols; **Start** is Caps Lock and **Back** is
+  Escape. D-pad up and down still move the orange box. Whichever button opens a
+  student's keyboard keeps closing it, even if it is Back, Start or the left stick. The
+  Guide's Typing view, a new "Fix a mistake" card and the Buttons tab say so.
+- **Drag the keyboard anywhere**: hold LT and push the left stick, and the keyboard
+  follows - slowly for a small push, quickly for a big one - never off the screen. A tap
+  of LT still flips it between top and bottom; that now happens when LT is let go, once
+  it is clear it was a tap. With the keyboard closed, LT acts on the press as before.
+- **The icon's controller has a dark outline**, so it stands out from the orange, and
+  the logo at the top left of the main screen is sharp instead of blocky.
+- **No "HIDra is still running" pop-up** every time the window is closed - it got in
+  the way. The Guide says how to bring the window back.
+- **No close key on the keyboard.** The button that opens it closes it; the red key was
+  one overshoot from ending typing by mistake.
+
 ## v1.6.0
 
 ### Keyboard that gets out of the way, and a slower start

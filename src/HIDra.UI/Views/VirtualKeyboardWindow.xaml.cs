@@ -113,6 +113,18 @@ public partial class VirtualKeyboardWindow : Window
         this.Top = atTop ? workArea.Top + 10 : workArea.Bottom - this.Height - 10;
     }
 
+    /// <summary>
+    /// Drag the keyboard (LT held, left stick), never off the screen. Where it is dragged
+    /// to lasts until it closes; it opens at the top or bottom as usual.
+    /// </summary>
+    public void MoveBy(double x, double y)
+    {
+        NotifyActivity();
+        var workArea = SystemParameters.WorkArea;
+        this.Left = Math.Clamp(this.Left + x, workArea.Left, Math.Max(workArea.Left, workArea.Right - this.ActualWidth));
+        this.Top = Math.Clamp(this.Top + y, workArea.Top, Math.Max(workArea.Top, workArea.Bottom - this.ActualHeight));
+    }
+
     private void KeyButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not System.Windows.Controls.Button button) return;
@@ -269,11 +281,6 @@ public partial class VirtualKeyboardWindow : Window
     {
         _ctrlPressed = !_ctrlPressed;
         UpdateModifierButtons();
-    }
-
-    private void CloseButton_Click(object sender, RoutedEventArgs e)
-    {
-        this.Hide();
     }
 
     private void UpdateLetterCase()
@@ -1406,6 +1413,75 @@ public partial class VirtualKeyboardWindow : Window
     }
 
     /// <summary>
+    /// Jump to another part of the keyboard - up to the word row, down to the letters,
+    /// right to the shortcuts, left back to the letters - landing on the key nearest the
+    /// one left, so the whole board is a push or two of the right stick away instead of
+    /// a long walk across it.
+    /// </summary>
+    public void JumpSection(KeyboardNavigationDirection direction)
+    {
+        NotifyActivity();
+        EnsureKeysCollected();
+
+        if (_highlightedKey == null)
+        {
+            SetHighlight(DefaultKey());
+            return;
+        }
+
+        var from = SectionOf(_highlightedKey);
+        var to = (from, direction) switch
+        {
+            (KeyboardSection.Letters or KeyboardSection.Shortcuts, KeyboardNavigationDirection.Up) => KeyboardSection.Top,
+            (KeyboardSection.Top, KeyboardNavigationDirection.Down) => KeyboardSection.Letters,
+            (KeyboardSection.Letters or KeyboardSection.Top, KeyboardNavigationDirection.Right) => KeyboardSection.Shortcuts,
+            (KeyboardSection.Shortcuts, KeyboardNavigationDirection.Left) => KeyboardSection.Letters,
+            _ => from
+        };
+
+        if (to == from)
+        {
+            return;
+        }
+
+        // The nearest key in that part, keeping to the same row going sideways and the
+        // same column going up or down, so the jump lands where the eye expects
+        var here = CentreOf(_highlightedKey);
+        bool sideways = direction is KeyboardNavigationDirection.Left or KeyboardNavigationDirection.Right;
+        Button? best = null;
+        double bestScore = double.MaxValue;
+        foreach (var key in _navigableKeys)
+        {
+            if (SectionOf(key) != to)
+            {
+                continue;
+            }
+
+            var there = CentreOf(key);
+            double dx = Math.Abs(there.X - here.X), dy = Math.Abs(there.Y - here.Y);
+            double score = sideways ? dy * 3 + dx : dx * 3 + dy;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = key;
+            }
+        }
+
+        if (best != null)
+        {
+            SetHighlight(best);
+            StartDwell();
+        }
+    }
+
+    private enum KeyboardSection { Top, Letters, Shortcuts }
+
+    private KeyboardSection SectionOf(Button key) =>
+        TopRow.IsAncestorOf(key) ? KeyboardSection.Top
+        : ShortcutPanel.IsAncestorOf(key) ? KeyboardSection.Shortcuts
+        : KeyboardSection.Letters;
+
+    /// <summary>
     /// Press the highlighted key, exactly as clicking it would.
     /// </summary>
     public void ActivateHighlight()
@@ -1452,6 +1528,21 @@ public partial class VirtualKeyboardWindow : Window
                 break;
             case KeyboardQuickKey.Enter:
                 RaiseKeyPressed(VirtualKey.Return);
+                break;
+            case KeyboardQuickKey.CursorLeft:
+                ArrowLeftButton_Click(this, new RoutedEventArgs());
+                break;
+            case KeyboardQuickKey.CursorRight:
+                ArrowRightButton_Click(this, new RoutedEventArgs());
+                break;
+            case KeyboardQuickKey.SymbolLayer:
+                LayerKey_Click(this, new RoutedEventArgs());
+                break;
+            case KeyboardQuickKey.CapsLock:
+                CapsLockButton_Click(this, new RoutedEventArgs());
+                break;
+            case KeyboardQuickKey.Escape:
+                EscapeButton_Click(this, new RoutedEventArgs());
                 break;
         }
     }
