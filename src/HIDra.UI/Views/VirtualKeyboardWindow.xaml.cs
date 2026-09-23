@@ -183,29 +183,19 @@ public partial class VirtualKeyboardWindow : Window
         // keys had no shift mapping at all, so Shift+; produced ";" rather than ":".
         else if (_shiftPressed && keyStr.Length == 1)
         {
+            // The rarer symbols, drawn small above a key on the symbols layer. Every other
+            // key types the same with B: each symbol is on the keyboard once.
             textToType = keyStr switch
             {
-                "1" => "!",
-                "2" => "\"",
-                "3" => "£",   // pound sign
-                "4" => "$",
-                "5" => "%",
-                "6" => "^",
-                "7" => "&",
-                "8" => "*",
-                "9" => "(",
-                "0" => ")",
+                "£" => "$",
+                "(" => "[",
+                ")" => "]",
                 "-" => "_",
-                "=" => "+",
-                "[" => "{",
-                "]" => "}",
-                ";" => ":",
-                "'" => "@",
+                ":" => ";",
+                "/" => "\\",
                 "#" => "~",
-                "," => "<",
-                "." => ">",
-                "/" => "?",
-                "\\" => "|",
+                "*" => "^",
+                "=" => "|",
                 _ => keyStr
             };
             _shiftPressed = false;
@@ -285,7 +275,6 @@ public partial class VirtualKeyboardWindow : Window
         SymbolsRow1.Visibility = SymbolsRow2.Visibility = SymbolsRow3.Visibility = symbolLayer;
         EmojiRow1.Visibility = EmojiRow2.Visibility = EmojiRow3.Visibility = emojiLayer;
         LayerKey.Content = symbols || emoji ? "abc" : "123 #+";
-        CtrlKey.Content = symbols ? "Emoji" : emoji ? "123 #+" : "Ctrl";
         if (symbols || emoji)
         {
             _ctrlPressed = false;
@@ -310,27 +299,25 @@ public partial class VirtualKeyboardWindow : Window
         UpdateNumberRowSymbols();
     }
 
-    /// <summary>
-    /// Ctrl on the letters. On the numbers and symbols, where Ctrl is rarely wanted, the
-    /// same key opens the emoji - the way a phone keyboard puts emoji beside its 123 key -
-    /// and on the emoji it goes back to the numbers and symbols.
-    /// </summary>
     private void CtrlButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_showingSymbols)
-        {
-            ShowEmoji();
-            return;
-        }
-
-        if (_showingEmoji)
-        {
-            ShowSymbols(true);
-            return;
-        }
-
         _ctrlPressed = !_ctrlPressed;
         UpdateModifierButtons();
+    }
+
+    /// <summary>
+    /// The emoji key, at the front beside 123: the emoji, or back to the letters
+    /// </summary>
+    private void EmojiKey_Toggle(object sender, RoutedEventArgs e)
+    {
+        if (_showingEmoji)
+        {
+            ShowSymbols(false);
+        }
+        else
+        {
+            ShowEmoji();
+        }
     }
 
     private void UpdateLetterCase()
@@ -356,16 +343,13 @@ public partial class VirtualKeyboardWindow : Window
 
     private void UpdateNumberRowSymbols()
     {
-        // Update visual emphasis on number keys and symbol keys based on shift state
-        var symbolButtonNames = new[] { 
-            "Key1", "Key2", "Key3", "Key4", "Key5", "Key6", "Key7", "Key8", "Key9", "Key0", "KeyMinus", "KeyEquals",
-            "KeyBracketOpen", "KeyBracketClose", "KeyBackslash", "KeySlash",
-            "KeySemicolon", "KeyQuote", "KeyHash", "KeyComma", "KeyPeriod"
-        };
-        
-        foreach (var buttonName in symbolButtonNames)
+        // The keys drawn with a B symbol above: emphasise whichever Shift will type
+        var pairedKeys = new[] { SymbolsRow1, SymbolsRow2, SymbolsRow3 }
+            .SelectMany(row => row.Children.OfType<Button>());
+
+        foreach (var button in pairedKeys)
         {
-            var button = this.FindName(buttonName) as Button;
+
             if (button?.Content is System.Windows.Controls.TextBlock textBlock && textBlock.Inlines.Count >= 3)
             {
                 // First Run is the shift symbol (top), Third Run is the number (bottom)

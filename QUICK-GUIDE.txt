@@ -178,19 +178,21 @@ spreadsheet with "Save for a review...".
 
 VIRTUAL KEYBOARD TIPS
 ----------------------
-- Letters, and the punctuation sentences need ( ' , . / ), are on
-  the main keys. 123 #+ swaps them for numbers and symbols in the same
-  places: 1-0, - = [ ] ; # \ €, and ! @ £ & ( ) : " on their own keys.
-  Every key round the edge stays put, so abc is right where 123 was
-- UK layout with " above 2 and £ above 3
-- Shift symbols are big and easy to see
-- Press B for symbols and capitals - no need to visit Shift at all
+- Every key is the same size except Space, Backspace and Enter, the
+  keys used most. Letters, and the punctuation sentences need
+  ( ' , . ? ), are on the main keys
+- 123 #+ swaps them for digits and symbols, each symbol once, the most
+  used first. A few rarer ones ( $ [ ] _ ; \ ~ ^ | ) are drawn small
+  above a key: press B on it for them. abc brings the letters back
+- The emoji key, beside 123 at the bottom left, shows the most used
+  emoji in place of the letters. Press it again, or abc, for letters
+- Press B for capitals - no need to visit Shift at all
 - Shift still works if you prefer it, and clears after one key
-- Press Caps Lock (on the 123 #+ keys) for ALL CAPS typing
+- Start is Caps Lock, for ALL CAPS typing
 - Press Ctrl then another key for shortcuts
-- The bottom row also has Ctrl, Home, End and the arrows. Win, PgUp
-  and PgDn are on the 123 #+ keys
-- Delete sits beside Backspace
+- The arrows are at the bottom right, up above down as on a laptop,
+  with Home and End beside them
+- Del is under Backspace and Enter, on the right
 - Home and End jump to the start or end of a line, which saves
   pressing the arrow keys once per letter
 - Sentences, and I, start with a capital automatically. Press B
@@ -207,8 +209,6 @@ VIRTUAL KEYBOARD TIPS
     Tools   Voice (speak instead of typing), Save, Snip, Find, Print
   Bold, Italic and other formatting are on the row below them when
   Word or PowerPoint is in front.
-  EMOJI: go to 123 #+, then the Emoji key beside it. The most used
-  emoji show in place of the letters; abc brings the letters back.
   The keys in each row can be changed in Settings, Shortcut keys -
   e.g. Read, Print, Magnify, Clipboard, Find - or leave
   a place empty. The bottom row changes to suit the program in front,

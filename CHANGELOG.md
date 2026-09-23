@@ -166,17 +166,23 @@ looked like buttons, cramped settings, and language written for staff.
   highlight is in; the next push jumps to the next part.
 - **Phrases can be typed with HIDra's keyboard**: opening it no longer takes the cursor
   out of the phrase boxes.
-- **The keyboard's letters are in a straight grid**, still in QWERTY order. Staggered
-  rows help fingers, not a highlight moved by a stick: down from a key landed between
-  two. Now every column lines up: Tab, Esc and Shift down the left; Backspace, Enter and
-  Del down the right.
+- **A keyboard laid out like the ones made for controllers** (Xbox and Windows gamepad
+  keyboards, and phone keyboards for symbols and emoji):
+  - Every key the same size, the letters in QWERTY order in straight columns, so up
+    and down always go straight. Only Space, Backspace and Enter - the keys used most -
+    are bigger. Tab, Esc and Shift down the left, Backspace and Enter on the right.
+  - The arrows are a laptop's inverted T, up above down, with Home and End beside them.
+  - 123 #+ has each symbol once, the most used first - ! @ £ & ( ) and the rest were
+    on it twice. The rarer ones sit small above a key and come from B.
+  - An emoji key at the front, beside 123, instead of inside it.
+  - Caps (now on Start while typing), Win, PgUp and PgDn are gone from the symbols.
 - **A Sound and video row** in place of Style: Play, Quieter, Louder, Mute, Captions.
   Tools is now Voice, Save, Snip, Find, Print. Bold, Italic and the text size are on the
   program row when Word or PowerPoint is in front - where they mean something - and can
   still be put in Tools. A saved set that had Style keys in that row gets the Sound keys.
-- **Emoji in colour, where a phone keeps them**: the 30 most used (by Unicode's emoji
-  frequency figures), drawn from Microsoft's Fluent Emoji (MIT licence), reached from
-  an Emoji key on the 123 #+ layer. They are no longer a shortcut key.
+- **Emoji in colour**: the 30 most used (by Unicode's emoji frequency figures), drawn
+  from Microsoft's Fluent Emoji (MIT licence), from the emoji key beside 123. They are
+  no longer a shortcut key.
 - **High contrast** (Settings, General): black and white with thicker borders on the
   main screen, and on the keyboard white-edged black keys with a thicker highlight.
 - **The Apps key starts with Edge, Word, PowerPoint, Outlook, File Explorer and Teams**,

@@ -11,8 +11,8 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - Dwell: click by resting the cursor (a ring by the cursor fills as the click approaches), and type by resting the keyboard highlight (both optional)
 - Keyboard extras: automatic capitals, the student's own phrases on a Phrases key, and an adjustable size
 - A shortcut panel on the keyboard, with icons, in labelled rows - Edit (Undo, Copy, Paste...), Select (a Select switch for highlighting text, word moves), Sound (Play, Quieter, Louder, Mute, Captions), Tools (voice typing, Save, Snip, Find, Print) - and a row that follows the program in front (PowerPoint and Word with Bold and other formatting, web browser, File Explorer); it can be switched off
-- The keyboard's letters are in QWERTY order in straight columns, so moving the highlight up or down always goes straight
-- The most used emoji, in colour (Microsoft Fluent Emoji, MIT licence), on the keyboard's 123 #+ layer
+- The keyboard is laid out like controller keyboards: equal-size keys with the letters in QWERTY order in straight columns (so up and down always go straight), the arrows as an inverted T, each symbol once on the 123 #+ layer, and an emoji key beside 123
+- The most used emoji, in colour (Microsoft Fluent Emoji, MIT licence), from the emoji key
 - A High contrast option: black and white, with thicker borders and highlight, on the keyboard and the main screen
 - The Apps key starts with Edge, Word, PowerPoint, Outlook (classic or new), File Explorer and Teams, whichever are installed
 - Shortcut keys and the Apps key's programs are chosen per student in Settings, from a fixed list of safe keys (Read aloud, Print, Magnify, Clipboard history, Find...) and any program on the Start menu, Store apps such as the new Outlook included, with a Find box; a place can be left empty
