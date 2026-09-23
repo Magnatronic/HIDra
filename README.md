@@ -16,6 +16,7 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - Read aloud: a Read key (added per student) reads the selected text in any program, with the voices built into Windows
 - For unsteady hands: stick smoothing, ignoring a repeat press that comes too soon after letting go, and a Gentle pointer curve (slower for a small push, faster for a big one)
 - Settings can be exported from one student and imported for another, as a starting point
+- Windows' own tools can go on a button: voice typing, live captions, magnify, emoji, snip, clipboard history, find, save, File Explorer, show desktop, back a page, page up and down, and the volume
 - Button jobs chosen per student on the Buttons tab, by clicking the button on a drawing of the controller and picking from a fixed list; Back + Start held together, a button that clicks and a button that opens the keyboard can never be lost, and the Guide always names the buttons this student has
 - Practice tests that measure progress: a pointer test (twelve circles in fixed places, some needing a scroll to reach, shrinking as accuracy improves; time, misses, overshoots and a Fitts's-law speed score) and a typing test (words, phrases or sentences, the box sometimes where the keyboard covers it; letters a minute, wrong letters and corrections). Every run is kept per student and can be saved as a spreadsheet for reviews
 - While the keyboard is open, the right stick jumps between its parts: up to the word row, right to the shortcuts, back to the letters

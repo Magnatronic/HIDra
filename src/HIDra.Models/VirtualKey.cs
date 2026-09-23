@@ -89,5 +89,11 @@ public enum VirtualKey : ushort
     OemPeriod = 0xBE,
 
     /// <summary>Print Screen</summary>
-    Snapshot = 0x2C
+    Snapshot = 0x2C,
+
+    // Keys Windows acts on wherever the focus is: back a page, and the sound
+    BrowserBack = 0xA6,
+    VolumeMute = 0xAD,
+    VolumeDown = 0xAE,
+    VolumeUp = 0xAF
 }

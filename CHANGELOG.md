@@ -144,6 +144,13 @@ screen, pages needed scrolling on a laptop, and Practice was more play than prac
 - **Settings rows line up**: every row has the same columns - its On/Off switch, then
   its value between - and + (or its two choices) - so the controls form straight lines
   down the page.
+- **Windows' own tools as button jobs**, on a second page of the Buttons tab: **Voice
+  typing** (one press to start talking instead of typing - powerful for a student who
+  can speak), Live captions, Magnify and Magnify off, Emoji, Snip, Clipboard history,
+  Find, Save, File Explorer, Show desktop, Alerts, Back a page, Page up and down, and
+  Louder, Quieter and Sound on and off.
+- **Scroll bars are wide, with a bright thumb** that turns orange under the pointer -
+  the Windows ones were thin and pale on the dark page, hard to see and to aim at.
 - **LT can have any job**, the same list as the other buttons, plus Zoom and Slow
   pointer. New students start on **Escape**; a student's earlier choice is kept.
 - **Buttons tab**: beside the drawing, a card for the chosen button - what it **does**,

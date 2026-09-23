@@ -1047,6 +1047,7 @@ namespace HIDra.UI
             else
             {
                 _jobPart = part;
+                _jobPage = -1;
                 _jobButton = part switch
                 {
                     "DPad" => DPadParts[0].Name,
@@ -1062,6 +1063,7 @@ namespace HIDra.UI
         {
             JobsDrawing.Select(_jobPart);
             JobParts.Children.Clear();
+            JobPages.Children.Clear();
             JobChoices.Children.Clear();
             JobChoices.RowDefinitions.Clear();
             JobChoices.ColumnDefinitions.Clear();
@@ -1104,6 +1106,7 @@ namespace HIDra.UI
                 pick.Click += (_, _) =>
                 {
                     _jobButton = name;
+                    _jobPage = -1;
                     BuildJobChooser();
                 };
                 JobParts.Children.Add(pick);
@@ -1153,8 +1156,37 @@ namespace HIDra.UI
             string resting = "Point at a job for what it does. Dot: standard.";
             JobHoverText.Text = resting;
             int row = 0;
-            foreach (var (group, ids) in JobGroups)
+            // Which page: the one staff picked, else the one holding the current job
+            int page = _jobPage >= 0 ? _jobPage
+                : Array.Exists(JobGroups, g => g.Page == 1 && Array.IndexOf(g.Ids, current.Id) >= 0) ? 1 : 0;
+            for (int i = 0; i < JobPageNames.Length; i++)
             {
+                int target = i;
+                var tab = new Button
+                {
+                    Style = (Style)FindResource("ToggleButtonStyle"),
+                    Width = 160,
+                    Height = 36,
+                    FontSize = 15,
+                    Margin = new Thickness(0, 0, 8, 0),
+                    Content = JobPageNames[i],
+                    Background = i == page ? OnBrush : OffBrush
+                };
+                tab.Click += (_, _) =>
+                {
+                    _jobPage = target;
+                    BuildJobChooser();
+                };
+                JobPages.Children.Add(tab);
+            }
+
+            foreach (var (groupPage, group, ids) in JobGroups)
+            {
+                if (groupPage != page)
+                {
+                    continue;
+                }
+
                 var jobs = new List<ButtonJob>();
                 foreach (var id in ids)
                 {
@@ -1310,6 +1342,24 @@ namespace HIDra.UI
             "escape" => '\uE711',
             "enter" => '\uE751',
             "tab" => '\uE7FD',
+            "voice" => '\uE720',
+            "captions" => '\uE7F0',
+            "magnify" => '\uE8A3',
+            "magnify-off" => '\uE71F',
+            "emoji" => '\uE76E',
+            "snip" => '\uE7A8',
+            "clipboard" => '\uE81C',
+            "find" => '\uE721',
+            "save" => '\uE74E',
+            "file-explorer" => '\uE8B7',
+            "desktop" => '\uE8FC',
+            "notifications" => '\uE7E7',
+            "web-back" => '\uE72B',
+            "page-up" => '\uE70E',
+            "page-down" => '\uE70D',
+            "volume-up" => '\uE995',
+            "volume-down" => '\uE993',
+            "mute" => '\uE74F',
             _ => '\uE738'
         };
 
@@ -1382,15 +1432,26 @@ namespace HIDra.UI
             }
         }
 
-        private static readonly (string Group, string[] Ids)[] JobGroups =
+        // Two pages of jobs, so each fits without scrolling: the everyday ones, and
+        // Windows' own tools
+        private static readonly string[] JobPageNames = { "Everyday", "Windows tools" };
+
+        private static readonly (int Page, string Group, string[] Ids)[] JobGroups =
         {
-            ("Clicks", new[] { "click", "right-click", "double-click" }),
-            ("Keyboard and pointer", new[] { "keyboard", "swap-sticks", "zoom", "slow-pointer" }),
-            ("Windows", new[] { "switch-programs", "start-menu", "all-windows", "close-window",
+            (0, "Clicks", new[] { "click", "right-click", "double-click" }),
+            (0, "Keyboard and pointer", new[] { "keyboard", "swap-sticks", "zoom", "slow-pointer" }),
+            (0, "Windows", new[] { "switch-programs", "start-menu", "all-windows", "close-window",
                 "maximise", "minimise", "snap-left", "snap-right" }),
-            ("Editing", new[] { "undo", "redo", "copy", "paste" }),
-            ("Keys", new[] { "escape", "enter", "tab", "nothing" }),
+            (0, "Editing", new[] { "undo", "redo", "copy", "paste" }),
+            (0, "Keys", new[] { "escape", "enter", "tab", "nothing" }),
+            (1, "Talk and see", new[] { "voice", "captions", "magnify", "magnify-off" }),
+            (1, "Tools", new[] { "emoji", "snip", "clipboard", "find", "save", "file-explorer", "desktop", "notifications" }),
+            (1, "Pages", new[] { "web-back", "page-up", "page-down" }),
+            (1, "Sound", new[] { "volume-up", "volume-down", "mute" }),
         };
+
+        // The page of jobs showing; -1 shows the page with the button's current job
+        private int _jobPage = -1;
 
         private void SetButtonJob(RemappableButton button, ButtonJob job)
         {
@@ -1534,6 +1595,7 @@ namespace HIDra.UI
         private void PointerStart_Click(object sender, RoutedEventArgs e)
         {
             PointerStartPanel.Visibility = Visibility.Collapsed;
+            PointerScroll.UpdateLayout();
             SizePointerPage();
             PointerScroll.ScrollToTop();
 
@@ -1607,6 +1669,17 @@ namespace HIDra.UI
 
         private void PointerScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
+            // The box has only just been given its size (the page was hidden until now):
+            // size the page of circles to match
+            if (e.ViewportHeightChange != 0 || e.ViewportWidthChange != 0)
+            {
+                SizePointerPage();
+                if (_pointerRunning)
+                {
+                    PlaceCircle();
+                }
+            }
+
             if (!_pointerRunning)
             {
                 return;
