@@ -87,6 +87,21 @@
             <Setter Property="Margin" Value="0,0,10,0"/>
         </Style>
 
+        <!-- A key in the shortcut and Apps editors: an icon or logo above a word, like the
+             key it stands for on the keyboard -->
+        <Style x:Key="EditorKey" TargetType="Button" BasedOn="{StaticResource BigButton}">
+            <Setter Property="Width" Value="Auto"/>
+            <Setter Property="Height" Value="76"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="Padding" Value="4"/>
+        </Style>
+        <Style x:Key="ChoiceKey" TargetType="Button" BasedOn="{StaticResource EditorKey}">
+            <Setter Property="Width" Value="128"/>
+            <Setter Property="Height" Value="104"/>
+        </Style>
+
         <Style x:Key="ValueText" TargetType="TextBlock">
             <Setter Property="Width" Value="70"/>
             <Setter Property="FontSize" Value="19"/>
@@ -548,7 +563,8 @@
                                         <TextBlock Style="{StaticResource HowToText}"><Run Text="Go up to Phrases, at the start of the green row, and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="- then pick the phrase. Staff set them on the Keyboard tab."/></TextBlock>
                                     </StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource HowToCard}">
+                                <!-- Only for a student whose keyboard has the Read key -->
+                                <Border x:Name="HowToReadAloud" Style="{StaticResource HowToCard}">
                                     <StackPanel>
                                         <TextBlock Text="Hear it read aloud" Style="{StaticResource HowToTitle}"/>
                                         <TextBlock Style="{StaticResource HowToText}"><Run Text="Select the words, then press Read in the Tools row. Press Read again to stop."/></TextBlock>
@@ -946,8 +962,47 @@
                             </Grid>
                         </StackPanel>
                     </Border>
+                    <!-- The Apps key: which programs it offers this student -->
+                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock Text="Apps key" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
+                                <Button Style="{StaticResource ToggleButtonStyle}" Width="180" FontSize="16" HorizontalAlignment="Right"
+                                        Content="Back to standard" Click="AppsStandard_Click"/>
+                            </Grid>
+                            <TextBlock Style="{StaticResource SettingHint}" FontSize="14" Margin="0,4,0,10"
+                                       Text="The programs the keyboard's Apps key opens in one press. Click one to change it. Only programs installed on this PC are offered."/>
+                            <UniformGrid x:Name="AppEditor" Columns="3"/>
+                            <Border x:Name="AppChooser" Visibility="Collapsed" Background="#262626" CornerRadius="8" Padding="12" Margin="0,6,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Choose a program for this place" Style="{StaticResource SettingTitle}"/>
+                                    <WrapPanel x:Name="AppChoices" Margin="0,10,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
                 <StackPanel Grid.Column="2">
+                    <!-- Shortcut keys: this student's own set, from a fixed list of safe keys.
+                         Built by the code from the catalogue. -->
+                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock Text="Shortcut keys" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
+                                <Button Style="{StaticResource ToggleButtonStyle}" Width="180" FontSize="16" HorizontalAlignment="Right"
+                                        Content="Back to standard" Click="ShortcutsStandard_Click"/>
+                            </Grid>
+                            <TextBlock Style="{StaticResource SettingHint}" FontSize="14" Margin="0,4,0,10"
+                                       Text="Click a key to change it, or to leave its place empty. Each row keeps to its own kind of key. The keyboard's bottom row follows the program in front and is not changed here."/>
+                            <StackPanel x:Name="ShortcutEditor"/>
+                            <Border x:Name="ShortcutChooser" Visibility="Collapsed" Background="#262626" CornerRadius="8" Padding="12" Margin="0,6,0,0">
+                                <StackPanel>
+                                    <TextBlock x:Name="ShortcutChooserTitle" Style="{StaticResource SettingTitle}"/>
+                                    <WrapPanel x:Name="ShortcutChoices" Margin="0,10,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
                     <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
                         <StackPanel>
                             <TextBlock Text="Phrases" Style="{StaticResource PanelTitle}" Margin="0,0,0,2"/>

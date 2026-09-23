@@ -728,14 +728,21 @@ public partial class VirtualKeyboardWindow : Window
     /// <summary>
     /// Fill the row with the installed programs, each with its own icon
     /// </summary>
+    /// <summary>
+    /// This student's choice of programs for the Apps key, as app ids; null for the
+    /// standard choice
+    /// </summary>
+    public IList<string>? AppKeys { get; set; }
+
     private void ShowApps()
     {
-        var apps = AppLauncher.Installed;
+        var apps = AppLauncher.Chosen(AppKeys, SuggestionCount);
+        bool none = apps.All(a => a == null);
 
         for (int i = 0; i < SuggestionCount; i++)
         {
             _suggestions[i] = null;
-            _apps[i] = i < apps.Count ? apps[i] : null;
+            _apps[i] = apps[i];
 
             if (FindName($"Suggestion{i}") is not Button button)
             {
@@ -744,7 +751,7 @@ public partial class VirtualKeyboardWindow : Window
 
             if (_apps[i] is not AppLauncher.App app)
             {
-                button.Content = i == 0 && apps.Count == 0
+                button.Content = i == 0 && none
                     ? new TextBlock
                     {
                         Text = "No programs found to open",
@@ -886,81 +893,46 @@ public partial class VirtualKeyboardWindow : Window
     // trips across the keyboard - to Ctrl and back to the letter - each one a string of
     // deliberate movements.
     //
-    // The first four rows are the same everywhere, one kind of action to a row - Edit,
-    // Select, Style, Tools - so the student can learn where a group lives rather than
-    // where each of twenty keys is. The last row follows the program in front -
+    // The first four rows keep one kind of action to a row - Edit, Select, Style, Tools
+    // - so the student can learn where a group lives rather than where each of twenty
+    // keys is. Which keys are in each row is chosen per student (ShortcutCatalogue). The last row follows the program in front -
     // PowerPoint, Word, a web browser, File Explorer - and is labelled with its name,
     // so it is plain why those keys have changed.
     // ---------------------------------------------------------------------------
 
-    /// <summary>
-    /// A shortcut key: its word, the icon shown above the word, and the keys it sends.
-    ///
-    /// The icons are Windows' own (Segoe Fluent Icons, or Segoe MDL2 Assets on Windows
-    /// 10), so nothing needs bundling - and they are the same icons as the buttons in
-    /// PowerPoint and Word, so recognising one helps with the other. The student uses
-    /// AAC, where a picture with its word is easier to find than a word alone.
-    /// </summary>
-    private sealed record Shortcut(string Label, char Icon, params VirtualKey[] Keys)
-    {
-        public ShortcutKind Kind { get; init; } = ShortcutKind.Keys;
-    }
-
-    private enum ShortcutKind
-    {
-        /// <summary>Sends its keys</summary>
-        Keys,
-
-        /// <summary>Turns selecting on and off</summary>
-        SelectSwitch,
-
-        /// <summary>Reads the selected text aloud</summary>
-        ReadAloud
-    }
-
-    private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
-
     private static VirtualKey K(char letter) => (VirtualKey)char.ToUpperInvariant(letter);
 
-    private static readonly Shortcut[] GeneralShortcuts =
+    /// <summary>
+    /// The first four rows: this student's choices from the catalogue, null where a slot
+    /// is left empty. The standard set until settings say otherwise.
+    /// </summary>
+    private Shortcut?[] _generalShortcuts = ShortcutCatalogue.Resolve(null);
+
+    /// <summary>
+    /// Use this student's choice of shortcut keys, saved as catalogue ids
+    /// </summary>
+    public void SetShortcutKeys(IList<string>? ids)
     {
-        // Edit
-        new("Undo", '\uE7A7', VirtualKey.Control, K('z')),
-        new("Redo", '\uE7A6', VirtualKey.Control, K('y')),
-        new("Cut", '\uE8C6', VirtualKey.Control, K('x')),
-        new("Copy", '\uE8C8', VirtualKey.Control, K('c')),
-        new("Paste", '\uE77F', VirtualKey.Control, K('v')),
+        var keys = ShortcutCatalogue.Resolve(ids);
+        if (keys.SequenceEqual(_generalShortcuts))
+        {
+            return;
+        }
 
-        // Select
-        // A switch, not a shortcut: while on, moving the cursor selects text as it goes
-        new("Select", '\uE7E6') { Kind = ShortcutKind.SelectSwitch },
-        new("Select all", '\uE8B3', VirtualKey.Control, K('a')),
-        new("Word left", '\uE72B', VirtualKey.Control, VirtualKey.Left),
-        new("Word right", '\uE72A', VirtualKey.Control, VirtualKey.Right),
-        new("Delete word", '\uE750', VirtualKey.Control, VirtualKey.Back),
+        _generalShortcuts = keys;
 
-        // Style
-        new("Bold", '\uE8DD', VirtualKey.Control, K('b')),
-        new("Italic", '\uE8DB', VirtualKey.Control, K('i')),
-        new("Underline", '\uE8DC', VirtualKey.Control, K('u')),
-        // Bigger and smaller text work alike in PowerPoint, Word and Publisher
-        new("Bigger", '\uE8E8', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemPeriod),
-        new("Smaller", '\uE8E7', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemComma),
+        // Forget the program row, so the next update rebuilds every label
+        _programRow = null;
+        UpdateProgramRow();
 
-        // Tools
-        // Windows voice typing: speak instead of type, into whatever has the cursor
-        new("Voice", '\uE720', VirtualKey.LeftWindows, K('h')),
-        // Windows' emoji picker, for posters and messages
-        new("Emoji", '\uE76E', VirtualKey.LeftWindows, VirtualKey.OemPeriod),
-        new("Save", '\uE74E', VirtualKey.Control, K('s')),
-        // Reads the selected words aloud: for checking her own writing, and for reading
-        // what others wrote. It took the place of Files, which Apps also opens.
-        new("Read", '\uE767') { Kind = ShortcutKind.ReadAloud },
-        // Choose an area of the screen (drag with RT), or the whole screen from the
-        // bar along the top; it is copied, ready to paste. This took over from a
-        // separate whole-screen key, which saved to a folder she then had to find.
-        new("Snip", '\uE7A8', VirtualKey.LeftWindows, VirtualKey.Shift, K('s')),
-    };
+        // Keys have appeared or gone, so the highlight's map of them is stale; and it
+        // must not be left sitting on a key that is now empty
+        _navigableKeys.Clear();
+        if (_highlightedKey != null && !_highlightedKey.IsVisible)
+        {
+            ClearHighlight();
+        }
+    }
 
     private static readonly Shortcut[] PowerPointRow =
     {
@@ -1044,16 +1016,25 @@ public partial class VirtualKeyboardWindow : Window
 
         for (int i = 0; i < _shortcuts.Length; i++)
         {
-            _shortcuts[i] = i < GeneralShortcuts.Length ? GeneralShortcuts[i] : row[i - GeneralShortcuts.Length];
+            _shortcuts[i] = i < ShortcutCatalogue.SlotCount ? _generalShortcuts[i] : row[i - ShortcutCatalogue.SlotCount];
 
             if (FindName($"Shortcut{i}") is Button button)
             {
-                var shortcut = _shortcuts[i]!;
+                // An empty slot keeps its place, so the other keys do not shift, but is
+                // hidden - and so skipped by the highlight
+                if (_shortcuts[i] is not Shortcut shortcut)
+                {
+                    button.Content = null;
+                    button.Visibility = Visibility.Hidden;
+                    continue;
+                }
+
+                button.Visibility = Visibility.Visible;
                 var content = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
                 content.Children.Add(new TextBlock
                 {
                     Text = shortcut.Icon.ToString(),
-                    FontFamily = IconFont,
+                    FontFamily = ShortcutCatalogue.IconFont,
                     FontSize = 24,
                     FontWeight = FontWeights.Normal,
                     HorizontalAlignment = HorizontalAlignment.Center,

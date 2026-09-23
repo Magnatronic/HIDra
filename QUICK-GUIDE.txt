@@ -171,18 +171,24 @@ VIRTUAL KEYBOARD TIPS
   (or Shift) first for a small letter instead
 - The PHRASES key at the start of the green row swaps the
   suggestions for your saved phrases (name, email...). Staff set
-  them on the HIDra screen
+  them on the Keyboard tab of the HIDra screen
 - Keyboard covering your text? Press Left Trigger to move it, or
   switch on "Fade when resting" so it goes see-through when you pause
 - The keys on the right are SHORTCUTS - one press each - in rows:
     Edit    Undo, Redo, Cut, Copy, Paste
     Select  Select, Select all, word left/right, Delete word
     Style   Bold, Italic, Underline, Bigger, Smaller
-    Tools   Voice (speak instead of typing), Emoji, Save, Read, Snip
-  The bottom row changes to suit the program in front, and says which:
+    Tools   Emoji, Captions, Voice (speak instead of typing), Save, Snip
+  Staff can change which keys are in each row for each student, on the
+  Keyboard tab - e.g. Read, Print, Magnify, Clipboard, Find - or leave
+  a place empty. The bottom row changes to suit the program in front,
+  and says which:
   Slides (PowerPoint), Word, Web, Folders (File Explorer) or Page
-- READ says the selected words out loud - select them first (Select,
-  then move). Press READ again to stop. Whatever you had copied is kept
+- CAPTIONS turns on Windows Live Captions: words on screen for any
+  sound on the PC - videos, calls. Press it again to turn them off
+- READ (if staff have added it) says the selected words out loud -
+  select them first (Select, then move). Press READ again to stop.
+  Whatever you had copied is kept
 - SNIP takes a picture of part of the screen (drag with RT), or pick
   whole screen from the bar at the top. It is copied, ready to Paste
 - SELECT (the highlighter key) turns orange: now the arrows and word

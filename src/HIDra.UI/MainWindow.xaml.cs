@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Collections.Generic;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using HIDra.Core;
@@ -507,9 +508,11 @@ namespace HIDra.UI
                     FadeEnabled = _userSettings.KeyboardFadeEnabled,
                     FadeSeconds = _userSettings.KeyboardFadeSeconds,
                     FadeOpacity = _userSettings.KeyboardFadeOpacity,
-                    ShowShortcuts = _userSettings.ShowShortcuts
+                    ShowShortcuts = _userSettings.ShowShortcuts,
+                    AppKeys = _userSettings.AppKeys
                 };
                 _virtualKeyboard.SetScale(_userSettings.KeyboardScale);
+                _virtualKeyboard.SetShortcutKeys(_userSettings.ShortcutKeys);
                 _virtualKeyboard.KeyPressed += OnVirtualKeyboardKeyPressed;
                 _virtualKeyboard.TextEntered += OnVirtualKeyboardTextEntered;
                 _virtualKeyboard.KeyComboPressed += OnVirtualKeyboardKeyCombo;
@@ -786,6 +789,10 @@ namespace HIDra.UI
             HowToLeftTriggerTitle.Text = title;
             HowToLeftTriggerText.Text = text;
             HowToLeftTrigger.Visibility = title.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            bool hasRead = Array.Exists(ShortcutCatalogue.Resolve(_userSettings.ShortcutKeys),
+                key => key?.Kind == ShortcutKind.ReadAloud);
+            HowToReadAloud.Visibility = hasRead ? Visibility.Visible : Visibility.Collapsed;
             ActRT.Text = "Hold to click and drag";
             ActLB.Text = _guideTyping ? "Backspace" : "Show open programs";
             ActRB.Text = _guideTyping ? "Space" : "Double click";
@@ -958,6 +965,225 @@ namespace HIDra.UI
                     return;
                 }
             }
+        }
+
+        // ---------------------------------------------------------------------------
+        // Shortcut keys and the Apps key, chosen per student
+        //
+        // A copy of the keyboard's four shortcut rows, and of the Apps row: click a place
+        // to see what can go there, then click a choice. Choices come from fixed lists of
+        // keys and installed programs, never typed-in key combinations. Choosing a key
+        // already elsewhere in the row swaps the two, rather than having it twice.
+        // ---------------------------------------------------------------------------
+
+        private static readonly string[] ShortcutRowNames = { "Edit", "Select", "Style", "Tools" };
+
+        private int _editingShortcutSlot = -1;
+        private int _editingAppSlot = -1;
+
+        private const int AppSlots = 6;
+
+        private Button EditorKey(string styleKey, string label, char? icon = null, ImageSource? logo = null, string? description = null)
+        {
+            var content = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+
+            if (icon is char glyph)
+            {
+                content.Children.Add(new TextBlock
+                {
+                    Text = glyph.ToString(),
+                    FontFamily = ShortcutCatalogue.IconFont,
+                    FontSize = 24,
+                    FontWeight = FontWeights.Normal,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 0, 0, 3)
+                });
+            }
+            else if (logo != null)
+            {
+                content.Children.Add(new Image { Source = logo, Width = 28, Height = 28, Margin = new Thickness(0, 0, 0, 3) });
+            }
+
+            content.Children.Add(new TextBlock
+            {
+                Text = label,
+                TextWrapping = TextWrapping.Wrap,
+                TextAlignment = TextAlignment.Center
+            });
+
+            if (description != null)
+            {
+                content.Children.Add(new TextBlock
+                {
+                    Text = description,
+                    FontSize = 11.5,
+                    FontWeight = FontWeights.Normal,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB)),
+                    TextWrapping = TextWrapping.Wrap,
+                    TextAlignment = TextAlignment.Center,
+                    Margin = new Thickness(0, 3, 0, 0)
+                });
+            }
+
+            return new Button { Style = (Style)FindResource(styleKey), Content = content };
+        }
+
+        private void BuildShortcutEditor()
+        {
+            ShortcutEditor.Children.Clear();
+            var keys = ShortcutCatalogue.Resolve(_userSettings.ShortcutKeys);
+
+            for (int row = 0; row < ShortcutCatalogue.Rows; row++)
+            {
+                var line = new DockPanel();
+                var name = new TextBlock
+                {
+                    Text = ShortcutRowNames[row],
+                    Width = 64,
+                    FontSize = 15,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC)),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                DockPanel.SetDock(name, Dock.Left);
+                line.Children.Add(name);
+
+                var grid = new UniformGrid { Columns = ShortcutCatalogue.RowLength };
+                for (int column = 0; column < ShortcutCatalogue.RowLength; column++)
+                {
+                    int slot = row * ShortcutCatalogue.RowLength + column;
+                    var key = keys[slot];
+                    var button = key != null ? EditorKey("EditorKey", key.Label, key.Icon) : EditorKey("EditorKey", "Empty");
+                    button.Background = slot == _editingShortcutSlot ? OnBrush : OffBrush;
+                    button.Click += (_, _) => ChooseShortcutSlot(slot);
+                    grid.Children.Add(button);
+                }
+                line.Children.Add(grid);
+                ShortcutEditor.Children.Add(line);
+            }
+        }
+
+        private void ChooseShortcutSlot(int slot)
+        {
+            // Clicking the place being changed again puts the list away
+            _editingShortcutSlot = slot == _editingShortcutSlot ? -1 : slot;
+            BuildShortcutEditor();
+            ShortcutChooser.Visibility = _editingShortcutSlot < 0 ? Visibility.Collapsed : Visibility.Visible;
+            if (_editingShortcutSlot < 0)
+            {
+                return;
+            }
+
+            int row = slot / ShortcutCatalogue.RowLength;
+            var current = ShortcutCatalogue.Resolve(_userSettings.ShortcutKeys)[slot];
+            ShortcutChooserTitle.Text = $"Choose a key for the {ShortcutRowNames[row]} row";
+
+            ShortcutChoices.Children.Clear();
+            foreach (var key in ShortcutCatalogue.InGroup(ShortcutCatalogue.GroupOfRow(row)))
+            {
+                var choice = EditorKey("ChoiceKey", key.Label, key.Icon, description: key.Description);
+                choice.Background = key == current ? OnBrush : OffBrush;
+                choice.Click += (_, _) => SetShortcut(slot, key.Id);
+                ShortcutChoices.Children.Add(choice);
+            }
+
+            var empty = EditorKey("ChoiceKey", "Empty", description: "Leave this place empty");
+            empty.Background = current == null ? OnBrush : OffBrush;
+            empty.Click += (_, _) => SetShortcut(slot, "");
+            ShortcutChoices.Children.Add(empty);
+        }
+
+        private void SetShortcut(int slot, string id)
+        {
+            var ids = ShortcutCatalogue.ToIds(ShortcutCatalogue.Resolve(_userSettings.ShortcutKeys));
+
+            int elsewhere = id == "" ? -1 : ids.IndexOf(id);
+            if (elsewhere >= 0 && elsewhere != slot)
+            {
+                ids[elsewhere] = ids[slot];
+            }
+            ids[slot] = id;
+
+            _editingShortcutSlot = -1;
+            ShortcutChooser.Visibility = Visibility.Collapsed;
+            ChangeSettings(s => s.ShortcutKeys = ids);
+        }
+
+        private void ShortcutsStandard_Click(object sender, RoutedEventArgs e)
+        {
+            _editingShortcutSlot = -1;
+            ShortcutChooser.Visibility = Visibility.Collapsed;
+            ChangeSettings(s => s.ShortcutKeys = null);
+        }
+
+        private void BuildAppEditor()
+        {
+            AppEditor.Children.Clear();
+            var apps = AppLauncher.Chosen(_userSettings.AppKeys, AppSlots);
+
+            for (int slot = 0; slot < AppSlots; slot++)
+            {
+                int place = slot;
+                var app = apps[slot];
+                var button = app != null ? EditorKey("EditorKey", app.Name, logo: app.Icon) : EditorKey("EditorKey", "Empty");
+                button.Background = slot == _editingAppSlot ? OnBrush : OffBrush;
+                button.Click += (_, _) => ChooseAppSlot(place);
+                AppEditor.Children.Add(button);
+            }
+        }
+
+        private void ChooseAppSlot(int slot)
+        {
+            _editingAppSlot = slot == _editingAppSlot ? -1 : slot;
+            BuildAppEditor();
+            AppChooser.Visibility = _editingAppSlot < 0 ? Visibility.Collapsed : Visibility.Visible;
+            if (_editingAppSlot < 0)
+            {
+                return;
+            }
+
+            var current = AppLauncher.Chosen(_userSettings.AppKeys, AppSlots)[slot];
+
+            AppChoices.Children.Clear();
+            foreach (var app in AppLauncher.Installed)
+            {
+                var choice = EditorKey("ChoiceKey", app.Name, logo: app.Icon);
+                choice.Background = app == current ? OnBrush : OffBrush;
+                choice.Click += (_, _) => SetApp(slot, app.Id);
+                AppChoices.Children.Add(choice);
+            }
+
+            var empty = EditorKey("ChoiceKey", "Empty", description: "Leave this place empty");
+            empty.Background = current == null ? OnBrush : OffBrush;
+            empty.Click += (_, _) => SetApp(slot, "");
+            AppChoices.Children.Add(empty);
+        }
+
+        private void SetApp(int slot, string id)
+        {
+            var ids = new List<string>();
+            foreach (var app in AppLauncher.Chosen(_userSettings.AppKeys, AppSlots))
+            {
+                ids.Add(app?.Id ?? "");
+            }
+
+            int elsewhere = id == "" ? -1 : ids.IndexOf(id);
+            if (elsewhere >= 0 && elsewhere != slot)
+            {
+                ids[elsewhere] = ids[slot];
+            }
+            ids[slot] = id;
+
+            _editingAppSlot = -1;
+            AppChooser.Visibility = Visibility.Collapsed;
+            ChangeSettings(s => s.AppKeys = ids);
+        }
+
+        private void AppsStandard_Click(object sender, RoutedEventArgs e)
+        {
+            _editingAppSlot = -1;
+            AppChooser.Visibility = Visibility.Collapsed;
+            ChangeSettings(s => s.AppKeys = null);
         }
 
         // ---------------------------------------------------------------------------
@@ -1240,6 +1466,8 @@ namespace HIDra.UI
                 _virtualKeyboard.FadeOpacity = _userSettings.KeyboardFadeOpacity;
                 _virtualKeyboard.RefreshFade();
                 _virtualKeyboard.ShowShortcuts = _userSettings.ShowShortcuts;
+                _virtualKeyboard.SetShortcutKeys(_userSettings.ShortcutKeys);
+                _virtualKeyboard.AppKeys = _userSettings.AppKeys;
 
                 if (_virtualKeyboard.IsVisible)
                 {
@@ -1298,6 +1526,8 @@ namespace HIDra.UI
                 _ => "Nothing: LT is only used while the keyboard is open."
             };
             SlowPointerValue.Text = $"{_userSettings.SlowPointerPercent}%";
+            BuildShortcutEditor();
+            BuildAppEditor();
             UpdateGuideText();
 
             CurveSteadyButton.Background = _userSettings.GentleCurve ? OffBrush : OnBrush;

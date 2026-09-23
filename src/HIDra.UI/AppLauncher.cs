@@ -21,10 +21,14 @@ namespace HIDra.UI
     /// </summary>
     public static class AppLauncher
     {
-        public sealed record App(string Name, string Path, ImageSource? Icon);
+        /// <summary>
+        /// A program that can be offered. Its id, the program's file name in lower case,
+        /// is what a student's settings save.
+        /// </summary>
+        public sealed record App(string Id, string Name, string Path, ImageSource? Icon);
 
-        // In order of how likely a student is to want them: making slides and posters,
-        // then research, then finding files
+        // The first six, in this order, are what a student starts with: making slides and
+        // posters, then research, then finding files. Staff can choose any of the rest.
         private static readonly (string Name, string Exe)[] Candidates =
         {
             ("PowerPoint", "POWERPNT.EXE"),
@@ -33,7 +37,50 @@ namespace HIDra.UI
             ("Edge", "msedge.exe"),
             ("Chrome", "chrome.exe"),
             ("File Explorer", "explorer.exe"),
+            ("Excel", "EXCEL.EXE"),
+            ("OneNote", "ONENOTE.EXE"),
+            ("Outlook", "OUTLOOK.EXE"),
+            ("Firefox", "firefox.exe"),
+            ("Notepad", "notepad.exe"),
+            ("Calculator", "calc.exe"),
         };
+
+        /// <summary>
+        /// A student's chosen programs, one per slot, null where a slot is empty or the
+        /// program is not installed on this PC. No choice saved means the first installed
+        /// programs in the standard order.
+        /// </summary>
+        public static App?[] Chosen(IList<string>? ids, int slots)
+        {
+            var chosen = new App?[slots];
+
+            if (ids == null)
+            {
+                for (int i = 0; i < slots && i < Installed.Count; i++)
+                {
+                    chosen[i] = Installed[i];
+                }
+                return chosen;
+            }
+
+            for (int i = 0; i < slots && i < ids.Count; i++)
+            {
+                chosen[i] = Find(ids[i]);
+            }
+            return chosen;
+        }
+
+        public static App? Find(string? id)
+        {
+            foreach (var app in Installed)
+            {
+                if (app.Id == id)
+                {
+                    return app;
+                }
+            }
+            return null;
+        }
 
         private static IReadOnlyList<App>? _installed;
 
@@ -64,7 +111,7 @@ namespace HIDra.UI
                 string? path = Resolve(exe);
                 if (path != null)
                 {
-                    found.Add(new App(name, path, IconOf(path)));
+                    found.Add(new App(exe.ToLowerInvariant(), name, path, IconOf(path)));
                 }
             }
 
@@ -73,10 +120,17 @@ namespace HIDra.UI
 
         private static string? Resolve(string exe)
         {
-            if (exe.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase))
+            // Parts of Windows itself, which are not listed where installed programs are
+            foreach (var folder in new[] { Environment.SpecialFolder.Windows, Environment.SpecialFolder.System })
             {
-                string explorer = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
-                return File.Exists(explorer) ? explorer : null;
+                if (exe is "explorer.exe" or "notepad.exe" or "calc.exe")
+                {
+                    string windowsProgram = System.IO.Path.Combine(Environment.GetFolderPath(folder), exe);
+                    if (File.Exists(windowsProgram))
+                    {
+                        return windowsProgram;
+                    }
+                }
             }
 
             foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
