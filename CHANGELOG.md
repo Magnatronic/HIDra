@@ -130,6 +130,67 @@ what is on the keyboard is now chosen per student rather than the same for every
     `practice.json` beside the student's settings. **Save for a review...** writes every
     day as a spreadsheet. Exporting settings does not copy it.
 
+### One consistent design, and a keyboard with its own emoji
+
+After testing on a real controller: layouts that shifted with the screen, choices that
+looked like buttons, cramped settings, and language written for staff.
+
+- **One fixed layout, scaled to fill the screen.** Every page is designed once, 720
+  high, and scaled as a whole; its width follows the screen's shape a little, so there
+  are no dark bands. It looks the same on a laptop and a big monitor, just bigger.
+- **Three tabs: Guide, Practice, Settings.** Settings has a list down the left - Buttons,
+  Pointer, Keyboard, Shortcut keys, Apps, Phrases, General - and each section gets the
+  whole page. Shortcut keys and Apps are separate sections now.
+- **One set of controls everywhere**: a segmented control (one pill, the chosen part
+  orange) for every "choose one of a few" - Using the pointer / Typing, Pointer test /
+  Typing test, Words / Phrases / Sentences, Everyday / Windows tools, Steady / Gentle,
+  Top / Bottom; real On/Off switches that also say On or Off; and steppers that keep
+  their big - and + but show a level bar, so where a setting sits is seen at a glance.
+  Sliders were considered and left out: they need a precise drag. One type scale and
+  8px spacing throughout, and every settings row has one control in the same column.
+- **Choosing opens a panel over the page**: a button's job, a shortcut key or a program.
+  The Buttons drawing has the whole page; buttons changed from their default are listed
+  under it. Pointing at a job no longer makes the list flicker and jump (the hint line
+  under it changed height).
+- **Plain words**: no "staff" or "student" in the app; Reset and Reset all instead of
+  "Back to standard"; Default instead of standard.
+- **Emoji on HIDra's keyboard.** Windows' emoji panel took the controller away, leaving
+  the pointer and keyboard stuck. The Emoji key (and an Emoji button job) now shows
+  thirty everyday emoji on HIDra's own keyboard, in place of the letters; abc brings the
+  letters back.
+- **Magnifier on and off, and Slow pointer, on any button**: one Magnifier job instead
+  of a Magnify and Magnify off pair that only worked together. Anyone with either keeps
+  a working button.
+- **The right stick goes to the edge first**: while typing, a push goes to the far end
+  of the row (or the top or bottom of the column) in the part of the keyboard the
+  highlight is in; the next push jumps to the next part.
+- **Phrases can be typed with HIDra's keyboard**: opening it no longer takes the cursor
+  out of the phrase boxes.
+- **A keyboard laid out like the ones made for controllers** (Xbox and Windows gamepad
+  keyboards, and phone keyboards for symbols and emoji):
+  - Every key the same size, the letters in QWERTY order in straight columns, so up
+    and down always go straight. Only Space, Backspace and Enter - the keys used most -
+    are bigger. Tab, Esc and Shift down the left, Backspace and Enter on the right.
+  - The arrows are a laptop's inverted T, up above down, with Home and End beside them.
+  - 123 #+ has each symbol once, the most used first - ! @ £ & ( ) and the rest were
+    on it twice. The rarer ones sit small above a key and come from B.
+  - An emoji key at the front, beside 123, instead of inside it.
+  - Caps (now on Start while typing), Win, PgUp and PgDn are gone from the symbols.
+- **A Sound and video row** in place of Style: Play, Quieter, Louder, Mute, Captions.
+  Tools is now Voice, Save, Snip, Find, Print. Bold, Italic and the text size are on the
+  program row when Word or PowerPoint is in front - where they mean something - and can
+  still be put in Tools. A saved set that had Style keys in that row gets the Sound keys.
+- **Emoji in colour**: the 30 most used (by Unicode's emoji frequency figures), drawn
+  from Microsoft's Fluent Emoji (MIT licence), from the emoji key beside 123. They are
+  no longer a shortcut key.
+- **High contrast** (Settings, General): black and white with thicker borders on the
+  main screen, and on the keyboard white-edged black keys with a thicker highlight.
+- **The Apps key starts with Edge, Word, PowerPoint, Outlook, File Explorer and Teams**,
+  whichever are on the PC - the new Store Outlook and Teams included.
+- **The job panel is simpler**: the button's card is its header, with Close; its
+  default and Reset appear only once it has been changed; Everyday / Windows tools
+  sits at the top left; one-word group names.
+
 ### Tabs that look like tabs, pages that fit, and tests that measure progress
 
 From trying the last round: the tabs looked like buttons, the drawing blew up on a big

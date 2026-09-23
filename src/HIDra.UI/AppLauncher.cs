@@ -28,28 +28,43 @@ namespace HIDra.UI
         /// </summary>
         public sealed record App(string Id, string Name, string Path, ImageSource? Icon);
 
-        // The first six, in this order, are what a student starts with: making slides and
-        // posters, then research, then finding files. Staff can choose any of the rest.
+        // Programs found the way Windows finds them. Any other program on the Start menu
+        // can be chosen too (StartMenu).
         private static readonly (string Name, string Exe)[] Candidates =
         {
-            ("PowerPoint", "POWERPNT.EXE"),
-            ("Word", "WINWORD.EXE"),
-            ("Publisher", "MSPUB.EXE"),
             ("Edge", "msedge.exe"),
-            ("Chrome", "chrome.exe"),
+            ("Word", "WINWORD.EXE"),
+            ("PowerPoint", "POWERPNT.EXE"),
+            ("Outlook", "OUTLOOK.EXE"),
             ("File Explorer", "explorer.exe"),
             ("Excel", "EXCEL.EXE"),
             ("OneNote", "ONENOTE.EXE"),
-            ("Outlook", "OUTLOOK.EXE"),
+            ("Publisher", "MSPUB.EXE"),
+            ("Chrome", "chrome.exe"),
             ("Firefox", "firefox.exe"),
             ("Notepad", "notepad.exe"),
             ("Calculator", "calc.exe"),
         };
 
         /// <summary>
-        /// A student's chosen programs, one per slot, null where a slot is empty or the
-        /// program is not installed on this PC. No choice saved means the first installed
-        /// programs in the standard order.
+        /// What the Apps key offers before any choice is made, place by place: the web,
+        /// writing, slides, email, files and Teams - what a college day is mostly made of.
+        /// Each place takes the first of its programs that is on this PC, or stays empty.
+        /// Outlook and Teams are often Store apps, found by Windows' own name for them.
+        /// </summary>
+        private static readonly string[][] DefaultPlaces =
+        {
+            new[] { "msedge.exe" },
+            new[] { "winword.exe" },
+            new[] { "powerpnt.exe" },
+            new[] { "outlook.exe", StartPrefix + "Microsoft.OutlookForWindows_8wekyb3d8bbwe!Microsoft.OutlookforWindows" },
+            new[] { "explorer.exe" },
+            new[] { StartPrefix + "MSTeams_8wekyb3d8bbwe!MSTeams" },
+        };
+
+        /// <summary>
+        /// The chosen programs, one per slot, null where a slot is empty or the program is
+        /// not on this PC. No choice saved means the default places.
         /// </summary>
         public static App?[] Chosen(IList<string>? ids, int slots)
         {
@@ -57,9 +72,16 @@ namespace HIDra.UI
 
             if (ids == null)
             {
-                for (int i = 0; i < slots && i < Installed.Count; i++)
+                for (int i = 0; i < slots && i < DefaultPlaces.Length; i++)
                 {
-                    chosen[i] = Installed[i];
+                    foreach (var id in DefaultPlaces[i])
+                    {
+                        if (Find(id) is App app)
+                        {
+                            chosen[i] = app;
+                            break;
+                        }
+                    }
                 }
                 return chosen;
             }

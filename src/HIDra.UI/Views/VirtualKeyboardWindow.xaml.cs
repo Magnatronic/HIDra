@@ -183,29 +183,19 @@ public partial class VirtualKeyboardWindow : Window
         // keys had no shift mapping at all, so Shift+; produced ";" rather than ":".
         else if (_shiftPressed && keyStr.Length == 1)
         {
+            // The rarer symbols, drawn small above a key on the symbols layer. Every other
+            // key types the same with B: each symbol is on the keyboard once.
             textToType = keyStr switch
             {
-                "1" => "!",
-                "2" => "\"",
-                "3" => "£",   // pound sign
-                "4" => "$",
-                "5" => "%",
-                "6" => "^",
-                "7" => "&",
-                "8" => "*",
-                "9" => "(",
-                "0" => ")",
+                "£" => "$",
+                "(" => "[",
+                ")" => "]",
                 "-" => "_",
-                "=" => "+",
-                "[" => "{",
-                "]" => "}",
-                ";" => ":",
-                "'" => "@",
+                ":" => ";",
+                "/" => "\\",
                 "#" => "~",
-                "," => "<",
-                "." => ">",
-                "/" => "?",
-                "\\" => "|",
+                "*" => "^",
+                "=" => "|",
                 _ => keyStr
             };
             _shiftPressed = false;
@@ -243,21 +233,53 @@ public partial class VirtualKeyboardWindow : Window
     // ---------------------------------------------------------------------------
 
     private bool _showingSymbols;
+    private bool _showingEmoji;
 
     private void LayerKey_Click(object sender, RoutedEventArgs e)
     {
-        ShowSymbols(!_showingSymbols);
+        // From numbers and symbols, or from emoji, the key goes back to the letters
+        ShowSymbols(!_showingSymbols && !_showingEmoji);
     }
 
-    private void ShowSymbols(bool symbols)
+    /// <summary>
+    /// Show the emoji in place of the letters, with the highlight on the first. The
+    /// layer key, now abc, brings the letters back.
+    /// </summary>
+    public void ShowEmoji()
+    {
+        ShowSymbols(false, emoji: true);
+        EnsureKeysCollected();
+        if (EmojiRow1.Children.Count > 0 && EmojiRow1.Children[0] is Button first)
+        {
+            SetHighlight(first);
+        }
+    }
+
+    private void EmojiKey_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string emoji })
+        {
+            RaiseTextEntered(emoji);
+        }
+    }
+
+    private void ShowSymbols(bool symbols, bool emoji = false)
     {
         _showingSymbols = symbols;
+        _showingEmoji = emoji;
 
-        var letters = symbols ? Visibility.Collapsed : Visibility.Visible;
+        var letters = symbols || emoji ? Visibility.Collapsed : Visibility.Visible;
         var symbolLayer = symbols ? Visibility.Visible : Visibility.Collapsed;
+        var emojiLayer = emoji ? Visibility.Visible : Visibility.Collapsed;
         LettersRow1.Visibility = LettersRow2.Visibility = LettersRow3.Visibility = letters;
         SymbolsRow1.Visibility = SymbolsRow2.Visibility = SymbolsRow3.Visibility = symbolLayer;
-        LayerKey.Content = symbols ? "abc" : "123 #+";
+        EmojiRow1.Visibility = EmojiRow2.Visibility = EmojiRow3.Visibility = emojiLayer;
+        LayerKey.Content = symbols || emoji ? "abc" : "123 #+";
+        if (symbols || emoji)
+        {
+            _ctrlPressed = false;
+            UpdateModifierButtons();
+        }
 
         // Half the keys have just changed, so the highlight's map of them is stale. The
         // highlight itself is on the layer key or off the board, so it is never left on a
@@ -283,6 +305,21 @@ public partial class VirtualKeyboardWindow : Window
         UpdateModifierButtons();
     }
 
+    /// <summary>
+    /// The emoji key, at the front beside 123: the emoji, or back to the letters
+    /// </summary>
+    private void EmojiKey_Toggle(object sender, RoutedEventArgs e)
+    {
+        if (_showingEmoji)
+        {
+            ShowSymbols(false);
+        }
+        else
+        {
+            ShowEmoji();
+        }
+    }
+
     private void UpdateLetterCase()
     {
         // Update all letter key displays based on shift and caps lock state
@@ -306,16 +343,13 @@ public partial class VirtualKeyboardWindow : Window
 
     private void UpdateNumberRowSymbols()
     {
-        // Update visual emphasis on number keys and symbol keys based on shift state
-        var symbolButtonNames = new[] { 
-            "Key1", "Key2", "Key3", "Key4", "Key5", "Key6", "Key7", "Key8", "Key9", "Key0", "KeyMinus", "KeyEquals",
-            "KeyBracketOpen", "KeyBracketClose", "KeyBackslash", "KeySlash",
-            "KeySemicolon", "KeyQuote", "KeyHash", "KeyComma", "KeyPeriod"
-        };
-        
-        foreach (var buttonName in symbolButtonNames)
+        // The keys drawn with a B symbol above: emphasise whichever Shift will type
+        var pairedKeys = new[] { SymbolsRow1, SymbolsRow2, SymbolsRow3 }
+            .SelectMany(row => row.Children.OfType<Button>());
+
+        foreach (var button in pairedKeys)
         {
-            var button = this.FindName(buttonName) as Button;
+
             if (button?.Content is System.Windows.Controls.TextBlock textBlock && textBlock.Inlines.Count >= 3)
             {
                 // First Run is the shift symbol (top), Third Run is the number (bottom)
@@ -357,7 +391,7 @@ public partial class VirtualKeyboardWindow : Window
         var onColor = (Brush)FindResource("AccentOnBrush");
         // The resting colour has to be the one FunctionKeyStyle paints, or a modifier key
         // quietly changes shade the first time its state is refreshed.
-        var grayColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(86, 86, 86));
+        Brush grayColor = _highContrast ? Brushes.Black : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(86, 86, 86));
 
         // Visual feedback for Shift key
         var shiftKey = this.FindName("ShiftKey") as Button;
@@ -944,19 +978,19 @@ public partial class VirtualKeyboardWindow : Window
     private static readonly Shortcut[] PowerPointRow =
     {
         new("New slide", '\uE710', VirtualKey.Control, K('m')),
-        new("Copy slide", '\uE8C8', VirtualKey.Control, K('d')),
-        new("Align left", '\uE8E4', VirtualKey.Control, K('l')),
-        new("Centre", '\uE8E3', VirtualKey.Control, K('e')),
+        new("Bold", '\uE8DD', VirtualKey.Control, K('b')),
+        new("Bigger", '\uE8E8', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemPeriod),
+        new("Smaller", '\uE8E7', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemComma),
         new("Slideshow", '\uE786', VirtualKey.F5),
     };
 
     private static readonly Shortcut[] WordRow =
     {
+        new("Bold", '\uE8DD', VirtualKey.Control, K('b')),
+        new("Italic", '\uE8DB', VirtualKey.Control, K('i')),
         new("Heading", '\uE8D2', VirtualKey.Control, VirtualKey.LeftAlt, K('1')),
         new("Bullets", '\uE8FD', VirtualKey.Control, VirtualKey.Shift, K('l')),
         new("Centre", '\uE8E3', VirtualKey.Control, K('e')),
-        new("New page", '\uE7C3', VirtualKey.Control, VirtualKey.Return),
-        new("Print", '\uE749', VirtualKey.Control, K('p')),
     };
 
     private static readonly Shortcut[] BrowserRow =
@@ -1291,7 +1325,78 @@ public partial class VirtualKeyboardWindow : Window
     private static readonly Brush HighlightBrush =
         (Brush)Application.Current.FindResource("AccentBrush");
 
-    private const double HighlightBorderThickness = 4;
+    // Thicker in High contrast, where it has to stand out from white-edged keys
+    private double HighlightBorderThickness => _highContrast ? 7 : 4;
+
+    private bool _highContrast;
+    private Brush? _normalBackground;
+
+    /// <summary>
+    /// High contrast: every key black with a white edge and white text. The key colours
+    /// that tell the rows apart are given up for it. Off puts every key back to its style.
+    /// </summary>
+    public void SetHighContrast(bool on)
+    {
+        if (_highContrast == on)
+        {
+            return;
+        }
+
+        var highlighted = _highlightedKey;
+        ClearHighlight();
+        _highContrast = on;
+
+        foreach (var key in AllKeys(this))
+        {
+            if (on)
+            {
+                key.Background = Brushes.Black;
+                key.BorderBrush = Brushes.White;
+                key.BorderThickness = new Thickness(3);
+                key.Foreground = Brushes.White;
+            }
+            else
+            {
+                key.ClearValue(BackgroundProperty);
+                key.ClearValue(BorderBrushProperty);
+                key.ClearValue(ForegroundProperty);
+                key.ClearValue(BorderThicknessProperty);
+            }
+        }
+
+        // The window's own colour is set on it directly, so it is kept to put back -
+        // clearing it would leave Windows' default white behind the keys
+        _normalBackground ??= Background;
+        Background = on ? Brushes.Black : _normalBackground;
+
+        UpdateModifierButtons();
+        if (highlighted != null)
+        {
+            SetHighlight(highlighted);
+        }
+    }
+
+    /// <summary>
+    /// Every key, on every layer, shown or not
+    /// </summary>
+    private static IEnumerable<Button> AllKeys(DependencyObject parent)
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(parent))
+        {
+            if (child is Button button)
+            {
+                yield return button;
+            }
+
+            if (child is DependencyObject inner)
+            {
+                foreach (var key in AllKeys(inner))
+                {
+                    yield return key;
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Move the highlight one key in the given direction.
@@ -1430,6 +1535,18 @@ public partial class VirtualKeyboardWindow : Window
         }
 
         var from = SectionOf(_highlightedKey);
+
+        // First push: to the far edge of this part, along the row or up the column. Only
+        // once already at the edge does a push cross to the next part - so anywhere is two
+        // pushes away, and the first never leaves the part the student is in.
+        var edge = EdgeKey(from, direction);
+        if (edge != null)
+        {
+            SetHighlight(edge);
+            StartDwell();
+            return;
+        }
+
         var to = (from, direction) switch
         {
             (KeyboardSection.Letters or KeyboardSection.Shortcuts, KeyboardNavigationDirection.Up) => KeyboardSection.Top,
@@ -1472,6 +1589,55 @@ public partial class VirtualKeyboardWindow : Window
             SetHighlight(best);
             StartDwell();
         }
+    }
+
+    /// <summary>
+    /// The key at the far edge of this part in that direction - the end of the row going
+    /// sideways, the top or bottom of the column going up or down - or null when the
+    /// highlight is already there
+    /// </summary>
+    private Button? EdgeKey(KeyboardSection section, KeyboardNavigationDirection direction)
+    {
+        var fromBounds = BoundsOf(_highlightedKey!);
+        var here = CentreOf(_highlightedKey!);
+        bool sideways = direction is KeyboardNavigationDirection.Left or KeyboardNavigationDirection.Right;
+
+        Button? edge = null;
+        double furthest = 1;
+        foreach (var key in _navigableKeys)
+        {
+            if (ReferenceEquals(key, _highlightedKey) || SectionOf(key) != section)
+            {
+                continue;
+            }
+
+            // In line with the highlight: sharing its row, or its column
+            var bounds = BoundsOf(key);
+            bool aligned = sideways
+                ? bounds.Bottom > fromBounds.Top + 1 && bounds.Top < fromBounds.Bottom - 1
+                : bounds.Right > fromBounds.Left + 1 && bounds.Left < fromBounds.Right - 1;
+            if (!aligned)
+            {
+                continue;
+            }
+
+            var there = CentreOf(key);
+            double distance = direction switch
+            {
+                KeyboardNavigationDirection.Left => here.X - there.X,
+                KeyboardNavigationDirection.Right => there.X - here.X,
+                KeyboardNavigationDirection.Up => here.Y - there.Y,
+                _ => there.Y - here.Y
+            };
+
+            if (distance > furthest)
+            {
+                furthest = distance;
+                edge = key;
+            }
+        }
+
+        return edge;
     }
 
     private enum KeyboardSection { Top, Letters, Shortcuts }

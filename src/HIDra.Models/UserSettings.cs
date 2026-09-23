@@ -141,6 +141,12 @@ public class UserSettings
     /// See <see cref="ButtonJobCatalogue"/>.
     /// </summary>
     public Dictionary<string, string>? ButtonJobs { get; set; }
+
+    /// <summary>
+    /// Black and white, with thicker borders and highlight, on the keyboard and the main
+    /// screen - for low vision, or anyone who finds the greys hard to tell apart
+    /// </summary>
+    public bool HighContrast { get; set; }
 }
 
 /// <summary>

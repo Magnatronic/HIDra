@@ -10,10 +10,15 @@ namespace HIDra.Models;
 public sealed record ButtonJob(string Id, string Label, string Description, string Action, params string[] Keys)
 {
     /// <summary>
-    /// The one button this job can go on, or null for any. Zoom and Slow pointer are run
-    /// by the main window rather than the engine, which it only does for LT.
+    /// The one button this job can go on, or null for any
     /// </summary>
     public string? OnlyOn { get; init; }
+
+    /// <summary>
+    /// The action for jobs HIDra does itself rather than by sending keys - the Magnifier,
+    /// Slow pointer, the emoji keyboard. Its one key is which.
+    /// </summary>
+    public const string HidraJob = "HidraJob";
 
     public ActionMapping ToMapping() => new()
     {
@@ -94,12 +99,10 @@ public static class ButtonJobCatalogue
         // the quickest way to write for a student who can speak; captions and emoji
         // help everyone. The same fixed-list rule: no typed-in key combinations.
         new ButtonJob("voice", "Voice typing", "Type by speaking (Windows voice typing). Again to stop", "KeyCombo", "LWin", "H"),
-        new ButtonJob("emoji", "Emoji", "Pick an emoji", "KeyCombo", "LWin", "OemPeriod"),
+        new ButtonJob("emoji", "Emoji", "Opens the keyboard at its emoji", ButtonJob.HidraJob, "emoji"),
         new ButtonJob("captions", "Live captions", "Words on screen for any sound on the PC. Again to stop", "KeyCombo", "LWin", "Ctrl", "L"),
         new ButtonJob("snip", "Snip", "A picture of part of the screen, ready to paste", "KeyCombo", "LWin", "Shift", "S"),
         new ButtonJob("clipboard", "Clipboard history", "Pick from things copied earlier", "KeyCombo", "LWin", "V"),
-        new ButtonJob("magnify", "Magnify", "Windows Magnifier: bigger round the pointer; again for more", "KeyCombo", "LWin", "OemPlus"),
-        new ButtonJob("magnify-off", "Magnify off", "Close Windows Magnifier", "KeyCombo", "LWin", "Escape"),
         new ButtonJob("desktop", "Show desktop", "Hide every window, or bring them back", "KeyCombo", "LWin", "D"),
         new ButtonJob("file-explorer", "File Explorer", "Open File Explorer, to find a file", "KeyCombo", "LWin", "E"),
         new ButtonJob("notifications", "Alerts", "Windows notifications and the calendar", "KeyCombo", "LWin", "N"),
@@ -108,11 +111,14 @@ public static class ButtonJobCatalogue
         new ButtonJob("page-down", "Page down", "Down a screenful", "Key", "PageDown"),
         new ButtonJob("save", "Save", "Save the work (Ctrl+S)", "KeyCombo", "Ctrl", "S"),
         new ButtonJob("find", "Find", "Search for words on the page (Ctrl+F)", "KeyCombo", "Ctrl", "F"),
+        new ButtonJob("play-pause", "Play or pause", "Play or pause a video or music", "Key", "MediaPlayPause"),
         new ButtonJob("volume-up", "Louder", "Turn the sound up", "Key", "VolumeUp"),
         new ButtonJob("volume-down", "Quieter", "Turn the sound down", "Key", "VolumeDown"),
         new ButtonJob("mute", "Sound on and off", "Mute, or unmute, the sound", "Key", "VolumeMute"),
-        new ButtonJob("zoom", "Zoom in and out", "Windows Magnifier: bigger around the pointer. Again to zoom out", "") { OnlyOn = "LeftTrigger" },
-        new ButtonJob("slow-pointer", "Slow pointer on and off", "A slower pointer for small targets. Its speed is on the Pointer tab", "") { OnlyOn = "LeftTrigger" },
+        // One job for the Magnifier, on and off: a pair of jobs, one to start it and one to
+        // stop it, only made sense if both were given out
+        new ButtonJob("zoom", "Magnifier on and off", "Windows Magnifier: bigger round the pointer. Again to turn it off", ButtonJob.HidraJob, "zoom"),
+        new ButtonJob("slow-pointer", "Slow pointer on and off", "A slower pointer for small targets. Its speed is in Pointer settings", ButtonJob.HidraJob, "slow-pointer"),
         new ButtonJob(Nothing, "Nothing", "The button does nothing", ""),
     };
 
@@ -220,8 +226,10 @@ public static class ButtonJobCatalogue
         }
 
         var clean = new Dictionary<string, string>();
-        foreach (var (name, id) in chosen)
+        foreach (var (name, saved) in chosen)
         {
+            // Magnify and Magnify off were a pair; both are now the one Magnifier job
+            string id = saved is "magnify" or "magnify-off" ? "zoom" : saved;
             var button = Button(name);
             var job = Find(id);
             if (button != null && job != null && Allowed(button, job) && job.Id != button.StandardJob)

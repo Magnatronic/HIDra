@@ -85,6 +85,7 @@ namespace HIDra.UI
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             FitToScreen();
+            ApplyContrast();
 
             if (WindowsTouchKeyboard.Apply(_userSettings))
             {
@@ -149,6 +150,7 @@ namespace HIDra.UI
                 _engine.KeyboardSelectRequested += OnKeyboardSelect;
                 _engine.KeyboardSelectShiftedRequested += OnKeyboardSelectShifted;
                 _engine.KeyboardQuickKeyRequested += OnKeyboardQuickKey;
+                _engine.HidraJobRequested += (_, id) => Dispatcher.BeginInvoke(() => RunHidraJob(id));
                 _engine.KeyboardDragRequested += (_, move) =>
                     Dispatcher.BeginInvoke(() => _virtualKeyboard?.MoveBy(move.X, move.Y));
                 _engine.KeyboardSectionJumpRequested += (_, direction) =>
@@ -452,6 +454,7 @@ namespace HIDra.UI
                 };
                 _virtualKeyboard.SetScale(_userSettings.KeyboardScale);
                 _virtualKeyboard.SetShortcutKeys(_userSettings.ShortcutKeys);
+                _virtualKeyboard.SetHighContrast(_userSettings.HighContrast);
                 _virtualKeyboard.KeyPressed += OnVirtualKeyboardKeyPressed;
                 _virtualKeyboard.TextEntered += OnVirtualKeyboardTextEntered;
                 _virtualKeyboard.KeyComboPressed += OnVirtualKeyboardKeyCombo;
@@ -487,15 +490,12 @@ namespace HIDra.UI
                     return;
                 }
 
-                // If a phrase box on this window still has the typing cursor, whatever the
-                // student types would land in it whenever this window is in front - a
-                // Backspace could quietly erase a saved phrase. Keep the edit, lose the cursor.
-                // The Practice typing box is the exception: it is there to be typed into.
-                if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox box
-                    && box != TypingBox)
+                // Whatever has been typed in a phrase box so far is saved; the typing cursor
+                // stays where it is, so HIDra's keyboard can type into any box here - a
+                // phrase, a program search, the practice box.
+                if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox)
                 {
                     UserSettingsStore.Save(_userSettings);
-                    System.Windows.Input.Keyboard.ClearFocus();
                 }
 
                 _virtualKeyboard.MoveToEdge(_userSettings.KeyboardAtTop);
@@ -523,7 +523,28 @@ namespace HIDra.UI
             }
 
             var job = Jobs[ButtonJobCatalogue.LeftTrigger];
-            switch (job.Id)
+            if (job.Action == ButtonJob.HidraJob)
+            {
+                RunHidraJob(job.Keys[0]);
+            }
+            else
+            {
+                _engine.RunAction(job.ToMapping());
+            }
+        }
+
+        /// <summary>
+        /// The jobs HIDra does itself, from whichever button has them. Each says what it did
+        /// on screen, so nothing changes without the student seeing why.
+        /// </summary>
+        private void RunHidraJob(string id)
+        {
+            if (_engine == null)
+            {
+                return;
+            }
+
+            switch (id)
             {
                 case "zoom":
                     bool zoomed = System.Diagnostics.Process.GetProcessesByName("Magnify") is { Length: > 0 } running
@@ -531,18 +552,31 @@ namespace HIDra.UI
                     _engine.SendKeyCombo(zoomed
                         ? new[] { VirtualKey.LeftWindows, VirtualKey.Escape }
                         : new[] { VirtualKey.LeftWindows, VirtualKey.OemPlus });
-                    ShowToast(zoomed ? "Zoom off" : "Zoomed in\nLT again to zoom out");
+                    ShowToast(zoomed ? "Magnifier off" : "Magnifier on\nPress again to turn it off");
                     break;
 
                 case "slow-pointer":
                     _engine.SlowPointer = !_engine.SlowPointer;
-                    ShowToast(_engine.SlowPointer ? "Slow pointer on\nLT again for normal speed" : "Slow pointer off");
+                    ShowToast(_engine.SlowPointer ? "Slow pointer on\nPress again for normal speed" : "Slow pointer off");
                     break;
 
-                default:
-                    _engine.RunAction(job.ToMapping());
+                case "emoji":
+                    OpenKeyboardAtEmoji();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Open the keyboard, if it is closed, showing its emoji
+        /// </summary>
+        private void OpenKeyboardAtEmoji()
+        {
+            InitializeVirtualKeyboard();
+            if (_virtualKeyboard!.IsVisible != true)
+            {
+                OnVirtualKeyboardToggleRequested(this, EventArgs.Empty);
+            }
+            Dispatcher.BeginInvoke(() => _virtualKeyboard?.ShowEmoji());
         }
 
         private static bool DisposeAll(System.Diagnostics.Process[] processes)
@@ -629,6 +663,7 @@ namespace HIDra.UI
             SetUpHowTo();
 
             SetGuideMode(typing: _virtualKeyboard?.IsVisible == true);
+            ShowSection("Buttons");
             ShowPage("Guide");
         }
 
@@ -653,9 +688,7 @@ namespace HIDra.UI
             {
                 (GuidePage, GuideTabButton),
                 (PracticePage, PracticeTabButton),
-                (ButtonsPage, ButtonsTabButton),
-                (PointerPage, PointerTabButton),
-                (KeyboardPage, KeyboardTabButton),
+                (SettingsPage, SettingsTabButton),
             };
 
             var accent = (Brush)FindResource("AccentBrush");
@@ -670,6 +703,61 @@ namespace HIDra.UI
             }
         }
 
+        private void SettingsNav_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: string section })
+            {
+                ShowSection(section);
+            }
+        }
+
+        /// <summary>
+        /// One section of Settings, chosen from the list down the left
+        /// </summary>
+        /// <summary>
+        /// The layout keeps its height of 720 and takes the screen's shape for its width,
+        /// within limits, so it fills the screen with no dark bands at the sides
+        /// </summary>
+        private void Scaler_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (e.NewSize.Height > 0)
+            {
+                Layout.Width = Math.Clamp(720 * e.NewSize.Width / e.NewSize.Height, 1180, 1700);
+            }
+        }
+
+        private void ShowSection(string section)
+        {
+            CloseSheet();
+            (UIElement Section, Button Item, string Name)[] sections =
+            {
+                (ButtonsSection, NavButtons, "Buttons"),
+                (PointerSection, NavPointer, "Pointer"),
+                (KeyboardSection, NavKeyboard, "Keyboard"),
+                (ShortcutsSection, NavShortcuts, "Shortcuts"),
+                (AppsSection, NavApps, "Apps"),
+                (PhrasesSection, NavPhrases, "Phrases"),
+                (GeneralSection, NavGeneral, "General"),
+            };
+
+            var accent = (Brush)FindResource("AccentBrush");
+            foreach (var (element, item, name) in sections)
+            {
+                bool showing = name == section;
+                element.Visibility = showing ? Visibility.Visible : Visibility.Collapsed;
+                item.Background = showing ? accent : Brushes.Transparent;
+                item.Foreground = showing ? Brushes.White : new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB));
+            }
+        }
+
+        /// <summary>
+        /// Show which part of a segmented control is chosen: filled orange, the rest clear
+        /// </summary>
+        private static void SetSegment(Button segment, bool chosen)
+        {
+            segment.Background = chosen ? OnBrush : Brushes.Transparent;
+        }
+
         private void ModePointer_Click(object sender, RoutedEventArgs e) => SetGuideMode(typing: false);
 
         private void ModeTyping_Click(object sender, RoutedEventArgs e) => SetGuideMode(typing: true);
@@ -677,8 +765,8 @@ namespace HIDra.UI
         private void SetGuideMode(bool typing)
         {
             _guideTyping = typing;
-            ModePointerButton.Background = typing ? OffBrush : OnBrush;
-            ModeTypingButton.Background = typing ? OnBrush : OffBrush;
+            SetSegment(ModePointerButton, !typing);
+            SetSegment(ModeTypingButton, typing);
             UpdateGuideText();
         }
 
@@ -1039,12 +1127,6 @@ namespace HIDra.UI
 
         private void ChooseJobPart(string part)
         {
-            // Clicking the label being changed again puts the list away
-            if (part == _jobPart)
-            {
-                _jobPart = _jobButton = null;
-            }
-            else
             {
                 _jobPart = part;
                 _jobPage = -1;
@@ -1069,21 +1151,18 @@ namespace HIDra.UI
             JobChoices.ColumnDefinitions.Clear();
             JobLockedText.Visibility = Visibility.Collapsed;
             JobHoverText.Text = "";
+            ShowChangedButtons();
 
-            bool chosen = _jobPart != null;
-            JobIntro.Visibility = chosen ? Visibility.Collapsed : Visibility.Visible;
-            JobCard.Visibility = chosen ? Visibility.Visible : Visibility.Collapsed;
-
-            if (!chosen)
+            if (_jobPart == null)
             {
-                JobChooserHint.Text = "Click a label, or a button on the drawing, to choose what it does for this student "
-                    + "while the keyboard is closed. The sticks and RT cannot be changed.\n\n"
-                    + "Holding Back and Start together always brings HIDra back, whatever Back and Start are given here. "
-                    + "Some button always clicks, and some button always opens the keyboard.";
-                ShowChangedButtons();
-                JobHoverText.Text = "Changes are saved for this student straight away.";
                 return;
             }
+
+            // The jobs open over the drawing
+            SheetOverlay.Visibility = Visibility.Visible;
+            SheetHeader.Visibility = Visibility.Collapsed;
+            JobSheet.Visibility = Visibility.Visible;
+            KeySheet.Visibility = Visibility.Collapsed;
 
             // The D-pad and the stick presses: which of them
             var parts = _jobPart switch
@@ -1096,13 +1175,11 @@ namespace HIDra.UI
             {
                 var pick = new Button
                 {
-                    Style = (Style)FindResource("ToggleButtonStyle"),
-                    Width = 118,
-                    Height = 40,
-                    Margin = new Thickness(0, 0, 8, 0),
-                    Content = label,
-                    Background = name == _jobButton ? OnBrush : OffBrush
+                    Style = (Style)FindResource("Segment"),
+                    MinWidth = 90,
+                    Content = label
                 };
+                SetSegment(pick, name == _jobButton);
                 pick.Click += (_, _) =>
                 {
                     _jobButton = name;
@@ -1111,7 +1188,7 @@ namespace HIDra.UI
                 };
                 JobParts.Children.Add(pick);
             }
-            JobParts.Visibility = parts.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            JobPartsBar.Visibility = parts.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
             var button = ButtonJobCatalogue.Button(_jobButton!)!;
             var current = Jobs[button.Name];
@@ -1138,8 +1215,10 @@ namespace HIDra.UI
             WriteLabelled(JobTypingText, "While typing", button.TypingJob == null
                 ? "the same"
                 : current.Id == ButtonJobCatalogue.Keyboard ? "closes the keyboard" : button.TypingJob);
-            WriteLabelled(JobStandardText, "Standard", standard.Label);
-            JobResetButton.IsEnabled = current != standard && locked == null;
+            // The default, and the way back to it, only once the button has been changed
+            WriteLabelled(JobStandardText, "Default", standard.Label);
+            JobDefaultRow.Visibility = current != standard ? Visibility.Visible : Visibility.Collapsed;
+            JobResetButton.IsEnabled = locked == null;
             JobResetButton.Opacity = JobResetButton.IsEnabled ? 1 : 0.5;
 
             if (locked != null)
@@ -1153,7 +1232,7 @@ namespace HIDra.UI
             JobChoices.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(84) });
             JobChoices.ColumnDefinitions.Add(new ColumnDefinition());
 
-            string resting = "Point at a job for what it does. Dot: standard.";
+            string resting = "Point at a job to see what it does. The dot marks the default.";
             JobHoverText.Text = resting;
             int row = 0;
             // Which page: the one staff picked, else the one holding the current job
@@ -1164,14 +1243,11 @@ namespace HIDra.UI
                 int target = i;
                 var tab = new Button
                 {
-                    Style = (Style)FindResource("ToggleButtonStyle"),
-                    Width = 160,
-                    Height = 36,
-                    FontSize = 15,
-                    Margin = new Thickness(0, 0, 8, 0),
-                    Content = JobPageNames[i],
-                    Background = i == page ? OnBrush : OffBrush
+                    Style = (Style)FindResource("Segment"),
+                    MinWidth = 130,
+                    Content = JobPageNames[i]
                 };
+                SetSegment(tab, i == page);
                 tab.Click += (_, _) =>
                 {
                     _jobPage = target;
@@ -1200,7 +1276,7 @@ namespace HIDra.UI
                 int firstRow = row;
                 for (int start = 0; start < jobs.Count; start += 4)
                 {
-                    JobChoices.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star), MinHeight = 42, MaxHeight = 66 });
+                    JobChoices.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star), MinHeight = 40, MaxHeight = 58 });
                     var line = new UniformGrid { Columns = 4, Rows = 1 };
                     for (int i = start; i < Math.Min(start + 4, jobs.Count); i++)
                     {
@@ -1344,8 +1420,6 @@ namespace HIDra.UI
             "tab" => '\uE7FD',
             "voice" => '\uE720',
             "captions" => '\uE7F0',
-            "magnify" => '\uE8A3',
-            "magnify-off" => '\uE71F',
             "emoji" => '\uE76E',
             "snip" => '\uE7A8',
             "clipboard" => '\uE81C',
@@ -1360,6 +1434,7 @@ namespace HIDra.UI
             "volume-up" => '\uE995',
             "volume-down" => '\uE993',
             "mute" => '\uE74F',
+            "play-pause" => '\uE768',
             _ => '\uE738'
         };
 
@@ -1387,39 +1462,35 @@ namespace HIDra.UI
                     continue;
                 }
 
-                var line = new Button
+                var chip = new Button
                 {
-                    Style = (Style)FindResource("ToggleButtonStyle"),
-                    Width = double.NaN,
-                    Height = 38,
-                    FontSize = 15,
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Left,
-                    Margin = new Thickness(0, 0, 0, 6),
-                    Content = new TextBlock
-                    {
-                        Text = $"{button.Label}:  {job.Label}   (standard {ButtonJobCatalogue.Find(button.StandardJob)!.Label})",
-                        Margin = new Thickness(12, 0, 12, 0)
-                    }
+                    Style = (Style)FindResource("ActionButton"),
+                    Height = 36,
+                    FontSize = 14,
+                    MinWidth = 0,
+                    Padding = new Thickness(12, 0, 12, 0),
+                    Margin = new Thickness(0, 0, 8, 0),
+                    Content = $"{button.Label}: {job.Label}"
                 };
                 string name = button.Name;
-                line.Click += (_, _) =>
+                chip.Click += (_, _) =>
                 {
                     string part = name.StartsWith("Dpad") ? "DPad" : name.EndsWith("StickClick") ? "StickPress" : name;
                     ChooseJobPart(part);
                     _jobButton = name;
                     BuildJobChooser();
                 };
-                JobChangedList.Children.Add(line);
+                JobChangedList.Children.Add(chip);
             }
 
             if (JobChangedList.Children.Count == 0)
             {
                 JobChangedList.Children.Add(new TextBlock
                 {
-                    Text = "Nothing - every button does its standard job.",
+                    Text = "Nothing - every button has its default job.",
                     Style = (Style)FindResource("SettingHint"),
-                    FontSize = 15
+                    FontSize = 14,
+                    VerticalAlignment = VerticalAlignment.Center
                 });
             }
         }
@@ -1439,15 +1510,15 @@ namespace HIDra.UI
         private static readonly (int Page, string Group, string[] Ids)[] JobGroups =
         {
             (0, "Clicks", new[] { "click", "right-click", "double-click" }),
-            (0, "Keyboard and pointer", new[] { "keyboard", "swap-sticks", "zoom", "slow-pointer" }),
+            (0, "Pointer", new[] { "keyboard", "swap-sticks", "zoom", "slow-pointer" }),
             (0, "Windows", new[] { "switch-programs", "start-menu", "all-windows", "close-window",
                 "maximise", "minimise", "snap-left", "snap-right" }),
             (0, "Editing", new[] { "undo", "redo", "copy", "paste" }),
             (0, "Keys", new[] { "escape", "enter", "tab", "nothing" }),
-            (1, "Talk and see", new[] { "voice", "captions", "magnify", "magnify-off" }),
-            (1, "Tools", new[] { "emoji", "snip", "clipboard", "find", "save", "file-explorer", "desktop", "notifications" }),
+            (1, "Voice", new[] { "voice", "captions", "emoji" }),
+            (1, "Tools", new[] { "snip", "clipboard", "find", "save", "file-explorer", "desktop", "notifications" }),
             (1, "Pages", new[] { "web-back", "page-up", "page-down" }),
-            (1, "Sound", new[] { "volume-up", "volume-down", "mute" }),
+            (1, "Sound", new[] { "play-pause", "volume-up", "volume-down", "mute" }),
         };
 
         // The page of jobs showing; -1 shows the page with the button's current job
@@ -1471,7 +1542,7 @@ namespace HIDra.UI
 
         private void ButtonsStandard_Click(object sender, RoutedEventArgs e)
         {
-            _jobPart = _jobButton = null;
+            CloseSheet();
             ChangeSettings(s => s.ButtonJobs = null);
         }
 
@@ -1529,8 +1600,9 @@ namespace HIDra.UI
             _activity = activity;
             PointerActivity.Visibility = activity == "Pointer" ? Visibility.Visible : Visibility.Collapsed;
             TypingActivity.Visibility = activity == "Typing" ? Visibility.Visible : Visibility.Collapsed;
-            ActivityPointerButton.Background = activity == "Pointer" ? OnBrush : OffBrush;
-            ActivityTypingButton.Background = activity == "Typing" ? OnBrush : OffBrush;
+            SetSegment(ActivityPointerButton, activity == "Pointer");
+            SetSegment(ActivityTypingButton, activity == "Typing");
+            TypingLevelPanel.Visibility = activity == "Typing" ? Visibility.Visible : Visibility.Collapsed;
             ActivityScore.Text = "";
         }
 
@@ -1832,7 +1904,7 @@ namespace HIDra.UI
             int level = _progress.TypingLevel;
             for (int i = 0; i < TypingItems.Length; i++)
             {
-                ((Button)FindName($"TypingLevel{i}")).Background = i == level ? OnBrush : OffBrush;
+                SetSegment((Button)FindName($"TypingLevel{i}"), i == level);
             }
 
             TypingStartTitle.Text = title ?? $"Typing test: {TypingLevelNames[level].ToLowerInvariant()}";
@@ -2100,7 +2172,7 @@ namespace HIDra.UI
         {
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Title = "Save this student's practice",
+                Title = "Save the practice record",
                 FileName = "HIDra practice.csv",
                 Filter = "Spreadsheet (*.csv)|*.csv",
                 DefaultExt = ".csv"
@@ -2127,7 +2199,7 @@ namespace HIDra.UI
         // it twice.
         // ---------------------------------------------------------------------------
 
-        private static readonly string[] ShortcutRowNames = { "Edit", "Select", "Style", "Tools" };
+        private static readonly string[] ShortcutRowNames = { "Edit", "Select", "Sound", "Tools" };
 
         private int _editingShortcutSlot = -1;
         private int _editingAppSlot = -1;
@@ -2144,7 +2216,7 @@ namespace HIDra.UI
                 {
                     Text = glyph.ToString(),
                     FontFamily = ShortcutCatalogue.IconFont,
-                    FontSize = 19,
+                    FontSize = styleKey == "EditorKey" ? 30 : 22,
                     FontWeight = FontWeights.Normal,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     Margin = new Thickness(0, 0, 0, 2)
@@ -2152,7 +2224,8 @@ namespace HIDra.UI
             }
             else if (logo != null)
             {
-                content.Children.Add(new Image { Source = logo, Width = 24, Height = 24, Margin = new Thickness(0, 0, 0, 2) });
+                double size = styleKey == "EditorKey" ? 64 : 32;
+                content.Children.Add(new Image { Source = logo, Width = size, Height = size, Margin = new Thickness(0, 0, 0, 6) });
             }
 
             content.Children.Add(new TextBlock
@@ -2225,7 +2298,7 @@ namespace HIDra.UI
             var current = ShortcutCatalogue.Resolve(_userSettings.ShortcutKeys)[slot];
 
             var choices = new List<Button>();
-            foreach (var key in ShortcutCatalogue.InGroup(ShortcutCatalogue.GroupOfRow(row)))
+            foreach (var key in ShortcutCatalogue.ForRow(row))
             {
                 var choice = EditorKey("ChoiceKey", key.Label, key.Icon, description: key.Description);
                 choice.Background = key == current ? OnBrush : OffBrush;
@@ -2336,12 +2409,15 @@ namespace HIDra.UI
             ChangeSettings(s => s.AppKeys = null);
         }
 
-        // The choices open over the Keyboard tab, where there is room for all of them -
-        // a program list can be long - without the page ever needing to scroll
+        // The choices open over the section, where there is room for all of them - a
+        // program list can be long - without the page ever needing to scroll
 
         private void ShowKeyChooser(string title, List<Button> choices, bool search)
         {
-            KeyChooserTitle.Text = title;
+            SheetTitle.Text = title;
+            SheetHeader.Visibility = Visibility.Visible;
+            JobSheet.Visibility = Visibility.Collapsed;
+            KeySheet.Visibility = Visibility.Visible;
             KeyChoices.Children.Clear();
             foreach (var choice in choices)
             {
@@ -2350,25 +2426,32 @@ namespace HIDra.UI
 
             AppSearchRow.Visibility = search ? Visibility.Visible : Visibility.Collapsed;
             AppSearchBox.Text = "";
-            KeyChooserOverlay.Visibility = Visibility.Visible;
+            SheetOverlay.Visibility = Visibility.Visible;
         }
 
-        private void HideKeyChooser()
+        private void HideKeyChooser() => CloseSheet();
+
+        /// <summary>
+        /// Put away whatever is being chosen - a job, a key or a program
+        /// </summary>
+        private void CloseSheet()
         {
-            KeyChooserOverlay.Visibility = Visibility.Collapsed;
+            SheetOverlay.Visibility = Visibility.Collapsed;
+            _jobPart = _jobButton = null;
+            JobsDrawing.Select(null);
             _editingShortcutSlot = _editingAppSlot = -1;
             BuildShortcutEditor();
             BuildAppEditor();
         }
 
-        private void KeyChooserClose_Click(object sender, RoutedEventArgs e) => HideKeyChooser();
+        private void SheetClose_Click(object sender, RoutedEventArgs e) => CloseSheet();
 
         /// <summary>A click on the dark edge, not on the choices, puts them away</summary>
-        private void KeyChooserOverlay_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void SheetOverlay_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            if (e.OriginalSource == KeyChooserOverlay)
+            if (e.OriginalSource == SheetOverlay)
             {
-                HideKeyChooser();
+                CloseSheet();
             }
         }
 
@@ -2396,7 +2479,8 @@ namespace HIDra.UI
 
         // Orange, the same as Shift, Caps and Select on the keyboard: one colour for "on"
         private static readonly Brush OnBrush = (Brush)Application.Current.FindResource("AccentOnBrush");
-        private static readonly Brush OffBrush = new SolidColorBrush(Color.FromRgb(0x3C, 0x3C, 0x3C));
+        // The palette's control colour, so it follows High contrast
+        private static Brush OffBrush => (Brush)Application.Current.Resources["ControlBrush"];
 
         /// <summary>
         /// Cursor speed is shown as a percentage and moves in whole-number steps: 1% below
@@ -2513,6 +2597,62 @@ namespace HIDra.UI
         private void StopWindowsKeyboardToggle_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.StopWindowsKeyboard = !s.StopWindowsKeyboard);
 
+        private void HighContrastToggle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.HighContrast = !s.HighContrast);
+
+        /// <summary>
+        /// The colour each named surface and text brush had when HIDra started, so High
+        /// contrast can be turned off again
+        /// </summary>
+        private static readonly Dictionary<string, Color> NormalColours = new();
+
+        /// <summary>
+        /// Black and white for High contrast: the named brushes in App.xaml are recoloured,
+        /// so everything drawn with them follows at once, and the keyboard repaints its keys
+        /// </summary>
+        private void ApplyContrast()
+        {
+            (string Key, Color High)[] palette =
+            {
+                ("PageBrush", Colors.Black),
+                ("HeaderBrush", Colors.Black),
+                ("CardBrush", Colors.Black),
+                ("CardEdgeBrush", Colors.White),
+                ("RaisedBrush", Colors.Black),
+                ("ControlBrush", Colors.Black),
+                ("ControlBorderBrush", Colors.White),
+                ("LineBrush", Color.FromRgb(0xAA, 0xAA, 0xAA)),
+                ("TrackBrush", Color.FromRgb(0x88, 0x88, 0x88)),
+                ("SubtleTextBrush", Colors.White),
+                ("BodyTextBrush", Colors.White),
+                ("GuideCardBrush", Colors.Black),
+                ("CardBorderBrush", Colors.White),
+            };
+
+            bool high = _userSettings.HighContrast;
+            var resources = Application.Current.Resources;
+            foreach (var (key, highColour) in palette)
+            {
+                if (resources[key] is not SolidColorBrush brush)
+                {
+                    continue;
+                }
+
+                NormalColours.TryAdd(key, brush.Color);
+                var colour = high ? highColour : NormalColours[key];
+                if (brush.IsFrozen)
+                {
+                    resources[key] = new SolidColorBrush(colour);
+                }
+                else
+                {
+                    brush.Color = colour;
+                }
+            }
+
+            _virtualKeyboard?.SetHighContrast(high);
+        }
+
         private void Grid3Toggle_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.EnableGrid3AutoSuspend = !s.EnableGrid3AutoSuspend);
 
@@ -2529,7 +2669,7 @@ namespace HIDra.UI
         {
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Title = "Export this student's HIDra settings",
+                Title = "Export HIDra settings",
                 FileName = "HIDra settings.json",
                 Filter = "HIDra settings (*.json)|*.json",
                 DefaultExt = ".json"
@@ -2552,7 +2692,7 @@ namespace HIDra.UI
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                Title = "Import HIDra settings for this student",
+                Title = "Import HIDra settings",
                 Filter = "HIDra settings (*.json)|*.json|All files (*.*)|*.*"
             };
 
@@ -2571,7 +2711,7 @@ namespace HIDra.UI
             _userSettings = imported;
             ChangeSettings(_ => { });
             UpdateGuideText();
-            ExportImportStatus.Text = $"Imported from {System.IO.Path.GetFileName(dialog.FileName)}, and saved for this student.";
+            ExportImportStatus.Text = $"Imported from {System.IO.Path.GetFileName(dialog.FileName)}, and saved.";
         }
 
         private void CurveSteady_Click(object sender, RoutedEventArgs e) =>
@@ -2641,8 +2781,8 @@ namespace HIDra.UI
                 input.PrecisionModeSensitivity = _userSettings.SlowPointerPercent / 100f;
                 _engine.SetButtonMappings(ButtonJobCatalogue.ToMappings(_userSettings.ButtonJobs));
 
-                // Slow pointer only stays on while LT is what switches it
-                if (Jobs[ButtonJobCatalogue.LeftTrigger].Id != "slow-pointer")
+                // Slow pointer only stays on while some button can switch it off again
+                if (!Jobs.Values.Any(job => job.Id == "slow-pointer"))
                 {
                     _engine.SlowPointer = false;
                 }
@@ -2673,6 +2813,8 @@ namespace HIDra.UI
             {
                 _dwellRing?.StopCountdown();
             }
+
+            ApplyContrast();
 
             // Only this student's own Windows setting changes; the option is remembered
             WindowsTouchKeyboard.Apply(_userSettings);
@@ -2714,8 +2856,8 @@ namespace HIDra.UI
             BuildJobChooser();
             UpdateGuideText();
 
-            CurveSteadyButton.Background = _userSettings.GentleCurve ? OffBrush : OnBrush;
-            CurveGentleButton.Background = _userSettings.GentleCurve ? OnBrush : OffBrush;
+            SetSegment(CurveSteadyButton, !_userSettings.GentleCurve);
+            SetSegment(CurveGentleButton, _userSettings.GentleCurve);
             SmoothingValue.Text = SmoothingNames[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)];
             IgnoreRepeatValue.Text = _userSettings.IgnoreRepeatSeconds <= 0 ? "Off" : $"{_userSettings.IgnoreRepeatSeconds:0.0#} s";
 
@@ -2723,15 +2865,39 @@ namespace HIDra.UI
             ShowToggle(KeyboardDwellToggle, _userSettings.KeyboardDwellEnabled);
             ShowToggle(StopWindowsKeyboardToggle, _userSettings.StopWindowsKeyboard);
             ShowToggle(Grid3Toggle, _userSettings.EnableGrid3AutoSuspend);
+            ShowToggle(HighContrastToggle, _userSettings.HighContrast);
 
-            KeyboardTopButton.Background = _userSettings.KeyboardAtTop ? OnBrush : OffBrush;
-            KeyboardBottomButton.Background = _userSettings.KeyboardAtTop ? OffBrush : OnBrush;
+            SetSegment(KeyboardTopButton, _userSettings.KeyboardAtTop);
+            SetSegment(KeyboardBottomButton, !_userSettings.KeyboardAtTop);
+
+            ShowLevel("CursorSpeedValue", _userSettings.CursorSensitivity, 0.05, 1.0);
+            ShowLevel("ScrollSpeedValue", _userSettings.ScrollSensitivity, 0.1, 1.0);
+            ShowLevel("SlowPointerValue", _userSettings.SlowPointerPercent, 10, 80);
+            ShowLevel("SmoothingValue", _userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing);
+            ShowLevel("IgnoreRepeatValue", Array.FindIndex(RepeatSteps, v => v >= _userSettings.IgnoreRepeatSeconds - 0.001f), 0, RepeatSteps.Length - 1);
+            ShowLevel("DwellClickValue", _userSettings.DwellClickSeconds, 0.5, 3.0);
+            ShowLevel("KeyboardSizeValue", _userSettings.KeyboardScale, UserSettings.MinKeyboardScale, UserSettings.MaxKeyboardScale);
+            ShowLevel("KeyboardDwellValue", _userSettings.KeyboardDwellSeconds, 0.5, 3.0);
+            ShowLevel("KeyboardFadeValue", _userSettings.KeyboardFadeSeconds, 1.0, 10.0);
+            ShowLevel("KeyboardFadeOpacityValue", _userSettings.KeyboardFadeOpacity, 0.2, 0.6);
         }
 
         private static void ShowToggle(System.Windows.Controls.Button button, bool on)
         {
             button.Content = on ? "On" : "Off";
+            button.Tag = on ? "on" : "off";
             button.Background = on ? OnBrush : OffBrush;
+        }
+
+        /// <summary>
+        /// Fill a stepper's level bar: where its value sits between least and most
+        /// </summary>
+        private void ShowLevel(string valueName, double value, double least, double most)
+        {
+            if (FindName(valueName + "Bar") is Border bar)
+            {
+                bar.Width = 72 * Math.Clamp((value - least) / (most - least), 0, 1);
+            }
         }
 
         private void OnVirtualKeyboardKeyPressed(object? sender, VirtualKey key)

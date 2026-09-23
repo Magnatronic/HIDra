@@ -19,6 +19,24 @@
         <SolidColorBrush x:Key="AccentOnBrush" Color="#B85400"/>
         <SolidColorBrush x:Key="WarningBrush" Color="#F2C12E"/>
 
+        <!--
+            The surfaces and text, by name. High contrast (Settings, General) recolours
+            these to black and white while HIDra runs, so everything drawn with them
+            follows. Keep new colours here rather than written into a style.
+        -->
+        <SolidColorBrush x:Key="PageBrush" Color="#1B1B1B"/>
+        <SolidColorBrush x:Key="HeaderBrush" Color="#141414"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#232323"/>
+        <SolidColorBrush x:Key="CardEdgeBrush" Color="Transparent"/>
+        <SolidColorBrush x:Key="RaisedBrush" Color="#2C2C2C"/>
+        <SolidColorBrush x:Key="ControlBrush" Color="#3C3C3C"/>
+        <SolidColorBrush x:Key="ControlBorderBrush" Color="#666666"/>
+        <SolidColorBrush x:Key="LineBrush" Color="#333333"/>
+        <SolidColorBrush x:Key="TrackBrush" Color="#444444"/>
+        <SolidColorBrush x:Key="SubtleTextBrush" Color="#B4B4B4"/>
+        <SolidColorBrush x:Key="BodyTextBrush" Color="#DDDDDD"/>
+        <SolidColorBrush x:Key="GuideCardBrush" Color="#262626"/>
+
         <!-- The controller drawing, used on two pages, and the controller buttons drawn
              in text on any of them -->
         <SolidColorBrush x:Key="CardBorderBrush" Color="#3A3A3A"/>
@@ -26,8 +44,8 @@
         <!-- A label on the controller drawing. The code turns its border orange while
              its button is pressed. -->
         <Style x:Key="GuideCard" TargetType="Border">
-            <Setter Property="Background" Value="#262626"/>
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource GuideCardBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
             <Setter Property="BorderThickness" Value="3"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="10,0"/>
