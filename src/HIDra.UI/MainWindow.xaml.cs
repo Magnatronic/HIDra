@@ -546,7 +546,9 @@ namespace HIDra.UI
                 // If a phrase box on this window still has the typing cursor, whatever the
                 // student types would land in it whenever this window is in front - a
                 // Backspace could quietly erase a saved phrase. Keep the edit, lose the cursor.
-                if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox)
+                // The Try it out box is the exception: it is there to be typed into.
+                if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox box
+                    && box != TryTypingBox)
                 {
                     UserSettingsStore.Save(_userSettings);
                     System.Windows.Input.Keyboard.ClearFocus();
