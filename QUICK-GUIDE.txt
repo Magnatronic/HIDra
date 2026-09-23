@@ -211,7 +211,8 @@ Closing the window does NOT stop HIDra.
   right-click the HIDra icon near the clock and choose "Exit HIDra".
 
 Cursor moving too fast/slow?
-  - Use the - and + buttons beside Cursor speed on the HIDra screen
+  - Use the - and + buttons beside Pointer speed, on the Settings tab
+    of the HIDra screen
   - Your speed is remembered for next time
 
 Need help?

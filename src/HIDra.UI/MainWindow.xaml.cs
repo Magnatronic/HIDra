@@ -1,7 +1,10 @@
 using System;
 using System.Windows;
 using System.Windows.Media;
+using System.Collections.Generic;
+using System.Windows.Controls;
 using System.Windows.Media.Effects;
+using System.Windows.Shapes;
 using HIDra.Core;
 using HIDra.Core.Configuration;
 using HIDra.Models;
@@ -148,6 +151,7 @@ namespace HIDra.UI
             }
 
             RefreshSettingsDisplay();
+            InitializeGuide();
             InitializeTrayIcon();
             StartEngine();
         }
@@ -203,6 +207,7 @@ namespace HIDra.UI
                 _engine.KeyboardSelectRequested += OnKeyboardSelect;
                 _engine.KeyboardSelectShiftedRequested += OnKeyboardSelectShifted;
                 _engine.KeyboardQuickKeyRequested += OnKeyboardQuickKey;
+                _engine.ActiveControlsChanged += OnActiveControlsChanged;
 
                 InitializeVirtualKeyboard();
 
@@ -397,6 +402,9 @@ namespace HIDra.UI
         {
             Dispatcher.BeginInvoke(() =>
             {
+                _sticksSwapped = rightStickIsCursor;
+                UpdateGuideText();
+
                 _modeToast ??= new ModeToast();
                 _modeToast.ShowMessage(rightStickIsCursor
                     ? "Cursor: RIGHT stick\nScroll: LEFT stick"
@@ -411,7 +419,7 @@ namespace HIDra.UI
         private void RestoreWindow()
         {
             Show();
-            WindowState = WindowState.Normal;
+            WindowState = WindowState.Maximized;
             Activate();
             Topmost = true;
             Topmost = false;
@@ -510,6 +518,9 @@ namespace HIDra.UI
                     {
                         _engine.KeyboardNavigationActive = _virtualKeyboard?.IsVisible == true;
                     }
+
+                    // The guide shows what the buttons do right now
+                    SetGuideMode(typing: _virtualKeyboard?.IsVisible == true);
                 };
             }
         }
@@ -592,6 +603,148 @@ namespace HIDra.UI
                     _virtualKeyboard.NotifyActivity();
                 }
             });
+        }
+
+        // ---------------------------------------------------------------------------
+        // The guide: what each button does
+        //
+        // The labels on the controller drawing say what each button does now - using
+        // the pointer, or typing while the keyboard is open, which changes LB, RB, Y,
+        // A, B, X and the D-pad. The switch follows the keyboard, so the screen always
+        // matches the controller in the student's hands, and staff can flip it to look
+        // ahead. Y swapping the sticks swaps their labels too.
+        //
+        // Each control, and its label, lights up orange while it is in use, so the
+        // student can press a button and see what it is for.
+        // ---------------------------------------------------------------------------
+
+        private bool _guideTyping;
+        private bool _sticksSwapped;
+
+        private readonly List<(ControllerControls Controls, Shape Shape, Brush Stroke, double Thickness)> _liveShapes = new();
+        private readonly List<(ControllerControls Controls, Border Card)> _liveCards = new();
+
+        private void InitializeGuide()
+        {
+            void Part(ControllerControls controls, Shape shape, Border card)
+            {
+                _liveShapes.Add((controls, shape, shape.Stroke, shape.StrokeThickness));
+                _liveCards.Add((controls, card));
+            }
+
+            Part(ControllerControls.LeftTrigger, CtlLT, CardLT);
+            Part(ControllerControls.RightTrigger, CtlRT, CardRT);
+            Part(ControllerControls.LeftBumper, CtlLB, CardLB);
+            Part(ControllerControls.RightBumper, CtlRB, CardRB);
+            Part(ControllerControls.LeftStick, CtlLeftStick, CardLeftStick);
+            Part(ControllerControls.RightStick, CtlRightStick, CardRightStick);
+            Part(ControllerControls.DPad, CtlDPad, CardDPad);
+            Part(ControllerControls.A, CtlA, CardA);
+            Part(ControllerControls.B, CtlB, CardB);
+            Part(ControllerControls.X, CtlX, CardX);
+            Part(ControllerControls.Y, CtlY, CardY);
+            Part(ControllerControls.Back, CtlBack, CardBack);
+            Part(ControllerControls.Start, CtlStart, CardStart);
+
+            // Pressing a stick in lights the stick as well as the Undo label
+            _liveShapes.Add((ControllerControls.LeftStickPress, CtlLeftStick, CtlLeftStick.Stroke, CtlLeftStick.StrokeThickness));
+            _liveShapes.Add((ControllerControls.RightStickPress, CtlRightStick, CtlRightStick.Stroke, CtlRightStick.StrokeThickness));
+            _liveCards.Add((ControllerControls.LeftStickPress | ControllerControls.RightStickPress, CardStickPress));
+
+            SetGuideMode(typing: _virtualKeyboard?.IsVisible == true);
+            ShowSettingsPage(false);
+        }
+
+        // ---------------------------------------------------------------------------
+        // Pages
+        //
+        // The Guide is for the student and is what opens; Settings is for staff. Both on
+        // one page was too much at once.
+        // ---------------------------------------------------------------------------
+
+        private void GuideTab_Click(object sender, RoutedEventArgs e) => ShowSettingsPage(false);
+
+        private void SettingsTab_Click(object sender, RoutedEventArgs e) => ShowSettingsPage(true);
+
+        private void ShowSettingsPage(bool settings)
+        {
+            GuidePage.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
+            SettingsPage.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
+            GuideTabButton.Background = settings ? OffBrush : OnBrush;
+            SettingsTabButton.Background = settings ? OnBrush : OffBrush;
+        }
+
+        private void ModePointer_Click(object sender, RoutedEventArgs e) => SetGuideMode(typing: false);
+
+        private void ModeTyping_Click(object sender, RoutedEventArgs e) => SetGuideMode(typing: true);
+
+        private void SetGuideMode(bool typing)
+        {
+            _guideTyping = typing;
+            ModePointerButton.Background = typing ? OffBrush : OnBrush;
+            ModeTypingButton.Background = typing ? OnBrush : OffBrush;
+            UpdateGuideText();
+        }
+
+        private void UpdateGuideText()
+        {
+            HowToPointer.Visibility = _guideTyping ? Visibility.Collapsed : Visibility.Visible;
+            HowToTyping.Visibility = _guideTyping ? Visibility.Visible : Visibility.Collapsed;
+            HowToModeText.Text = _guideTyping ? "While the keyboard is open" : "While using the pointer";
+
+            ActLT.Text = "Keyboard to top or bottom";
+            ActRT.Text = "Hold to click and drag";
+            ActLB.Text = _guideTyping ? "Backspace" : "Show open programs";
+            ActRB.Text = _guideTyping ? "Space" : "Double click";
+            ActY.Text = _guideTyping ? "Enter" : "Swap the two sticks";
+            ActB.Text = _guideTyping ? "Capital, or the symbol on top" : "Right click";
+            ActX.Text = _guideTyping ? "Close the keyboard" : "Open the keyboard";
+            ActA.Text = _guideTyping ? "Type the key" : "Click";
+            ActDPad.Text = _guideTyping ? "Move the orange box" : "Maximise, minimise, snap";
+
+            // While typing, the left stick always steers the keyboard. Otherwise the
+            // sticks follow Y's swap.
+            ActLeftStick.Text = _guideTyping ? "Move the orange box" : _sticksSwapped ? "Scroll" : "Move the pointer";
+            ActRightStick.Text = _sticksSwapped ? "Move the pointer" : "Scroll";
+        }
+
+        private void OnActiveControlsChanged(object? sender, ControllerControls active)
+        {
+            Dispatcher.BeginInvoke(() => ShowActiveControls(active));
+        }
+
+        private void ShowActiveControls(ControllerControls active)
+        {
+            var accent = (Brush)FindResource("AccentBrush");
+            var cardBorder = (Brush)FindResource("CardBorderBrush");
+
+            // A shape can be lit by more than one control - a stick by moving it or by
+            // pressing it in - so work out each one's state before painting
+            var litShapes = new HashSet<Shape>();
+            foreach (var part in _liveShapes)
+            {
+                if ((active & part.Controls) != 0)
+                {
+                    litShapes.Add(part.Shape);
+                }
+            }
+
+            foreach (var part in _liveShapes)
+            {
+                bool lit = litShapes.Contains(part.Shape);
+                part.Shape.Stroke = lit ? accent : part.Stroke;
+                part.Shape.StrokeThickness = lit ? 4 : part.Thickness;
+            }
+
+            foreach (var (controls, card) in _liveCards)
+            {
+                card.BorderBrush = (active & controls) != 0 ? accent : cardBorder;
+            }
+
+            // Holding Back and Start together brings this window back, so it lights the
+            // label that says so
+            var chord = ControllerControls.Back | ControllerControls.Start;
+            CardRecovery.BorderBrush = (active & chord) == chord ? accent : cardBorder;
         }
 
         // ---------------------------------------------------------------------------

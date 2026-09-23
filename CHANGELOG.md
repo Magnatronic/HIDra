@@ -26,6 +26,19 @@ changed between them.
   one above, as on any real keyboard, instead of fourteen equal keys stacked in a grid.
   Space, Enter and Backspace are the biggest keys, since after letters they are typed
   most.
+- **The main screen has two tabs: Guide and Settings.** It opens maximised, on the Guide.
+  - **Guide**, for the student: a controller drawing labelled with what every button
+    does. A switch shows the buttons "using the pointer" or "typing"; it follows the
+    keyboard opening and closing, and staff can flip it to look ahead. Y swapping the
+    sticks swaps their labels too. Every control lights up orange, with its label,
+    while it is pressed - so the student can press a button to find out what it does,
+    and staff can see at once that the controller is working. Beside it, "How do I...":
+    click, type, type faster, numbers and symbols, open a program, switch programs,
+    copy and paste, move the keyboard - a line or two each, with the buttons drawn in
+    their controller colours.
+  - **Settings**, for staff: every setting, grouped into Pointer, Keyboard, Phrases and
+    Windows, each saying which button it goes with.
+  - Whether the controller is connected, the battery, and Pause stay above both.
 - **Numbers and symbols are on a second layer**, behind a 123 #+ key, as on a phone.
   The number row and the symbols typed least ([ ] \ ; # = and Caps, Win, PgUp, PgDn)
   took a full key each on the way to the letters. They now share the letters' places,
