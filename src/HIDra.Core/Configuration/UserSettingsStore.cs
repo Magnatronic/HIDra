@@ -83,12 +83,61 @@ public static class UserSettingsStore
         }
     }
 
+    /// <summary>
+    /// Write a copy of these settings to a file of staff's choosing, to give another
+    /// student the same starting point. True if it was written.
+    /// </summary>
+    public static bool Export(UserSettings settings, string path)
+    {
+        try
+        {
+            File.WriteAllText(path, JsonConvert.SerializeObject(settings, Formatting.Indented));
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Read settings exported from another student, or null if the file is not settings.
+    /// What Windows' own keyboard setting was before HIDra changed it belongs to this
+    /// student and this PC, so it is kept rather than copied.
+    /// </summary>
+    public static UserSettings? Import(string path, UserSettings current)
+    {
+        try
+        {
+            var imported = JsonConvert.DeserializeObject<UserSettings>(File.ReadAllText(path));
+            if (imported == null)
+            {
+                return null;
+            }
+
+            imported.OriginalWindowsKeyboardAutoInvoke = current.OriginalWindowsKeyboardAutoInvoke;
+            Normalise(imported);
+            return imported;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static void Normalise(UserSettings settings)
     {
         settings.CursorSensitivity = Math.Clamp(settings.CursorSensitivity, 0.05f, 1.0f);
         settings.KeyboardScale = Math.Clamp(settings.KeyboardScale, UserSettings.MinKeyboardScale, UserSettings.MaxKeyboardScale);
         settings.KeyboardFadeOpacity = Math.Clamp(settings.KeyboardFadeOpacity, 0.2f, 0.6f);
         settings.KeyboardFadeSeconds = Math.Clamp(settings.KeyboardFadeSeconds, 1.0f, 10.0f);
+        settings.StickSmoothing = Math.Clamp(settings.StickSmoothing, 0, UserSettings.MaxStickSmoothing);
+        settings.IgnoreRepeatSeconds = Math.Clamp(settings.IgnoreRepeatSeconds, 0f, 1f);
+        settings.SlowPointerPercent = Math.Clamp(settings.SlowPointerPercent, 10, 80);
+        if (!Enum.IsDefined(settings.LeftTrigger))
+        {
+            settings.LeftTrigger = LeftTriggerAction.Magnifier;
+        }
 
         // Always exactly one slot per phrase key, whatever an older file held
         settings.Phrases ??= new List<string>();

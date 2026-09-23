@@ -132,8 +132,11 @@ public class InputProcessor
         float x = ApplyDeadzone(calibratedX, _settings.Deadzone);
         float y = ApplyDeadzone(calibratedY, _settings.Deadzone);
 
-        // Apply sensitivity (uses precision mode modifier when RB held)
-        float sensitivity = precisionMode ? _settings.PrecisionModeSensitivity : _settings.CursorSensitivity;
+        // Apply sensitivity. Slow pointer is a share of the normal speed, the same as
+        // for the left stick - it used to replace the normal speed outright here.
+        float sensitivity = precisionMode
+            ? _settings.CursorSensitivity * _settings.PrecisionModeSensitivity
+            : _settings.CursorSensitivity;
         x = ApplySensitivity(x, sensitivity);
         y = ApplySensitivity(y, sensitivity);
 

@@ -14,10 +14,10 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - While the keyboard is open, LB types Backspace, RB Space and Y Enter, from wherever the highlight is
 - Read aloud: a Read key reads the selected text in any program, with the voices built into Windows
 - For unsteady hands: stick smoothing, ignoring a repeat press that comes too soon after letting go, and a Gentle pointer curve (slower for a small push, faster for a big one)
-- A Try it out panel beside the settings - circles to click, a box to type in, a list to scroll - so a change can be tested straight away
+- Settings can be exported from one student and imported for another, as a starting point
 - An Apps key that opens PowerPoint, Word, Edge and other installed programs in one press
-- One main screen with two tabs. **Guide** (what opens, for the student): a controller drawing labelled with what every button does - switching between "using the pointer" and "typing" as the keyboard opens and closes - with each button lighting up orange as it is pressed, and "How do I..." for everyday tasks. **Settings** (for staff): every setting, grouped into Pointer, Keyboard, Phrases and Windows
-- LT moves the keyboard between the top and bottom of the screen, so it never has to cover your work
+- One main screen with four tabs. For the student: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks - and **Practice**, with circles to click, a box to type in and a list to scroll. For staff: **Controller** (pointer, buttons, and exporting or importing a student's settings) and **Keyboard** (keyboard, phrases, Windows' own keyboard)
+- LT moves the keyboard between the top and bottom of the screen while it is open, so it never has to cover your work. While it is closed, LT does a job chosen per student: zoom in and out with Windows Magnifier (the default), Escape, a slow pointer switched on and off, or nothing
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
 - Start opens Task View; Back opens Start menu

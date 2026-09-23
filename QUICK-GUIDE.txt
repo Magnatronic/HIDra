@@ -124,7 +124,10 @@ Right Stick:
   Click Down = Undo (Ctrl+Z)
 
 Triggers:
-  Left Trigger (LT) = Move keyboard between top and bottom of screen
+  Left Trigger (LT) = Move keyboard between top and bottom of screen,
+                      while it is open. While it is closed, whatever staff
+                      chose on the Controller tab - normally Zoom (LT
+                      zooms in around the pointer, LT again zooms out)
   Right Trigger (RT) = Click and hold (hold to drag things)
 
 Face Buttons:
@@ -213,7 +216,7 @@ Closing the window does NOT stop HIDra.
   right-click the HIDra icon near the clock and choose "Exit HIDra".
 
 Cursor moving too fast/slow?
-  - Use the - and + buttons beside Pointer speed, on the Settings tab
+  - Use the - and + buttons beside Pointer speed, on the Controller tab
     of the HIDra screen
   - Your speed is remembered for next time
 

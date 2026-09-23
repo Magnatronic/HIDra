@@ -62,9 +62,20 @@ changed between them.
 - **Read aloud**: a Read key in the keyboard's Tools row reads the selected text in any
   program, with the voices built into Windows. Press it again to stop. Whatever was on
   the clipboard is put back afterwards. It takes the place of Files, which Apps opens.
-- **Try it out**, beside the settings: circles of three sizes to click, counting hits and
-  misses; a box to type in; a list to scroll. On a narrower screen it moves below the
-  other settings.
+- **Four tabs.** Guide and Practice for the student; Controller and Keyboard, set apart
+  under "Settings", for staff. **Practice** has circles of three sizes to click, counting
+  hits and misses, a box to type in and a list to scroll - for the student, and for
+  staff to try a setting straight after changing it.
+- **LT has a job while the keyboard is closed**, chosen per student on the Controller
+  tab: **Zoom** (Windows Magnifier, the default - LT zooms in around the pointer, LT
+  again zooms out), **Escape**, **Slow pointer** (switched on and off, never held, at a
+  chosen share of normal speed), or **Nothing**. Each shows what it did on screen. While
+  the keyboard is open LT still moves it. The Guide's LT label and a "How do I..." card
+  follow the choice.
+- **Export and import settings** on the Controller tab, to give another student the same
+  starting point. Windows' own keyboard setting, which belongs to the PC, is not copied.
+- Slow pointer on the right stick (after Y swaps them) was the slow share instead of a
+  share of the normal speed; it is now the same for both sticks.
 
 ## v1.6.0
 

@@ -111,4 +111,34 @@ public class UserSettings
     /// The Gentle pointer curve: slower for a small push, faster for a big one
     /// </summary>
     public bool GentleCurve { get; set; } = false;
+
+    /// <summary>
+    /// What LT does while the keyboard is closed. While it is open, LT always moves it.
+    /// </summary>
+    public LeftTriggerAction LeftTrigger { get; set; } = LeftTriggerAction.Magnifier;
+
+    /// <summary>
+    /// The pointer's speed while Slow pointer is on, as a percentage of its normal speed
+    /// </summary>
+    public int SlowPointerPercent { get; set; } = 30;
+}
+
+/// <summary>
+/// The jobs LT can be given while the keyboard is closed. Chosen per student, because what
+/// helps one - seeing small things, closing a menu, landing on a small target - is not
+/// what helps another. Numbered, because the number is what is saved.
+/// </summary>
+public enum LeftTriggerAction
+{
+    /// <summary>Windows Magnifier: zoom in around the pointer, and out again</summary>
+    Magnifier = 0,
+
+    /// <summary>Escape: close a menu or box, or leave a slideshow</summary>
+    Escape = 1,
+
+    /// <summary>Turn a slower pointer on and off, for small targets</summary>
+    SlowPointer = 2,
+
+    /// <summary>LT does nothing while the keyboard is closed</summary>
+    Nothing = 3
 }
