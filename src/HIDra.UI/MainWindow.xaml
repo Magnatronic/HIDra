@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HIDra.UI"
+        xmlns:views="clr-namespace:HIDra.UI.Views"
         mc:Ignorable="d"
         Title="HIDra - Controller to Mouse/Keyboard"
         Height="900" Width="1600"
@@ -19,10 +20,12 @@
                       what every button does - using the pointer, or typing - with each
                       button lighting up orange as it is pressed, and "How do I..." beside
                       it for everyday tasks.
-          Practice    for the student, and for staff trying a setting: circles to click,
-                      a box to type in, a list to scroll.
-          Controller  for staff: the pointer, the buttons, and this student's settings
-                      file, to copy to another student.
+          Practice    for the student, and for staff trying a setting: a circle to click
+                      that shrinks, a word to type, the keyboard to open and close, a
+                      list to scroll - and the record of each day's practice.
+          Controller  for staff: each button's job, on the same drawing as the Guide,
+                      the pointer, and this student's settings file, to copy to another
+                      student.
           Keyboard    for staff: the keyboard, phrases, and Windows' own keyboard.
 
         Everything on one page was too much at once. Whether the controller is
@@ -33,7 +36,6 @@
         border. It opens maximised.
     -->
     <Window.Resources>
-        <SolidColorBrush x:Key="CardBorderBrush" Color="#3A3A3A"/>
 
         <Style x:Key="BigButton" TargetType="Button">
             <Setter Property="Background" Value="#3C3C3C"/>
@@ -102,6 +104,12 @@
             <Setter Property="Height" Value="104"/>
         </Style>
 
+        <!-- A job a controller button can be given, on the Controller tab -->
+        <Style x:Key="JobChoice" TargetType="Button" BasedOn="{StaticResource EditorKey}">
+            <Setter Property="Width" Value="164"/>
+            <Setter Property="Height" Value="80"/>
+        </Style>
+
         <Style x:Key="ValueText" TargetType="TextBlock">
             <Setter Property="Width" Value="70"/>
             <Setter Property="FontSize" Value="19"/>
@@ -152,68 +160,6 @@
             <Setter Property="CaretBrush" Value="White"/>
             <Setter Property="BorderBrush" Value="#666666"/>
             <Setter Property="BorderThickness" Value="2"/>
-        </Style>
-
-        <!-- A label on the controller drawing. The code turns its border orange while
-             its button is pressed. -->
-        <Style x:Key="GuideCard" TargetType="Border">
-            <Setter Property="Background" Value="#262626"/>
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
-            <Setter Property="BorderThickness" Value="3"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="10,0"/>
-            <Setter Property="Width" Value="300"/>
-            <Setter Property="Height" Value="58"/>
-        </Style>
-        <Style x:Key="CardAction" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-        <Style x:Key="LeaderLine" TargetType="Line">
-            <Setter Property="Stroke" Value="#6B7278"/>
-            <Setter Property="StrokeThickness" Value="2"/>
-        </Style>
-
-        <!-- A controller button drawn as it looks on the controller, for labels and for
-             the "How do I..." text. Face buttons keep Xbox colours, because they match
-             the controller in the student's hands. -->
-        <Style x:Key="Badge" TargetType="ContentControl">
-            <Setter Property="Background" Value="#50575E"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Margin" Value="1,0,6,0"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Focusable" Value="False"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ContentControl">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="12"
-                                MinWidth="24" Height="24" Padding="7,0">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="BadgeA" TargetType="ContentControl" BasedOn="{StaticResource Badge}">
-            <Setter Property="Background" Value="#4CAF50"/>
-            <Setter Property="Content" Value="A"/>
-        </Style>
-        <Style x:Key="BadgeB" TargetType="ContentControl" BasedOn="{StaticResource Badge}">
-            <Setter Property="Background" Value="#E5484D"/>
-            <Setter Property="Content" Value="B"/>
-        </Style>
-        <Style x:Key="BadgeX" TargetType="ContentControl" BasedOn="{StaticResource Badge}">
-            <Setter Property="Background" Value="#3B82F6"/>
-            <Setter Property="Content" Value="X"/>
-        </Style>
-        <Style x:Key="BadgeY" TargetType="ContentControl" BasedOn="{StaticResource Badge}">
-            <Setter Property="Background" Value="#F2C12E"/>
-            <Setter Property="Foreground" Value="#1A1A1A"/>
-            <Setter Property="Content" Value="Y"/>
         </Style>
 
         <Style x:Key="HowToCard" TargetType="Border">
@@ -330,155 +276,7 @@
 
                     <!-- The Viewbox scales the drawing to the space available, so it stays
                          whole on a small laptop screen -->
-                    <Viewbox Grid.Row="1" Stretch="Uniform">
-                        <Canvas Width="1000" Height="510">
-
-                            <!-- The controller. Drawn first so the labels' lines run over it. -->
-                            <Canvas Canvas.Left="330" Canvas.Top="150">
-                                <Rectangle x:Name="CtlLT" Canvas.Left="45" Canvas.Top="-44" Width="80" Height="20" RadiusX="9" RadiusY="9" Fill="#50575E" Stroke="#6B7278" StrokeThickness="2"/>
-                                <Rectangle x:Name="CtlRT" Canvas.Left="215" Canvas.Top="-44" Width="80" Height="20" RadiusX="9" RadiusY="9" Fill="#50575E" Stroke="#6B7278" StrokeThickness="2"/>
-                                <Rectangle x:Name="CtlLB" Canvas.Left="38" Canvas.Top="-18" Width="94" Height="16" RadiusX="8" RadiusY="8" Fill="#50575E" Stroke="#6B7278" StrokeThickness="2"/>
-                                <Rectangle x:Name="CtlRB" Canvas.Left="208" Canvas.Top="-18" Width="94" Height="16" RadiusX="8" RadiusY="8" Fill="#50575E" Stroke="#6B7278" StrokeThickness="2"/>
-                                <TextBlock Canvas.Left="76" Canvas.Top="-42" Text="LT" FontSize="12" FontWeight="Bold" Foreground="White"/>
-                                <TextBlock Canvas.Left="246" Canvas.Top="-42" Text="RT" FontSize="12" FontWeight="Bold" Foreground="White"/>
-
-                                <Path Fill="#33373B" Stroke="#6B7278" StrokeThickness="2"
-                                      Data="M 70,20 C 110,6 230,6 270,20 C 312,32 332,72 338,140 C 344,205 334,246 300,249 C 276,251 262,228 246,203 C 236,190 104,190 94,203 C 78,228 64,251 40,249 C 6,246 -4,205 2,140 C 8,72 28,32 70,20 Z"/>
-
-                                <Ellipse x:Name="CtlLeftStick" Canvas.Left="57" Canvas.Top="57" Width="56" Height="56" Fill="#222426" Stroke="#8A9096" StrokeThickness="2"/>
-                                <Ellipse Canvas.Left="68" Canvas.Top="68" Width="34" Height="34" Fill="#34383C" IsHitTestVisible="False"/>
-                                <Ellipse x:Name="CtlRightStick" Canvas.Left="189" Canvas.Top="124" Width="52" Height="52" Fill="#222426" Stroke="#8A9096" StrokeThickness="2"/>
-                                <Ellipse Canvas.Left="199" Canvas.Top="134" Width="32" Height="32" Fill="#34383C" IsHitTestVisible="False"/>
-                                <Path x:Name="CtlDPad" Fill="#222426" Stroke="#8A9096" StrokeThickness="2"
-                                      Data="M 118,128 H 132 V 143 H 147 V 157 H 132 V 172 H 118 V 157 H 103 V 143 H 118 Z"/>
-
-                                <Rectangle x:Name="CtlBack" Canvas.Left="130" Canvas.Top="82" Width="20" Height="13" RadiusX="5" RadiusY="5" Fill="#50575E" Stroke="#9AA0A6" StrokeThickness="1.5"/>
-                                <Rectangle x:Name="CtlStart" Canvas.Left="190" Canvas.Top="82" Width="20" Height="13" RadiusX="5" RadiusY="5" Fill="#50575E" Stroke="#9AA0A6" StrokeThickness="1.5"/>
-                                <Ellipse Canvas.Left="157" Canvas.Top="42" Width="26" Height="26" Fill="#50575E" Stroke="#9AA0A6"/>
-
-                                <Ellipse x:Name="CtlY" Canvas.Left="250" Canvas.Top="50" Width="24" Height="24" Fill="#F2C12E" Stroke="Transparent" StrokeThickness="3"/>
-                                <TextBlock Canvas.Left="250" Canvas.Top="53" Width="24" TextAlignment="Center" Text="Y" FontSize="13" FontWeight="Bold" Foreground="#1A1A1A"/>
-                                <Ellipse x:Name="CtlX" Canvas.Left="226" Canvas.Top="76" Width="24" Height="24" Fill="#3B82F6" Stroke="Transparent" StrokeThickness="3"/>
-                                <TextBlock Canvas.Left="226" Canvas.Top="79" Width="24" TextAlignment="Center" Text="X" FontSize="13" FontWeight="Bold" Foreground="White"/>
-                                <Ellipse x:Name="CtlB" Canvas.Left="274" Canvas.Top="76" Width="24" Height="24" Fill="#E5484D" Stroke="Transparent" StrokeThickness="3"/>
-                                <TextBlock Canvas.Left="274" Canvas.Top="79" Width="24" TextAlignment="Center" Text="B" FontSize="13" FontWeight="Bold" Foreground="White"/>
-                                <Ellipse x:Name="CtlA" Canvas.Left="250" Canvas.Top="102" Width="24" Height="24" Fill="#4CAF50" Stroke="Transparent" StrokeThickness="3"/>
-                                <TextBlock Canvas.Left="250" Canvas.Top="105" Width="24" TextAlignment="Center" Text="A" FontSize="13" FontWeight="Bold" Foreground="White"/>
-                            </Canvas>
-
-                            <!-- Lines from each label to its control. The face buttons have none:
-                                 their labels carry the button's own colour, and a line to any
-                                 of the four had to cross the others. -->
-                            <Line Style="{StaticResource LeaderLine}" X1="300" Y1="39" X2="378" Y2="116"/>
-                            <Line Style="{StaticResource LeaderLine}" X1="300" Y1="105" X2="370" Y2="140"/>
-                            <Line Style="{StaticResource LeaderLine}" X1="300" Y1="235" X2="387" Y2="235"/>
-                            <Line Style="{StaticResource LeaderLine}" X1="300" Y1="319" X2="433" Y2="300"/>
-                            <Line Style="{StaticResource LeaderLine}" X1="700" Y1="39" X2="622" Y2="116"/>
-                            <Line Style="{StaticResource LeaderLine}" X1="700" Y1="105" X2="630" Y2="140"/>
-                            <Line Style="{StaticResource LeaderLine}" X1="700" Y1="435" X2="562" Y2="318"/>
-                            <Line Style="{StaticResource LeaderLine}" X1="478" Y1="68" X2="470" Y2="228"/>
-                            <Line Style="{StaticResource LeaderLine}" X1="522" Y1="68" X2="530" Y2="228"/>
-
-                            <!-- Left side -->
-                            <Border x:Name="CardLT" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="10">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="LT"/>
-                                    <TextBlock x:Name="ActLT" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardLB" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="76">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="LB"/>
-                                    <TextBlock x:Name="ActLB" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardLeftStick" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="206">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="Left stick"/>
-                                    <TextBlock x:Name="ActLeftStick" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardDPad" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="290">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="D-pad"/>
-                                    <TextBlock x:Name="ActDPad" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardStickPress" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="372">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="Press a stick in"/>
-                                    <TextBlock Text="Undo" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-
-                            <!-- Top centre -->
-                            <Border x:Name="CardBack" Style="{StaticResource GuideCard}" Canvas.Left="330" Canvas.Top="10" Width="165">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="Back"/>
-                                    <TextBlock Text="Start menu" Style="{StaticResource CardAction}" FontSize="16"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardStart" Style="{StaticResource GuideCard}" Canvas.Left="505" Canvas.Top="10" Width="165">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="Start"/>
-                                    <TextBlock Text="All windows" Style="{StaticResource CardAction}" FontSize="16"/>
-                                </DockPanel>
-                            </Border>
-
-                            <!-- Bottom centre: the way back, whatever else has happened -->
-                            <Border x:Name="CardRecovery" Style="{StaticResource GuideCard}" Canvas.Left="330" Canvas.Top="420" Width="340" Height="80" Padding="10,6">
-                                <TextBlock Style="{StaticResource CardAction}" FontSize="15.5" LineHeight="28">
-                                    <Run Text="HIDra window gone? Hold"/>
-                                    <InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="Back"/></InlineUIContainer><Run Text="and"/>
-                                    <InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="Start"/></InlineUIContainer><Run Text="together for one second."/>
-                                </TextBlock>
-                            </Border>
-
-                            <!-- Right side -->
-                            <Border x:Name="CardRT" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="10">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="RT"/>
-                                    <TextBlock x:Name="ActRT" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardRB" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="76">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="RB"/>
-                                    <TextBlock x:Name="ActRB" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardY" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="142">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource BadgeY}"/>
-                                    <TextBlock x:Name="ActY" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardB" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="208">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource BadgeB}"/>
-                                    <TextBlock x:Name="ActB" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardX" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="274">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource BadgeX}"/>
-                                    <TextBlock x:Name="ActX" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardA" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="340">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource BadgeA}"/>
-                                    <TextBlock x:Name="ActA" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                            <Border x:Name="CardRightStick" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="406">
-                                <DockPanel VerticalAlignment="Center">
-                                    <ContentControl Style="{StaticResource Badge}" Content="Right stick"/>
-                                    <TextBlock x:Name="ActRightStick" Style="{StaticResource CardAction}"/>
-                                </DockPanel>
-                            </Border>
-                        </Canvas>
-                    </Viewbox>
+                    <views:ControllerDrawing x:Name="GuideDrawing" Grid.Row="1"/>
                 </Grid>
             </Border>
 
@@ -501,40 +299,40 @@
                                         <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LT"/></InlineUIContainer><Run x:Name="HowToLeftTriggerText"/></TextBlock>
                                     </StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource HowToCard}">
+                                <Border x:Name="HowToClick" Style="{StaticResource HowToCard}">
                                     <StackPanel>
                                         <TextBlock Text="Click on something" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Move the pointer with the left stick."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="clicks, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="right-clicks, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="RB"/></InlineUIContainer><Run Text="double-clicks. Hold "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="RT"/></InlineUIContainer><Run Text="to drag."/></TextBlock>
+                                        <TextBlock x:Name="HowToClickText" Style="{StaticResource HowToText}"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource HowToCard}">
+                                <Border x:Name="HowToScroll" Style="{StaticResource HowToCard}">
                                     <StackPanel>
                                         <TextBlock Text="Scroll a page" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Push the right stick the way you want to go."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeY}"/></InlineUIContainer><Run Text="swaps the sticks, if the other hand is easier."/></TextBlock>
+                                        <TextBlock x:Name="HowToScrollText" Style="{StaticResource HowToText}"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource HowToCard}">
+                                <Border x:Name="HowToWindows" Style="{StaticResource HowToCard}">
                                     <StackPanel>
                                         <TextBlock Text="Arrange windows" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="D-pad up makes a window full screen, down hides it."/><LineBreak/><Run Text="Left or right puts it on that half of the screen."/></TextBlock>
+                                        <TextBlock x:Name="HowToWindowsText" Style="{StaticResource HowToText}"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource HowToCard}">
+                                <Border x:Name="HowToSwitch" Style="{StaticResource HowToCard}">
                                     <StackPanel>
                                         <TextBlock Text="Switch programs" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LB"/></InlineUIContainer><Run Text="shows them; press it again to move along. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="picks one, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="goes back."/></TextBlock>
+                                        <TextBlock x:Name="HowToSwitchText" Style="{StaticResource HowToText}"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource HowToCard}">
+                                <Border x:Name="HowToOpen" Style="{StaticResource HowToCard}">
                                     <StackPanel>
                                         <TextBlock Text="Open a program" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="for the keyboard, then go to Apps at the top left. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="on a program opens it."/></TextBlock>
+                                        <TextBlock x:Name="HowToOpenText" Style="{StaticResource HowToText}"/>
                                     </StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource HowToCard}">
+                                <Border x:Name="HowToStartTyping" Style="{StaticResource HowToCard}">
                                     <StackPanel>
                                         <TextBlock Text="Start typing" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Click where the words should go, then press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="for the keyboard."/></TextBlock>
+                                        <TextBlock x:Name="HowToStartTypingText" Style="{StaticResource HowToText}"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -576,10 +374,10 @@
                                         <TextBlock Style="{StaticResource HowToText}"><Run Text="Select, then move to highlight the text, then Copy. Go to where it belongs, then Paste."/></TextBlock>
                                     </StackPanel>
                                 </Border>
-                                <Border Style="{StaticResource HowToCard}">
+                                <Border x:Name="HowToKeyboardWay" Style="{StaticResource HowToCard}">
                                     <StackPanel>
                                         <TextBlock Text="Keyboard in the way?" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LT"/></InlineUIContainer><Run Text="moves it to the top or bottom of the screen. "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="closes it."/></TextBlock>
+                                        <TextBlock x:Name="HowToKeyboardWayText" Style="{StaticResource HowToText}"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Style="{StaticResource HowToCard}">
@@ -597,12 +395,13 @@
 
         <!-- ============================= Practice ============================= -->
         <!-- For the student to practise, and for staff to try a setting straight after
-             changing it. Nothing here is saved. -->
+             changing it. Three activities, each a little harder as the student gets
+             better, and a record of each day's practice for reviews. -->
         <Grid x:Name="PracticePage" Grid.Row="2" Margin="16" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="16"/>
-                <ColumnDefinition Width="460"/>
+                <ColumnDefinition Width="500"/>
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Style="{StaticResource Panel}">
@@ -611,22 +410,91 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="Click the circles" Style="{StaticResource PanelTitle}"/>
-                            <TextBlock x:Name="TargetScore" Style="{StaticResource SettingHint}" FontSize="16"/>
-                        </StackPanel>
-                        <Button Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" Width="140" Content="Start again" Click="TargetReset_Click"/>
+
+                    <!-- Which activity -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Button x:Name="ActivityCirclesButton" Style="{StaticResource ToggleButtonStyle}" Width="170" Content="Circles"
+                                Tag="Circles" Click="Activity_Click" Margin="0,0,8,0"/>
+                        <Button x:Name="ActivityWordButton" Style="{StaticResource ToggleButtonStyle}" Width="190" Content="Type the word"
+                                Tag="Word" Click="Activity_Click" Margin="0,0,8,0"/>
+                        <Button x:Name="ActivityKeyboardButton" Style="{StaticResource ToggleButtonStyle}" Width="250" Content="Keyboard on and off"
+                                Tag="Keyboard" Click="Activity_Click"/>
+                    </StackPanel>
+
+                    <!-- Circles: one at a time, smaller after five hits with at most one miss,
+                         bigger again after a run of misses -->
+                    <Grid x:Name="CirclesActivity" Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Click the circle" Style="{StaticResource PanelTitle}"/>
+                                <TextBlock x:Name="TargetScore" Style="{StaticResource SettingHint}" FontSize="16"/>
+                            </StackPanel>
+                            <!-- How small the circle has got: one dot per size, filled up to now -->
+                            <StackPanel x:Name="CircleLevelDots" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                            <Button Grid.Column="2" Style="{StaticResource ToggleButtonStyle}" Width="160" Content="Biggest again" Click="TargetReset_Click"/>
+                        </Grid>
+                        <!-- Clicks on the circle are hits; clicks anywhere else in the box are misses -->
+                        <Border x:Name="TargetArea" Grid.Row="1" Background="#262626" CornerRadius="8" ClipToBounds="True"
+                                MouseLeftButtonDown="TargetArea_MouseDown">
+                            <Grid>
+                                <Canvas x:Name="TargetCanvas" SizeChanged="TargetCanvas_SizeChanged"/>
+                                <!-- Says when the circle changes size. Seen, not heard. -->
+                                <TextBlock x:Name="CircleMessage" FontSize="30" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,16,0,0" IsHitTestVisible="False"/>
+                            </Grid>
+                        </Border>
                     </Grid>
-                    <!-- Clicks on the circles are hits; clicks anywhere else in the box are misses -->
-                    <Border x:Name="TargetArea" Grid.Row="1" Background="#262626" CornerRadius="8" ClipToBounds="True"
-                            MouseLeftButtonDown="TargetArea_MouseDown">
-                        <Canvas x:Name="TargetCanvas" SizeChanged="TargetCanvas_SizeChanged"/>
-                    </Border>
+
+                    <!-- Type the word: the letters turn orange as they are typed right -->
+                    <Grid x:Name="WordActivity" Grid.Row="1" Visibility="Collapsed">
+                        <Border Background="#262626" CornerRadius="8" Padding="24">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="760">
+                                <TextBlock x:Name="WordScore" Style="{StaticResource SettingHint}" FontSize="16" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="WordTarget" FontSize="84" FontWeight="Bold" Foreground="White"
+                                           HorizontalAlignment="Center" Margin="0,8,0,4"/>
+                                <TextBlock x:Name="WordMessage" FontSize="26" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"
+                                           HorizontalAlignment="Center" MinHeight="36"/>
+                                <TextBlock x:Name="WordTypingHint" Style="{StaticResource SettingHint}" FontSize="16" HorizontalAlignment="Center" Margin="0,12,0,8"/>
+                                <TextBox x:Name="WordTypingBox" Width="520" Height="68" FontSize="36" TextAlignment="Center"
+                                         VerticalContentAlignment="Center" Background="#3C3C3C" Foreground="White" CaretBrush="White"
+                                         BorderBrush="#666666" BorderThickness="2" TextChanged="WordTypingBox_TextChanged"/>
+                                <Button Style="{StaticResource ToggleButtonStyle}" Width="180" Content="Another word"
+                                        HorizontalAlignment="Center" Margin="0,16,0,0" Click="WordSkip_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Keyboard on and off: two steps, each lit when it is the one to do -->
+                    <Grid x:Name="KeyboardActivity" Grid.Row="1" Visibility="Collapsed">
+                        <Border Background="#262626" CornerRadius="8" Padding="24">
+                            <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,24,0,0">
+                                <TextBlock x:Name="KeyboardScore" Style="{StaticResource SettingHint}" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                                <Border x:Name="KeyboardStepOpen" Style="{StaticResource GuideCard}" Width="560" Height="90" Margin="0,0,0,14">
+                                    <DockPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="KeyboardStepOpenMark" Text="1" FontSize="34" FontWeight="Bold" Foreground="White" Width="50" TextAlignment="Center"/>
+                                        <TextBlock x:Name="KeyboardStepOpenText" Style="{StaticResource CardAction}" FontSize="26"/>
+                                    </DockPanel>
+                                </Border>
+                                <Border x:Name="KeyboardStepClose" Style="{StaticResource GuideCard}" Width="560" Height="90">
+                                    <DockPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="KeyboardStepCloseMark" Text="2" FontSize="34" FontWeight="Bold" Foreground="White" Width="50" TextAlignment="Center"/>
+                                        <TextBlock x:Name="KeyboardStepCloseText" Style="{StaticResource CardAction}" FontSize="26"/>
+                                    </DockPanel>
+                                </Border>
+                                <TextBlock x:Name="KeyboardMessage" FontSize="30" FontWeight="Bold" Foreground="{StaticResource AccentBrush}"
+                                           HorizontalAlignment="Center" Margin="0,20,0,0" MinHeight="40"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -636,15 +504,18 @@
                     <RowDefinition Height="16"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
+                <!-- The record, day by day, for reviews -->
                 <Border Grid.Row="0" Style="{StaticResource Panel}">
                     <StackPanel>
-                        <TextBlock Text="Type something" Style="{StaticResource PanelTitle}"/>
-                        <TextBlock Style="{StaticResource SettingHint}" FontSize="14" Margin="0,0,0,8">
-                            <Run Text="Click in the box, then"/>
-                            <InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="for the keyboard"/>
-                        </TextBlock>
-                        <TextBox x:Name="TryTypingBox" Height="140" FontSize="20" TextWrapping="Wrap" AcceptsReturn="True"
-                                 Background="#3C3C3C" Foreground="White" CaretBrush="White" BorderBrush="#666666" BorderThickness="2" Padding="8"/>
+                        <Grid>
+                            <TextBlock Text="Progress" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
+                            <Button Style="{StaticResource ToggleButtonStyle}" Width="200" FontSize="16" HorizontalAlignment="Right"
+                                    Content="Save for a review..." Click="ExportProgress_Click"/>
+                        </Grid>
+                        <TextBlock Style="{StaticResource SettingHint}" FontSize="14" Margin="0,4,0,10"
+                                   Text="This student's practice, day by day. Kept with their settings; not copied when settings are exported."/>
+                        <Grid x:Name="ProgressTable"/>
+                        <TextBlock x:Name="ProgressStatus" Style="{StaticResource SettingHint}" FontSize="14" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Row="2" Style="{StaticResource Panel}">
@@ -666,176 +537,195 @@
         <!-- ============================ Controller ============================ -->
         <!-- Saved for this student as soon as a setting is changed -->
         <ScrollViewer x:Name="ControllerPage" Grid.Row="2" Margin="16" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="16"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="Pointer" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
-
-                            <Grid Style="{StaticResource SettingRow}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Pointer speed" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="Left stick. Slower is easier to control" Style="{StaticResource SettingHint}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="CursorSlower_Click"/>
-                                    <TextBlock x:Name="CursorSpeedValue" Style="{StaticResource ValueText}"/>
-                                    <Button Style="{StaticResource BigButton}" Content="+" Click="CursorFaster_Click"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <Grid Style="{StaticResource SettingRow}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Scroll speed" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="Right stick" Style="{StaticResource SettingHint}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="ScrollSlower_Click"/>
-                                    <TextBlock x:Name="ScrollSpeedValue" Style="{StaticResource ValueText}"/>
-                                    <Button Style="{StaticResource BigButton}" Content="+" Click="ScrollFaster_Click"/>
-                                </StackPanel>
-                            </Grid>
-
-                            <Grid Style="{StaticResource SettingRow}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Click by resting" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="Clicks when the pointer stops, instead of A" Style="{StaticResource SettingHint}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button x:Name="DwellClickToggle" Style="{StaticResource ToggleButtonStyle}" Click="DwellClickToggle_Click"/>
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="DwellClickShorter_Click" Margin="8,0,0,0"/>
-                                    <TextBlock x:Name="DwellClickValue" Style="{StaticResource ValueText}"/>
-                                    <Button Style="{StaticResource BigButton}" Content="+" Click="DwellClickLonger_Click"/>
-                                </StackPanel>
-                            </Grid>
-                            <Grid Style="{StaticResource SettingRow}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Pointer feel" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="Gentle: slower for a small push, faster for a big one" Style="{StaticResource SettingHint}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button x:Name="CurveSteadyButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Steady" Click="CurveSteady_Click"/>
-                                    <Button x:Name="CurveGentleButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Gentle" Click="CurveGentle_Click" Margin="8,0,0,0"/>
-                                </StackPanel>
-                            </Grid>
-                            <Grid Style="{StaticResource SettingRow}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Smooth out wobbles" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="Steadies a shaky stick. More lags a little behind" Style="{StaticResource SettingHint}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="SmoothingLess_Click"/>
-                                    <TextBlock x:Name="SmoothingValue" Style="{StaticResource ValueText}" Width="96"/>
-                                    <Button Style="{StaticResource BigButton}" Content="+" Click="SmoothingMore_Click"/>
-                                </StackPanel>
-                            </Grid>
-                            <Grid Style="{StaticResource SettingRow}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Ignore quick repeat presses" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="A press this soon after letting go is ignored" Style="{StaticResource SettingHint}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="RepeatShorter_Click"/>
-                                    <TextBlock x:Name="IgnoreRepeatValue" Style="{StaticResource ValueText}" Width="96"/>
-                                    <Button Style="{StaticResource BigButton}" Content="+" Click="RepeatLonger_Click"/>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="Buttons" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
-                            <!-- LT's job while the keyboard is closed. While it is open, LT moves
-                                 the keyboard, whatever is chosen here. -->
-                            <TextBlock Text="LT, while the keyboard is closed" Style="{StaticResource SettingTitle}" Margin="0,6,0,0"/>
-                            <TextBlock Text="While the keyboard is open, LT always moves it up or down" Style="{StaticResource SettingHint}" Margin="0,0,0,8"/>
-                            <WrapPanel>
-                                <Button x:Name="LeftTriggerMagnifierButton" Style="{StaticResource ToggleButtonStyle}" Width="130" Margin="0,0,8,8" Content="Zoom" Tag="Magnifier" Click="LeftTriggerChoice_Click"/>
-                                <Button x:Name="LeftTriggerEscapeButton" Style="{StaticResource ToggleButtonStyle}" Width="130" Margin="0,0,8,8" Content="Escape" Tag="Escape" Click="LeftTriggerChoice_Click"/>
-                                <Button x:Name="LeftTriggerSlowButton" Style="{StaticResource ToggleButtonStyle}" Width="150" Margin="0,0,8,8" Content="Slow pointer" Tag="SlowPointer" Click="LeftTriggerChoice_Click"/>
-                                <Button x:Name="LeftTriggerNothingButton" Style="{StaticResource ToggleButtonStyle}" Width="130" Margin="0,0,8,8" Content="Nothing" Tag="Nothing" Click="LeftTriggerChoice_Click"/>
-                            </WrapPanel>
-                            <TextBlock x:Name="LeftTriggerExplanation" Style="{StaticResource SettingHint}" FontSize="14" Margin="0,0,0,6"/>
-
-                            <Grid Style="{StaticResource SettingRow}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Slow pointer speed" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="A share of the normal speed, while Slow pointer is on" Style="{StaticResource SettingHint}"/>
-                                </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="SlowPointerSlower_Click"/>
-                                    <TextBlock x:Name="SlowPointerValue" Style="{StaticResource ValueText}"/>
-                                    <Button Style="{StaticResource BigButton}" Content="+" Click="SlowPointerFaster_Click"/>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="Other programs" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
-                            <Grid Style="{StaticResource SettingRow}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Pause while Grid 3 is open" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="So the two do not fight over the pointer" Style="{StaticResource SettingHint}"/>
-                                </StackPanel>
-                                <Button x:Name="Grid3Toggle" Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" VerticalAlignment="Center" Click="Grid3Toggle_Click"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="This student's settings" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
-                            <TextBlock Text="Changes are saved for this student straight away." Style="{StaticResource SettingHint}" FontSize="14"/>
-                            <TextBlock x:Name="SettingsLocationText" Style="{StaticResource SettingHint}" Margin="0,2,0,10"/>
-                            <TextBlock Text="To give another student the same settings, export them here, then import them while logged in as that student." Style="{StaticResource SettingHint}" FontSize="14" Margin="0,0,0,8"/>
-                            <StackPanel Orientation="Horizontal">
-                                <Button Style="{StaticResource ToggleButtonStyle}" Width="190" Content="Export settings..." Click="ExportSettings_Click"/>
-                                <Button Style="{StaticResource ToggleButtonStyle}" Width="190" Content="Import settings..." Click="ImportSettings_Click" Margin="8,0,0,0"/>
+            <StackPanel>
+                <!-- Buttons: the Guide's drawing again, where clicking a label chooses
+                     that button's job for this student -->
+                <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,200,0">
+                                <TextBlock Text="Buttons" Style="{StaticResource PanelTitle}"/>
+                                <TextBlock Style="{StaticResource SettingHint}" FontSize="14"
+                                           Text="Click a label, or a button on the drawing, to choose what it does for this student. These are the jobs while the keyboard is closed; while it is open, A, B, Y, LB, RB and the D-pad type."/>
                             </StackPanel>
-                            <TextBlock x:Name="ExportImportStatus" Style="{StaticResource SettingHint}" FontSize="14" Margin="0,8,0,0"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Grid>
+                            <Button Style="{StaticResource ToggleButtonStyle}" Width="180" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                    Content="Back to standard" Click="ButtonsStandard_Click"/>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="540"/>
+                            </Grid.ColumnDefinitions>
+                            <views:ControllerDrawing x:Name="JobsDrawing" Grid.Column="0" MaxHeight="520" VerticalAlignment="Top"/>
+                            <Border Grid.Column="2" Background="#262626" CornerRadius="8" Padding="12">
+                                <StackPanel>
+                                    <TextBlock x:Name="JobChooserTitle" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock x:Name="JobChooserHint" Style="{StaticResource SettingHint}" FontSize="14" Margin="0,2,0,0"/>
+                                    <!-- The D-pad and the stick presses are more than one button: which one -->
+                                    <WrapPanel x:Name="JobParts" Margin="0,10,0,0"/>
+                                    <TextBlock x:Name="JobLockedText" Foreground="{StaticResource WarningBrush}" FontSize="15" FontWeight="SemiBold"
+                                               TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
+                                    <WrapPanel x:Name="JobChoices" Margin="0,10,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="Pointer" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
+
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Pointer speed" Style="{StaticResource SettingTitle}"/>
+                                        <TextBlock Text="Left stick. Slower is easier to control" Style="{StaticResource SettingHint}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource BigButton}" Content="−" Click="CursorSlower_Click"/>
+                                        <TextBlock x:Name="CursorSpeedValue" Style="{StaticResource ValueText}"/>
+                                        <Button Style="{StaticResource BigButton}" Content="+" Click="CursorFaster_Click"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Scroll speed" Style="{StaticResource SettingTitle}"/>
+                                        <TextBlock Text="Right stick" Style="{StaticResource SettingHint}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource BigButton}" Content="−" Click="ScrollSlower_Click"/>
+                                        <TextBlock x:Name="ScrollSpeedValue" Style="{StaticResource ValueText}"/>
+                                        <Button Style="{StaticResource BigButton}" Content="+" Click="ScrollFaster_Click"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Click by resting" Style="{StaticResource SettingTitle}"/>
+                                        <TextBlock Text="Clicks when the pointer stops, instead of A" Style="{StaticResource SettingHint}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="DwellClickToggle" Style="{StaticResource ToggleButtonStyle}" Click="DwellClickToggle_Click"/>
+                                        <Button Style="{StaticResource BigButton}" Content="−" Click="DwellClickShorter_Click" Margin="8,0,0,0"/>
+                                        <TextBlock x:Name="DwellClickValue" Style="{StaticResource ValueText}"/>
+                                        <Button Style="{StaticResource BigButton}" Content="+" Click="DwellClickLonger_Click"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Pointer feel" Style="{StaticResource SettingTitle}"/>
+                                        <TextBlock Text="Gentle: slower for a small push, faster for a big one" Style="{StaticResource SettingHint}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="CurveSteadyButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Steady" Click="CurveSteady_Click"/>
+                                        <Button x:Name="CurveGentleButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Gentle" Click="CurveGentle_Click" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Smooth out wobbles" Style="{StaticResource SettingTitle}"/>
+                                        <TextBlock Text="Steadies a shaky stick. More lags a little behind" Style="{StaticResource SettingHint}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource BigButton}" Content="−" Click="SmoothingLess_Click"/>
+                                        <TextBlock x:Name="SmoothingValue" Style="{StaticResource ValueText}" Width="96"/>
+                                        <Button Style="{StaticResource BigButton}" Content="+" Click="SmoothingMore_Click"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Ignore quick repeat presses" Style="{StaticResource SettingTitle}"/>
+                                        <TextBlock Text="A press this soon after letting go is ignored" Style="{StaticResource SettingHint}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource BigButton}" Content="−" Click="RepeatShorter_Click"/>
+                                        <TextBlock x:Name="IgnoreRepeatValue" Style="{StaticResource ValueText}" Width="96"/>
+                                        <Button Style="{StaticResource BigButton}" Content="+" Click="RepeatLonger_Click"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Slow pointer speed" Style="{StaticResource SettingTitle}"/>
+                                        <TextBlock Text="A share of the normal speed, while Slow pointer is on" Style="{StaticResource SettingHint}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource BigButton}" Content="−" Click="SlowPointerSlower_Click"/>
+                                        <TextBlock x:Name="SlowPointerValue" Style="{StaticResource ValueText}"/>
+                                        <Button Style="{StaticResource BigButton}" Content="+" Click="SlowPointerFaster_Click"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="Other programs" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
+                                <Grid Style="{StaticResource SettingRow}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="Pause while Grid 3 is open" Style="{StaticResource SettingTitle}"/>
+                                        <TextBlock Text="So the two do not fight over the pointer" Style="{StaticResource SettingHint}"/>
+                                    </StackPanel>
+                                    <Button x:Name="Grid3Toggle" Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" VerticalAlignment="Center" Click="Grid3Toggle_Click"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="This student's settings" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
+                                <TextBlock Text="Changes are saved for this student straight away." Style="{StaticResource SettingHint}" FontSize="14"/>
+                                <TextBlock x:Name="SettingsLocationText" Style="{StaticResource SettingHint}" Margin="0,2,0,10"/>
+                                <TextBlock Text="To give another student the same settings, export them here, then import them while logged in as that student." Style="{StaticResource SettingHint}" FontSize="14" Margin="0,0,0,8"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource ToggleButtonStyle}" Width="190" Content="Export settings..." Click="ExportSettings_Click"/>
+                                    <Button Style="{StaticResource ToggleButtonStyle}" Width="190" Content="Import settings..." Click="ImportSettings_Click" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <TextBlock x:Name="ExportImportStatus" Style="{StaticResource SettingHint}" FontSize="14" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
         </ScrollViewer>
 
         <!-- ============================= Keyboard ============================= -->
@@ -851,9 +741,7 @@
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Text="Keyboard" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
-                                <TextBlock Style="{StaticResource SettingHint}" FontSize="14" VerticalAlignment="Center" Margin="12,2,0,0">
-                                    <InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeX}"/></InlineUIContainer><Run Text="opens and closes it"/>
-                                </TextBlock>
+                                <TextBlock x:Name="KeyboardButtonHint" Style="{StaticResource SettingHint}" FontSize="14" VerticalAlignment="Center" Margin="12,2,0,0"/>
                             </StackPanel>
 
                             <Grid Style="{StaticResource SettingRow}">

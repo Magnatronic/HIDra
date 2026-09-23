@@ -36,6 +36,12 @@ public static class UserSettingsStore
     public static string Location => Path.Combine(ChosenFolder.Value, FileName);
 
     /// <summary>
+    /// The folder this student's files are kept in, so anything else of theirs - such as
+    /// their practice - follows them the same way
+    /// </summary>
+    public static string Folder => ChosenFolder.Value;
+
+    /// <summary>
     /// Load saved settings, falling back to defaults if the file is missing or unreadable
     /// </summary>
     public static UserSettings Load()
@@ -138,6 +144,10 @@ public static class UserSettingsStore
         {
             settings.LeftTrigger = LeftTriggerAction.Magnifier;
         }
+
+        // A hand-edited or imported file cannot leave a student without a click or a
+        // way to open the keyboard
+        settings.ButtonJobs = ButtonJobCatalogue.Clean(settings.ButtonJobs);
 
         // Always exactly one slot per phrase key, whatever an older file held
         settings.Phrases ??= new List<string>();

@@ -18,5 +18,71 @@
         <SolidColorBrush x:Key="AccentBrush" Color="#FF9A1F"/>
         <SolidColorBrush x:Key="AccentOnBrush" Color="#B85400"/>
         <SolidColorBrush x:Key="WarningBrush" Color="#F2C12E"/>
+
+        <!-- The controller drawing, used on two pages, and the controller buttons drawn
+             in text on any of them -->
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#3A3A3A"/>
+
+        <!-- A label on the controller drawing. The code turns its border orange while
+             its button is pressed. -->
+        <Style x:Key="GuideCard" TargetType="Border">
+            <Setter Property="Background" Value="#262626"/>
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="3"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Width" Value="300"/>
+            <Setter Property="Height" Value="58"/>
+        </Style>
+        <Style x:Key="CardAction" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="LeaderLine" TargetType="Line">
+            <Setter Property="Stroke" Value="#6B7278"/>
+            <Setter Property="StrokeThickness" Value="2"/>
+        </Style>
+
+        <!-- A controller button drawn as it looks on the controller, for labels and for
+             the "How do I..." text. Face buttons keep Xbox colours, because they match
+             the controller in the student's hands. -->
+        <Style x:Key="Badge" TargetType="ContentControl">
+            <Setter Property="Background" Value="#50575E"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="1,0,6,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="12"
+                                MinWidth="24" Height="24" Padding="7,0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="BadgeA" TargetType="ContentControl" BasedOn="{StaticResource Badge}">
+            <Setter Property="Background" Value="#4CAF50"/>
+            <Setter Property="Content" Value="A"/>
+        </Style>
+        <Style x:Key="BadgeB" TargetType="ContentControl" BasedOn="{StaticResource Badge}">
+            <Setter Property="Background" Value="#E5484D"/>
+            <Setter Property="Content" Value="B"/>
+        </Style>
+        <Style x:Key="BadgeX" TargetType="ContentControl" BasedOn="{StaticResource Badge}">
+            <Setter Property="Background" Value="#3B82F6"/>
+            <Setter Property="Content" Value="X"/>
+        </Style>
+        <Style x:Key="BadgeY" TargetType="ContentControl" BasedOn="{StaticResource Badge}">
+            <Setter Property="Background" Value="#F2C12E"/>
+            <Setter Property="Foreground" Value="#1A1A1A"/>
+            <Setter Property="Content" Value="Y"/>
+        </Style>
     </Application.Resources>
 </Application>

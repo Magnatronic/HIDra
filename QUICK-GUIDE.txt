@@ -115,6 +115,10 @@ See All Open Programs:
 FULL BUTTON REFERENCE
 ----------------------
 
+These are the standard jobs. Staff can give a button a different job for
+you, on the Controller tab. The Guide tab of the HIDra screen always shows
+what YOUR buttons do - press one and it lights up.
+
 Left Stick:
   Move = Mouse cursor
   Click Down = Undo (Ctrl+Z)
@@ -149,6 +153,16 @@ D-Pad:
 Back/Start:
   Back = Windows Key (Start Menu)
   Start = Task View (see all windows at once)
+
+PRACTICE
+--------
+The Practice tab of the HIDra screen has three things to practise:
+  Circles        Click the circle. It gets smaller as you get better,
+                 and starts at your size next time
+  Type the word  Type the big word - its letters turn orange as you go
+  Keyboard       Open the keyboard, then close it
+Each day's practice is kept, for looking back on. Staff can save it as a
+spreadsheet with "Save for a review...".
 
 VIRTUAL KEYBOARD TIPS
 ----------------------
@@ -220,6 +234,12 @@ Window disappeared?
 Closing the window does NOT stop HIDra.
   It keeps running so the controller keeps working. To stop it properly,
   right-click the HIDra icon near the clock and choose "Exit HIDra".
+
+A button does something unexpected?
+  Staff may have given it a different job. The Guide tab shows what
+  each button does now. "Back to standard" on the Controller tab puts
+  every button back. Holding BACK and START together always brings
+  HIDra back, whatever they have been given.
 
 Cursor moving too fast/slow?
   - Use the - and + buttons beside Pointer speed, on the Controller tab

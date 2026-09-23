@@ -24,7 +24,9 @@ public class HIDraEngine : IDisposable
     private readonly KeyboardSimulator _keyboardSimulator;
     private readonly ButtonActionHandler _buttonActionHandler;
     private readonly InputSettings _settings;
-    private readonly Dictionary<string, ButtonMapping> _buttonMappings;
+    // Replaced whole, never changed in place, so the polling thread always sees one
+    // complete set
+    private volatile Dictionary<string, ButtonMapping> _buttonMappings;
 
     private ControllerState? _previousState;
     private bool _isRunning;
@@ -445,6 +447,15 @@ public class HIDraEngine : IDisposable
         _keyboardSimulator.ReleaseAll();
     }
     
+    /// <summary>
+    /// Give the buttons new jobs, from the next press on - how a student's own button
+    /// choices take effect while the controller is in use
+    /// </summary>
+    public void SetButtonMappings(Dictionary<string, ButtonMapping> buttonMappings)
+    {
+        _buttonMappings = buttonMappings ?? new Dictionary<string, ButtonMapping>();
+    }
+
     /// <summary>
     /// Send a key press (for virtual keyboard)
     /// </summary>
