@@ -146,8 +146,13 @@ screen, pages needed scrolling on a laptop, and Practice was more play than prac
   down the page.
 - **LT can have any job**, the same list as the other buttons, plus Zoom and Slow
   pointer. New students start on **Escape**; a student's earlier choice is kept.
-- **Buttons tab**: the jobs are grouped - Clicks, Keyboard and pointer, Windows,
-  Editing, Keys - beside the drawing, each explained under the pointer.
+- **Buttons tab**: beside the drawing, a card for the chosen button - what it **does**,
+  what it does **while typing**, and its **standard** job with **Reset this button** -
+  then its possible jobs, grouped (Clicks, Keyboard and pointer, Windows, Editing,
+  Keys), each with an icon, growing to fill a bigger screen. A dot marks the standard
+  job; a job that cannot go on the button shows a lock, and pointing at any job says
+  what it does, or why not, in the line at the bottom. With no button chosen, the panel
+  lists every button changed for this student, each one click from its jobs.
 - **Keyboard tab**: the shortcut rows and the Apps row together, with the choices
   opening over the page, where there is room for them all.
 - **The Apps key can open any program on the Start menu** - Store apps too, such as the

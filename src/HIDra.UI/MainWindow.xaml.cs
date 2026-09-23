@@ -1063,15 +1063,23 @@ namespace HIDra.UI
             JobsDrawing.Select(_jobPart);
             JobParts.Children.Clear();
             JobChoices.Children.Clear();
+            JobChoices.RowDefinitions.Clear();
+            JobChoices.ColumnDefinitions.Clear();
             JobLockedText.Visibility = Visibility.Collapsed;
+            JobHoverText.Text = "";
 
-            if (_jobPart == null)
+            bool chosen = _jobPart != null;
+            JobIntro.Visibility = chosen ? Visibility.Collapsed : Visibility.Visible;
+            JobCard.Visibility = chosen ? Visibility.Visible : Visibility.Collapsed;
+
+            if (!chosen)
             {
-                JobChooserTitle.Text = "Choose a button";
-                JobChooserHint.Text = "Click a label, or a button on the drawing, to choose what it does for this student while the keyboard is closed. "
-                    + "The sticks and RT cannot be changed.\n\n"
+                JobChooserHint.Text = "Click a label, or a button on the drawing, to choose what it does for this student "
+                    + "while the keyboard is closed. The sticks and RT cannot be changed.\n\n"
                     + "Holding Back and Start together always brings HIDra back, whatever Back and Start are given here. "
                     + "Some button always clicks, and some button always opens the keyboard.";
+                ShowChangedButtons();
+                JobHoverText.Text = "Changes are saved for this student straight away.";
                 return;
             }
 
@@ -1100,18 +1108,36 @@ namespace HIDra.UI
                 };
                 JobParts.Children.Add(pick);
             }
+            JobParts.Visibility = parts.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
             var button = ButtonJobCatalogue.Button(_jobButton!)!;
             var current = Jobs[button.Name];
+            var standard = ButtonJobCatalogue.Find(button.StandardJob)!;
             string? locked = ButtonJobCatalogue.WhyLocked(_userSettings.ButtonJobs, button.Name);
 
-            JobChooserTitle.Text = $"What {button.Label} does:  {current.Label}";
-            JobChooserHint.Text = current.Description + ". " + (button.TypingJob == null
-                    ? "It does this while the keyboard is open, too."
-                    : current.Id == ButtonJobCatalogue.Keyboard
-                        ? "While the keyboard is open it closes it."
-                        : $"While the keyboard is open: {button.TypingJob}.")
-                + $" Standard: {ButtonJobCatalogue.Find(button.StandardJob)!.Label}.";
+            // The card: which button, what it does now, while typing, and normally
+            var badge = new ContentControl
+            {
+                Style = (Style)FindResource(button.Name switch
+                {
+                    "ButtonA" => "BadgeA",
+                    "ButtonB" => "BadgeB",
+                    "ButtonX" => "BadgeX",
+                    "ButtonY" => "BadgeY",
+                    _ => "Badge"
+                }),
+                Content = button.Name is "ButtonA" or "ButtonB" or "ButtonX" or "ButtonY" ? button.Label.Trim() : button.Label,
+                LayoutTransform = new ScaleTransform(1.5, 1.5)
+            };
+            JobBadgeHost.Child = badge;
+            JobCurrentText.Text = current.Label;
+            WriteLabelled(JobDoesText, "Does", current.Description);
+            WriteLabelled(JobTypingText, "While typing", button.TypingJob == null
+                ? "the same"
+                : current.Id == ButtonJobCatalogue.Keyboard ? "closes the keyboard" : button.TypingJob);
+            WriteLabelled(JobStandardText, "Standard", standard.Label);
+            JobResetButton.IsEnabled = current != standard && locked == null;
+            JobResetButton.Opacity = JobResetButton.IsEnabled ? 1 : 0.5;
 
             if (locked != null)
             {
@@ -1119,50 +1145,240 @@ namespace HIDra.UI
                 JobLockedText.Visibility = Visibility.Visible;
             }
 
-            // A row or two for each kind of job, so the one wanted is quick to find. Jobs only
-            // one button can have are left out for the rest; the keyboard is shown but
-            // greyed where it could not be closed again.
+            // The jobs, a row or two for each kind, four across, the rows sharing the height
+            // there is so the buttons grow on a bigger screen
+            JobChoices.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(84) });
+            JobChoices.ColumnDefinitions.Add(new ColumnDefinition());
+
+            string resting = "Point at a job for what it does. Dot: standard.";
+            JobHoverText.Text = resting;
+            int row = 0;
             foreach (var (group, ids) in JobGroups)
             {
-                var tiles = new WrapPanel();
+                var jobs = new List<ButtonJob>();
                 foreach (var id in ids)
                 {
                     var job = ButtonJobCatalogue.Find(id)!;
-                    if (job.OnlyOn != null && job.OnlyOn != button.Name)
+                    if (job.OnlyOn == null || job.OnlyOn == button.Name)
                     {
-                        continue;
+                        jobs.Add(job);
                     }
-
-                    bool allowed = ButtonJobCatalogue.Allowed(button, job);
-                    var choice = EditorKey("JobChoice", job.Label);
-                    choice.ToolTip = allowed ? job.Description : "Only on X, Back, Start or a stick press, so it can close the keyboard too";
-                    choice.Background = job == current ? OnBrush : OffBrush;
-                    choice.IsEnabled = allowed && (locked == null || job == current);
-                    choice.Opacity = choice.IsEnabled ? 1 : 0.5;
-                    choice.Click += (_, _) => SetButtonJob(button, job);
-                    tiles.Children.Add(choice);
                 }
 
-                if (tiles.Children.Count == 0)
+                int firstRow = row;
+                for (int start = 0; start < jobs.Count; start += 4)
                 {
-                    continue;
+                    JobChoices.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star), MinHeight = 42, MaxHeight = 66 });
+                    var line = new UniformGrid { Columns = 4, Rows = 1 };
+                    for (int i = start; i < Math.Min(start + 4, jobs.Count); i++)
+                    {
+                        var job = jobs[i];
+                        bool allowed = ButtonJobCatalogue.Allowed(button, job);
+                        bool usable = allowed && (locked == null || job == current);
+                        string why = !allowed ? "Only on X, Back, Start or a stick press, so it can close the keyboard too."
+                            : !usable ? locked! : job.Description + ".";
+
+                        var tile = JobTile(job, job == current, job == standard, usable);
+                        tile.MouseEnter += (_, _) => JobHoverText.Text = $"{job.Label}: {why}";
+                        tile.MouseLeave += (_, _) => JobHoverText.Text = resting;
+                        if (usable)
+                        {
+                            tile.Click += (_, _) => SetButtonJob(button, job);
+                        }
+                        line.Children.Add(tile);
+                    }
+                    Grid.SetRow(line, row);
+                    Grid.SetColumn(line, 1);
+                    JobChoices.Children.Add(line);
+                    row++;
                 }
 
-                var line = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
                 var name = new TextBlock
                 {
                     Text = group,
-                    Width = 86,
                     FontSize = 14,
                     FontWeight = FontWeights.SemiBold,
                     Foreground = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA)),
                     TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 12, 6, 0)
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 8, 0)
                 };
-                DockPanel.SetDock(name, Dock.Left);
-                line.Children.Add(name);
-                line.Children.Add(tiles);
-                JobChoices.Children.Add(line);
+                Grid.SetRow(name, firstRow);
+                Grid.SetRowSpan(name, row - firstRow);
+                JobChoices.Children.Add(name);
+            }
+        }
+
+        /// <summary>
+        /// A job to choose: its icon and name, orange when it is the button's job, marked
+        /// when it is the standard one, and dimmed with a lock when it cannot go here.
+        /// Left enabled even then, so pointing at it can say why.
+        /// </summary>
+        private Button JobTile(ButtonJob job, bool current, bool standard, bool usable)
+        {
+            var text = new SolidColorBrush(usable ? Colors.White : Color.FromRgb(0x99, 0x99, 0x99));
+            // Icon on the left, the name taking the rest and wrapping onto a second line
+            // when the tile is narrow
+            var content = new DockPanel { LastChildFill = true };
+            var glyph = new TextBlock
+            {
+                Text = (usable ? JobIcon(job.Id) : LockIcon).ToString(),
+                FontFamily = ShortcutCatalogue.IconFont,
+                FontSize = 17,
+                FontWeight = FontWeights.Normal,
+                Foreground = text,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(2, 0, 7, 0)
+            };
+            DockPanel.SetDock(glyph, Dock.Left);
+            content.Children.Add(glyph);
+
+            // A dot marks the standard job, beside the name rather than over it
+            if (standard)
+            {
+                var dot = new Ellipse
+                {
+                    Width = 7,
+                    Height = 7,
+                    Fill = new SolidColorBrush(Color.FromRgb(0xDD, 0xDD, 0xDD)),
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(5, 0, 0, 0)
+                };
+                DockPanel.SetDock(dot, Dock.Right);
+                content.Children.Add(dot);
+            }
+
+            content.Children.Add(new TextBlock
+            {
+                // Shorter names in the Windows row, which already says "window"
+                Text = job.Id switch
+                {
+                    "maximise" => "Maximise",
+                    "minimise" => "Minimise",
+                    "snap-left" => "Snap left",
+                    "snap-right" => "Snap right",
+                    "close-window" => "Close",
+                    _ => job.Label
+                },
+                FontSize = 13.5,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = text,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalAlignment = VerticalAlignment.Center
+            });
+
+            var face = new Grid();
+            face.Children.Add(content);
+
+            return new Button
+            {
+                Style = (Style)FindResource("JobChoice"),
+                Content = face,
+                Background = current ? OnBrush : usable ? OffBrush : new SolidColorBrush(Color.FromRgb(0x2C, 0x2C, 0x2C)),
+                Cursor = usable ? System.Windows.Input.Cursors.Hand : System.Windows.Input.Cursors.Arrow,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                VerticalContentAlignment = VerticalAlignment.Stretch
+            };
+        }
+
+        private const char LockIcon = '\uE72E';
+
+        /// <summary>
+        /// The icon for each job, from the same Windows icon font as the shortcut keys
+        /// </summary>
+        private static char JobIcon(string id) => id switch
+        {
+            "click" => '\uE7C9',
+            "right-click" => '\uE700',
+            "double-click" => '\uE8E5',
+            "keyboard" => '\uE765',
+            "swap-sticks" => '\uE8AB',
+            "zoom" => '\uE8A3',
+            "slow-pointer" => '\uE916',
+            "switch-programs" => '\uE8A9',
+            "start-menu" => '\uE80F',
+            "all-windows" => '\uE7C4',
+            "close-window" => '\uE8BB',
+            "maximise" => '\uE922',
+            "minimise" => '\uE921',
+            "snap-left" => '\uE76B',
+            "snap-right" => '\uE76C',
+            "undo" => '\uE7A7',
+            "redo" => '\uE7A6',
+            "copy" => '\uE8C8',
+            "paste" => '\uE77F',
+            "escape" => '\uE711',
+            "enter" => '\uE751',
+            "tab" => '\uE7FD',
+            _ => '\uE738'
+        };
+
+        /// <summary>"Label: text", the label in bold</summary>
+        private static void WriteLabelled(TextBlock block, string label, string text)
+        {
+            block.Inlines.Clear();
+            block.Inlines.Add(new Run(label + ":  ") { FontWeight = FontWeights.SemiBold, Foreground = Brushes.White });
+            block.Inlines.Add(new Run(text));
+        }
+
+        /// <summary>
+        /// Every button changed from standard for this student, each one click from its
+        /// jobs - so a student's set-up can be seen at a glance
+        /// </summary>
+        private void ShowChangedButtons()
+        {
+            JobChangedList.Children.Clear();
+            var jobs = Jobs;
+            foreach (var button in ButtonJobCatalogue.Buttons)
+            {
+                var job = jobs[button.Name];
+                if (job.Id == button.StandardJob)
+                {
+                    continue;
+                }
+
+                var line = new Button
+                {
+                    Style = (Style)FindResource("ToggleButtonStyle"),
+                    Width = double.NaN,
+                    Height = 38,
+                    FontSize = 15,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
+                    Margin = new Thickness(0, 0, 0, 6),
+                    Content = new TextBlock
+                    {
+                        Text = $"{button.Label}:  {job.Label}   (standard {ButtonJobCatalogue.Find(button.StandardJob)!.Label})",
+                        Margin = new Thickness(12, 0, 12, 0)
+                    }
+                };
+                string name = button.Name;
+                line.Click += (_, _) =>
+                {
+                    string part = name.StartsWith("Dpad") ? "DPad" : name.EndsWith("StickClick") ? "StickPress" : name;
+                    ChooseJobPart(part);
+                    _jobButton = name;
+                    BuildJobChooser();
+                };
+                JobChangedList.Children.Add(line);
+            }
+
+            if (JobChangedList.Children.Count == 0)
+            {
+                JobChangedList.Children.Add(new TextBlock
+                {
+                    Text = "Nothing - every button does its standard job.",
+                    Style = (Style)FindResource("SettingHint"),
+                    FontSize = 15
+                });
+            }
+        }
+
+        private void JobReset_Click(object sender, RoutedEventArgs e)
+        {
+            if (_jobButton != null && ButtonJobCatalogue.Button(_jobButton) is { } button)
+            {
+                SetButtonJob(button, ButtonJobCatalogue.Find(button.StandardJob)!);
             }
         }
 
