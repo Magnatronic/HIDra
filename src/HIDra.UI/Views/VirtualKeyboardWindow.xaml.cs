@@ -72,6 +72,7 @@ public partial class VirtualKeyboardWindow : Window
         {
             if (IsVisible)
             {
+                ShowSymbols(false);
                 StartFresh();
                 NotifyActivity();
                 UpdateProgramRow();
@@ -213,6 +214,42 @@ public partial class VirtualKeyboardWindow : Window
     private void SpaceButton_Click(object sender, RoutedEventArgs e)
     {
         RaiseTextEntered(" ");
+    }
+
+    // ---------------------------------------------------------------------------
+    // Letters and symbols
+    //
+    // The digits and symbols share the letters' places, a layer at a time, so the
+    // letters no longer have to make room for keys typed a few times a day. The layer
+    // key stays in the same corner on both, so the highlight is already on it to come
+    // back. Opening the keyboard always starts on the letters.
+    // ---------------------------------------------------------------------------
+
+    private bool _showingSymbols;
+
+    private void LayerKey_Click(object sender, RoutedEventArgs e)
+    {
+        ShowSymbols(!_showingSymbols);
+    }
+
+    private void ShowSymbols(bool symbols)
+    {
+        _showingSymbols = symbols;
+
+        var letters = symbols ? Visibility.Collapsed : Visibility.Visible;
+        var symbolLayer = symbols ? Visibility.Visible : Visibility.Collapsed;
+        LettersRow1.Visibility = LettersRow2.Visibility = LettersRow3.Visibility = letters;
+        SymbolsRow1.Visibility = SymbolsRow2.Visibility = SymbolsRow3.Visibility = symbolLayer;
+        LayerKey.Content = symbols ? "abc" : "123 #+";
+
+        // Half the keys have just changed, so the highlight's map of them is stale. The
+        // highlight itself is on the layer key or off the board, so it is never left on a
+        // key that has gone.
+        _navigableKeys.Clear();
+        if (_highlightedKey != null && !_highlightedKey.IsVisible)
+        {
+            ClearHighlight();
+        }
     }
 
     private void ShiftButton_Click(object sender, RoutedEventArgs e)
@@ -1191,7 +1228,9 @@ public partial class VirtualKeyboardWindow : Window
             SetScale(_scale);
         }
     }
-    private const double BaseHeight = 424;
+    // Five rows - suggestions and four of keys - each as tall as before the number row
+    // moved onto the symbols layer
+    private const double BaseHeight = 356;
 
     /// <summary>
     /// Scale the whole keyboard, keys and text alike. It never grows wider than the
@@ -1738,7 +1777,9 @@ public partial class VirtualKeyboardWindow : Window
         {
             var child = VisualTreeHelper.GetChild(parent, i);
 
-            if (child is Button button && button.ActualWidth > 0 && button.ActualHeight > 0)
+            // IsVisible as well as a size: the keys of the layer not showing keep the
+            // size they last had, because a hidden panel does not lay its children out
+            if (child is Button button && button.IsVisible && button.ActualWidth > 0 && button.ActualHeight > 0)
             {
                 _navigableKeys.Add(button);
             }

@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="HIDra Virtual Keyboard"
-        Width="1490" Height="424"
+        Width="1490" Height="356"
         WindowStyle="None"
         AllowsTransparency="True"
         BorderBrush="#666666"
@@ -185,7 +185,6 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <!-- The keys, then the shortcut panel beside Backspace, Del and Enter -->
         <Grid.ColumnDefinitions>
@@ -197,7 +196,7 @@
              when empty, so the rows below never shift and the highlight's routes stay
              where the user has learned them. Pushing up from the number row reaches
              them; A types the rest of the word and a space, B the same capitalised. -->
-        <Grid Grid.Row="0" Grid.ColumnSpan="2">
+        <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="0.8*"/>
                 <ColumnDefinition Width="0.8*"/>
@@ -220,200 +219,235 @@
             <Button x:Name="Suggestion5" Grid.Column="7" Style="{StaticResource SuggestionKeyStyle}" Click="SuggestionButton_Click" Tag="5"/>
         </Grid>
 
-        <!-- Row 1: Numbers and symbols (with shift variants) -->
-        <UniformGrid Grid.Row="1" Rows="1" Columns="14">
+        <!--
+            The keys, in four rows measured in key widths, 13.5 to a row. Each row starts
+            with a wider key than the one above - Close, Tab, Shift - so the letters sit
+            offset the way every keyboard's do, instead of stacked in a grid. It reads as
+            a keyboard at a glance, and the highlight's routes are the ones a hand learns.
+
+            There used to be a number row and fourteen equal keys to every row, so the
+            symbols typed least - [ ] \ ; # = - cost a full key each, on the way to the
+            ones typed most. Now the letters share their places with a second layer, the
+            way a phone does: the 123 key swaps the letters for digits and symbols, in the
+            same cells, and abc swaps them back. Everything around the edge - Close,
+            Backspace, Tab, Enter, Shift, Space, the arrows - stays exactly where it is on
+            both, so switching never moves a key the student is heading for.
+
+            The keys typed most are the biggest: Space by far, then Enter and Backspace.
+            With no number row the word suggestions are one step nearer the letters. The
+            punctuation on the letters layer is what sentences need - ' , . / - with
+            @ ? and the rest on B, as before.
+        -->
+
+        <!-- Row 1: q to p, or 1 to 0 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="10*"/>
+                <ColumnDefinition Width="1.5*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
             <!-- Close sat beside the up arrow, one step from keys that editing text uses
                  constantly, where an overshoot ended the typing session. The top left
                  corner is the one place on the board nothing routes through: you arrive
                  here only by deciding to. -->
-            <Button Style="{StaticResource CloseKeyStyle}" Content="✕" Click="CloseButton_Click"/>
-            <Button x:Name="Key1" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="1">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">!</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">1</Run></TextBlock>
-            </Button>
-            <Button x:Name="Key2" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="2">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">"</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">2</Run></TextBlock>
-            </Button>
-            <Button x:Name="Key3" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="3">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">£</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">3</Run></TextBlock>
-            </Button>
-            <Button x:Name="Key4" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="4">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">$</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">4</Run></TextBlock>
-            </Button>
-            <Button x:Name="Key5" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="5">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">%</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">5</Run></TextBlock>
-            </Button>
-            <Button x:Name="Key6" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="6">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">^</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">6</Run></TextBlock>
-            </Button>
-            <Button x:Name="Key7" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="7">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">&amp;</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">7</Run></TextBlock>
-            </Button>
-            <Button x:Name="Key8" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="8">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">*</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">8</Run></TextBlock>
-            </Button>
-            <Button x:Name="Key9" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="9">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">(</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">9</Run></TextBlock>
-            </Button>
-            <Button x:Name="Key0" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="0">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">)</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">0</Run></TextBlock>
-            </Button>
-            <Button x:Name="KeyMinus" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="-">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">_</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">-</Run></TextBlock>
-            </Button>
-            <Button x:Name="KeyEquals" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="=">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">+</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">=</Run></TextBlock>
-            </Button>
-            <!-- The controller button that types this key from anywhere on the board, shown on
-                 the key itself so the shortcut is learned by seeing it -->
-            <Button Style="{StaticResource FunctionGlyphKeyStyle}" Click="BackspaceButton_Click">
+            <Button Grid.Column="0" Style="{StaticResource CloseKeyStyle}" Content="✕" Click="CloseButton_Click"/>
+            <UniformGrid x:Name="LettersRow1" Grid.Column="1" Rows="1" Columns="10">
+                <Button x:Name="KeyQ" Style="{StaticResource LetterKeyStyle}" Content="q" Click="KeyButton_Click" Tag="Q"/>
+                <Button x:Name="KeyW" Style="{StaticResource LetterKeyStyle}" Content="w" Click="KeyButton_Click" Tag="W"/>
+                <Button x:Name="KeyE" Style="{StaticResource LetterKeyStyle}" Content="e" Click="KeyButton_Click" Tag="E"/>
+                <Button x:Name="KeyR" Style="{StaticResource LetterKeyStyle}" Content="r" Click="KeyButton_Click" Tag="R"/>
+                <Button x:Name="KeyT" Style="{StaticResource LetterKeyStyle}" Content="t" Click="KeyButton_Click" Tag="T"/>
+                <Button x:Name="KeyY" Style="{StaticResource LetterKeyStyle}" Content="y" Click="KeyButton_Click" Tag="Y"/>
+                <Button x:Name="KeyU" Style="{StaticResource LetterKeyStyle}" Content="u" Click="KeyButton_Click" Tag="U"/>
+                <Button x:Name="KeyI" Style="{StaticResource LetterKeyStyle}" Content="i" Click="KeyButton_Click" Tag="I"/>
+                <Button x:Name="KeyO" Style="{StaticResource LetterKeyStyle}" Content="o" Click="KeyButton_Click" Tag="O"/>
+                <Button x:Name="KeyP" Style="{StaticResource LetterKeyStyle}" Content="p" Click="KeyButton_Click" Tag="P"/>
+            </UniformGrid>
+            <UniformGrid x:Name="SymbolsRow1" Grid.Column="1" Rows="1" Columns="10" Visibility="Collapsed">
+                <Button x:Name="Key1" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="1">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">!</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">1</Run></TextBlock>
+                </Button>
+                <Button x:Name="Key2" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="2">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">"</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">2</Run></TextBlock>
+                </Button>
+                <Button x:Name="Key3" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="3">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">£</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">3</Run></TextBlock>
+                </Button>
+                <Button x:Name="Key4" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="4">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">$</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">4</Run></TextBlock>
+                </Button>
+                <Button x:Name="Key5" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="5">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">%</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">5</Run></TextBlock>
+                </Button>
+                <Button x:Name="Key6" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="6">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">^</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">6</Run></TextBlock>
+                </Button>
+                <Button x:Name="Key7" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="7">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">&amp;</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">7</Run></TextBlock>
+                </Button>
+                <Button x:Name="Key8" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="8">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">*</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">8</Run></TextBlock>
+                </Button>
+                <Button x:Name="Key9" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="9">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">(</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">9</Run></TextBlock>
+                </Button>
+                <Button x:Name="Key0" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="0">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">)</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">0</Run></TextBlock>
+                </Button>
+            </UniformGrid>
+            <!-- LB, RB and Y type these from anywhere on the board, and say so on the key, so
+                 the shortcut is learned by seeing it -->
+            <Button Grid.Column="2" Style="{StaticResource FunctionGlyphKeyStyle}" Click="BackspaceButton_Click">
                 <StackPanel>
                     <TextBlock Text="⌫" HorizontalAlignment="Center"/>
                     <TextBlock Text="LB" FontSize="12" FontWeight="SemiBold" Foreground="#FFC27A" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Button>
-        </UniformGrid>
+            <!-- Del beside Backspace: the end of the row is the one place to look for
+                 removing text -->
+            <Button Grid.Column="3" Style="{StaticResource FunctionKeyStyle}" Content="Del" Click="DeleteButton_Click"/>
+        </Grid>
 
-        <!-- Row 2: QWERTYUIOP + Brackets -->
-        <UniformGrid Grid.Row="2" Rows="1" Columns="14">
-            <Button Style="{StaticResource FunctionKeyStyle}" Content="Tab" Click="TabButton_Click"/>
-            <Button x:Name="KeyQ" Style="{StaticResource LetterKeyStyle}" Content="q" Click="KeyButton_Click" Tag="Q"/>
-            <Button x:Name="KeyW" Style="{StaticResource LetterKeyStyle}" Content="w" Click="KeyButton_Click" Tag="W"/>
-            <Button x:Name="KeyE" Style="{StaticResource LetterKeyStyle}" Content="e" Click="KeyButton_Click" Tag="E"/>
-            <Button x:Name="KeyR" Style="{StaticResource LetterKeyStyle}" Content="r" Click="KeyButton_Click" Tag="R"/>
-            <Button x:Name="KeyT" Style="{StaticResource LetterKeyStyle}" Content="t" Click="KeyButton_Click" Tag="T"/>
-            <Button x:Name="KeyY" Style="{StaticResource LetterKeyStyle}" Content="y" Click="KeyButton_Click" Tag="Y"/>
-            <Button x:Name="KeyU" Style="{StaticResource LetterKeyStyle}" Content="u" Click="KeyButton_Click" Tag="U"/>
-            <Button x:Name="KeyI" Style="{StaticResource LetterKeyStyle}" Content="i" Click="KeyButton_Click" Tag="I"/>
-            <Button x:Name="KeyO" Style="{StaticResource LetterKeyStyle}" Content="o" Click="KeyButton_Click" Tag="O"/>
-            <Button x:Name="KeyP" Style="{StaticResource LetterKeyStyle}" Content="p" Click="KeyButton_Click" Tag="P"/>
-            <Button x:Name="KeyBracketOpen" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="[">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">{</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">[</Run></TextBlock>
-            </Button>
-            <Button x:Name="KeyBracketClose" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="]">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">}</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">]</Run></TextBlock>
-            </Button>
-            <!-- Del joins Backspace above it and Enter below, so the right hand column is
-                 the single place to look for removing and for committing text. Moving it
-                 up here also gives the bottom row room to breathe. -->
-            <Button Style="{StaticResource FunctionKeyStyle}" Content="Del" Click="DeleteButton_Click"/>
-        </UniformGrid>
-
-        <!-- Row 3: ASDFGHJKL + Punctuation -->
-        <UniformGrid Grid.Row="3" Rows="1" Columns="14">
-            <!-- Caps sat at the far right of the row above, which is a place no keyboard
-                 has ever kept it, while Shift held the spot every user reaches for when
-                 they want Caps. Swapping them costs nothing and matches the board people
-                 already know. -->
-            <Button x:Name="CapsLockKey" Style="{StaticResource FunctionKeyStyle}" Content="Caps" Click="CapsLockButton_Click"/>
-            <Button x:Name="KeyA" Style="{StaticResource LetterKeyStyle}" Content="a" Click="KeyButton_Click" Tag="A"/>
-            <Button x:Name="KeyS" Style="{StaticResource LetterKeyStyle}" Content="s" Click="KeyButton_Click" Tag="S"/>
-            <Button x:Name="KeyD" Style="{StaticResource LetterKeyStyle}" Content="d" Click="KeyButton_Click" Tag="D"/>
-            <Button x:Name="KeyF" Style="{StaticResource LetterKeyStyle}" Content="f" Click="KeyButton_Click" Tag="F"/>
-            <Button x:Name="KeyG" Style="{StaticResource LetterKeyStyle}" Content="g" Click="KeyButton_Click" Tag="G"/>
-            <Button x:Name="KeyH" Style="{StaticResource LetterKeyStyle}" Content="h" Click="KeyButton_Click" Tag="H"/>
-            <Button x:Name="KeyJ" Style="{StaticResource LetterKeyStyle}" Content="j" Click="KeyButton_Click" Tag="J"/>
-            <Button x:Name="KeyK" Style="{StaticResource LetterKeyStyle}" Content="k" Click="KeyButton_Click" Tag="K"/>
-            <Button x:Name="KeyL" Style="{StaticResource LetterKeyStyle}" Content="l" Click="KeyButton_Click" Tag="L"/>
-            <Button x:Name="KeySemicolon" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag=";">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">:</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">;</Run></TextBlock>
-            </Button>
-            <Button x:Name="KeyQuote" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="'">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">@</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">'</Run></TextBlock>
-            </Button>
-            <!-- # was the one symbol key printed with a blank top half, which reads as a
-                 fault rather than as a key with nothing shifted above it. Shift+# has
-                 always sent ~; only the label was missing. -->
-            <Button x:Name="KeyHash" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="#">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">~</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">#</Run></TextBlock>
-            </Button>
-            <!-- The controller button that types this key from anywhere on the board, shown on
-                 the key itself so the shortcut is learned by seeing it -->
-            <Button Style="{StaticResource FunctionGlyphKeyStyle}" Click="EnterButton_Click">
+        <!-- Row 2: a to l, or the symbols typed least -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.5*"/>
+                <ColumnDefinition Width="10*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Style="{StaticResource FunctionKeyStyle}" Content="Tab" Click="TabButton_Click"/>
+            <UniformGrid x:Name="LettersRow2" Grid.Column="1" Rows="1" Columns="10">
+                <Button x:Name="KeyA" Style="{StaticResource LetterKeyStyle}" Content="a" Click="KeyButton_Click" Tag="A"/>
+                <Button x:Name="KeyS" Style="{StaticResource LetterKeyStyle}" Content="s" Click="KeyButton_Click" Tag="S"/>
+                <Button x:Name="KeyD" Style="{StaticResource LetterKeyStyle}" Content="d" Click="KeyButton_Click" Tag="D"/>
+                <Button x:Name="KeyF" Style="{StaticResource LetterKeyStyle}" Content="f" Click="KeyButton_Click" Tag="F"/>
+                <Button x:Name="KeyG" Style="{StaticResource LetterKeyStyle}" Content="g" Click="KeyButton_Click" Tag="G"/>
+                <Button x:Name="KeyH" Style="{StaticResource LetterKeyStyle}" Content="h" Click="KeyButton_Click" Tag="H"/>
+                <Button x:Name="KeyJ" Style="{StaticResource LetterKeyStyle}" Content="j" Click="KeyButton_Click" Tag="J"/>
+                <Button x:Name="KeyK" Style="{StaticResource LetterKeyStyle}" Content="k" Click="KeyButton_Click" Tag="K"/>
+                <Button x:Name="KeyL" Style="{StaticResource LetterKeyStyle}" Content="l" Click="KeyButton_Click" Tag="L"/>
+                <Button x:Name="KeyQuote" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="'">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">@</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">'</Run></TextBlock>
+                </Button>
+            </UniformGrid>
+            <UniformGrid x:Name="SymbolsRow2" Grid.Column="1" Rows="1" Columns="10" Visibility="Collapsed">
+                <Button x:Name="KeyMinus" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="-">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">_</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">-</Run></TextBlock>
+                </Button>
+                <Button x:Name="KeyEquals" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="=">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">+</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">=</Run></TextBlock>
+                </Button>
+                <Button x:Name="KeyBracketOpen" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="[">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">{</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">[</Run></TextBlock>
+                </Button>
+                <Button x:Name="KeyBracketClose" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="]">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">}</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">]</Run></TextBlock>
+                </Button>
+                <Button x:Name="KeySemicolon" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag=";">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">:</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">;</Run></TextBlock>
+                </Button>
+                <Button x:Name="KeyHash" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="#">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">~</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">#</Run></TextBlock>
+                </Button>
+                <Button x:Name="KeyBackslash" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="\">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">|</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">\</Run></TextBlock>
+                </Button>
+                <Button Style="{StaticResource LetterKeyStyle}" Content="€" Click="KeyButton_Click" Tag="€"/>
+                <!-- Caps Lock is rarely wanted with capitals automatic and B for a single
+                     capital, so it waits here rather than taking a place by the letters -->
+                <Button x:Name="CapsLockKey" Style="{StaticResource FunctionKeyStyle}" Content="Caps" Click="CapsLockButton_Click"/>
+                <Button Style="{StaticResource FunctionKeyStyle}" Content="Win" Click="WindowsKeyButton_Click"/>
+            </UniformGrid>
+            <Button Grid.Column="2" Style="{StaticResource FunctionGlyphKeyStyle}" Click="EnterButton_Click">
                 <StackPanel>
                     <TextBlock Text="↵" HorizontalAlignment="Center"/>
                     <TextBlock Text="Y" FontSize="12" FontWeight="SemiBold" Foreground="#FFC27A" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Button>
-        </UniformGrid>
+        </Grid>
 
-        <!-- Row 4: ZXCVBNM + Punctuation + Arrows -->
-        <UniformGrid Grid.Row="4" Rows="1" Columns="14">
-            <Button x:Name="ShiftKey" Style="{StaticResource FunctionGlyphKeyStyle}" Content="⇧" Click="ShiftButton_Click"/>
-            <Button x:Name="KeyZ" Style="{StaticResource LetterKeyStyle}" Content="z" Click="KeyButton_Click" Tag="Z"/>
-            <Button x:Name="KeyX" Style="{StaticResource LetterKeyStyle}" Content="x" Click="KeyButton_Click" Tag="X"/>
-            <Button x:Name="KeyC" Style="{StaticResource LetterKeyStyle}" Content="c" Click="KeyButton_Click" Tag="C"/>
-            <Button x:Name="KeyV" Style="{StaticResource LetterKeyStyle}" Content="v" Click="KeyButton_Click" Tag="V"/>
-            <Button x:Name="KeyB" Style="{StaticResource LetterKeyStyle}" Content="b" Click="KeyButton_Click" Tag="B"/>
-            <Button x:Name="KeyN" Style="{StaticResource LetterKeyStyle}" Content="n" Click="KeyButton_Click" Tag="N"/>
-            <Button x:Name="KeyM" Style="{StaticResource LetterKeyStyle}" Content="m" Click="KeyButton_Click" Tag="M"/>
-            <Button x:Name="KeyComma" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag=",">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">&lt;</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">,</Run></TextBlock>
-            </Button>
-            <Button x:Name="KeyPeriod" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag=".">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">&gt;</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">.</Run></TextBlock>
-            </Button>
-            <Button x:Name="KeySlash" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="/">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">?</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">/</Run></TextBlock>
-            </Button>
-            <Button x:Name="KeyBackslash" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="\">
-                <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">|</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">\</Run></TextBlock>
-            </Button>
-            <Button Style="{StaticResource FunctionGlyphKeyStyle}" Content="↑" Click="ArrowUpButton_Click"/>
-            <!-- Esc takes the corner Close gave up. Landing on it by accident sends one
-                 Escape, which is the cheapest mistake available on this board. -->
-            <Button Style="{StaticResource FunctionKeyStyle}" Content="Esc" Click="EscapeButton_Click"/>
-        </UniformGrid>
-
-        <!-- Row 5: Ctrl + Space + navigation + Arrows -->
-        <Grid Grid.Row="5">
+        <!-- Row 3: z to m and sentence punctuation, or the shifted symbols used most -->
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="10*"/>
+                <ColumnDefinition Width="1.5*"/>
             </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" x:Name="ShiftKey" Style="{StaticResource FunctionGlyphKeyStyle}" Content="⇧" Click="ShiftButton_Click"/>
+            <UniformGrid x:Name="LettersRow3" Grid.Column="1" Rows="1" Columns="10">
+                <Button x:Name="KeyZ" Style="{StaticResource LetterKeyStyle}" Content="z" Click="KeyButton_Click" Tag="Z"/>
+                <Button x:Name="KeyX" Style="{StaticResource LetterKeyStyle}" Content="x" Click="KeyButton_Click" Tag="X"/>
+                <Button x:Name="KeyC" Style="{StaticResource LetterKeyStyle}" Content="c" Click="KeyButton_Click" Tag="C"/>
+                <Button x:Name="KeyV" Style="{StaticResource LetterKeyStyle}" Content="v" Click="KeyButton_Click" Tag="V"/>
+                <Button x:Name="KeyB" Style="{StaticResource LetterKeyStyle}" Content="b" Click="KeyButton_Click" Tag="B"/>
+                <Button x:Name="KeyN" Style="{StaticResource LetterKeyStyle}" Content="n" Click="KeyButton_Click" Tag="N"/>
+                <Button x:Name="KeyM" Style="{StaticResource LetterKeyStyle}" Content="m" Click="KeyButton_Click" Tag="M"/>
+                <Button x:Name="KeyComma" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag=",">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">&lt;</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">,</Run></TextBlock>
+                </Button>
+                <Button x:Name="KeyPeriod" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag=".">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">&gt;</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">.</Run></TextBlock>
+                </Button>
+                <Button x:Name="KeySlash" Style="{StaticResource PairedKeyStyle}" Click="KeyButton_Click" Tag="/">
+                    <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">?</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">/</Run></TextBlock>
+                </Button>
+            </UniformGrid>
+            <!-- These are on B from the digits too, but on their own key each is a single
+                 press with A, and @ and brackets are wanted often enough to earn that -->
+            <UniformGrid x:Name="SymbolsRow3" Grid.Column="1" Rows="1" Columns="10" Visibility="Collapsed">
+                <Button Style="{StaticResource LetterKeyStyle}" Content="!" Click="KeyButton_Click" Tag="!"/>
+                <Button Style="{StaticResource LetterKeyStyle}" Content="@" Click="KeyButton_Click" Tag="@"/>
+                <Button Style="{StaticResource LetterKeyStyle}" Content="£" Click="KeyButton_Click" Tag="£"/>
+                <Button Style="{StaticResource LetterKeyStyle}" Content="&amp;" Click="KeyButton_Click" Tag="&amp;"/>
+                <Button Style="{StaticResource LetterKeyStyle}" Content="(" Click="KeyButton_Click" Tag="("/>
+                <Button Style="{StaticResource LetterKeyStyle}" Content=")" Click="KeyButton_Click" Tag=")"/>
+                <Button Style="{StaticResource LetterKeyStyle}" Content=":" Click="KeyButton_Click" Tag=":"/>
+                <Button Style="{StaticResource LetterKeyStyle}" Content="&quot;" Click="KeyButton_Click" Tag="&quot;"/>
+                <Button Style="{StaticResource FunctionKeyStyle}" Content="PgUp" Click="PageUpButton_Click"/>
+                <Button Style="{StaticResource FunctionKeyStyle}" Content="PgDn" Click="PageDownButton_Click"/>
+            </UniformGrid>
+            <!-- Landing on Esc by mistake sends one Escape, the cheapest mistake there is,
+                 so it can sit at an edge -->
+            <Button Grid.Column="2" Style="{StaticResource FunctionKeyStyle}" Content="Esc" Click="EscapeButton_Click"/>
+        </Grid>
 
-            <!-- Ctrl moves down here, which puts the four keys flanking the letters -
-                 Tab, Caps, Shift, Ctrl - back into the order every physical keyboard
-                 uses, and stops this row opening with a slab. Space keeps five columns:
-                 still by far the widest key, and no longer swallowing the room that Win,
-                 Home, End, PgUp and PgDn need. Home and End earn their place most -
-                 without them, reaching the start of a line costs one arrow press per
-                 character, and every one of those is a deliberate movement. -->
-            <Button Grid.Column="0" x:Name="CtrlKey" Style="{StaticResource FunctionKeyStyle}" Content="Ctrl" Click="CtrlButton_Click"/>
-            <!-- The controller button that types this key from anywhere on the board, shown on
-                 the key itself so the shortcut is learned by seeing it -->
-            <Button x:Name="SpaceKey" Grid.Column="1" Grid.ColumnSpan="5" Style="{StaticResource FunctionKeyStyle}" Click="SpaceButton_Click">
+        <!-- Row 4: the same on both layers. Home and End earn their place - without
+             them, reaching the start of a line costs one arrow press per character. The
+             arrows run in a line; an inverted T needed a key from the row above. -->
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.5*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="5*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Name="LayerKey" Grid.Column="0" Style="{StaticResource FunctionKeyStyle}" Content="123 #+" Click="LayerKey_Click"/>
+            <Button Grid.Column="1" x:Name="CtrlKey" Style="{StaticResource FunctionKeyStyle}" Content="Ctrl" Click="CtrlButton_Click"/>
+            <Button Grid.Column="2" x:Name="SpaceKey" Style="{StaticResource FunctionKeyStyle}" Click="SpaceButton_Click">
                 <StackPanel>
                     <TextBlock Text="━━━ Space ━━━" HorizontalAlignment="Center"/>
                     <TextBlock Text="RB" FontSize="12" FontWeight="SemiBold" Foreground="#FFC27A" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Button>
-            <Button Grid.Column="6" Style="{StaticResource FunctionKeyStyle}" Content="Win" Click="WindowsKeyButton_Click"/>
-            <Button Grid.Column="7" Style="{StaticResource FunctionKeyStyle}" Content="Home" Click="HomeButton_Click"/>
-            <Button Grid.Column="8" Style="{StaticResource FunctionKeyStyle}" Content="End" Click="EndButton_Click"/>
-            <Button Grid.Column="9" Style="{StaticResource FunctionKeyStyle}" Content="PgUp" Click="PageUpButton_Click"/>
-            <Button Grid.Column="10" Style="{StaticResource FunctionKeyStyle}" Content="PgDn" Click="PageDownButton_Click"/>
-            <Button Grid.Column="11" Style="{StaticResource FunctionGlyphKeyStyle}" Content="←" Click="ArrowLeftButton_Click"/>
-            <Button Grid.Column="12" Style="{StaticResource FunctionGlyphKeyStyle}" Content="↓" Click="ArrowDownButton_Click"/>
-            <Button Grid.Column="13" Style="{StaticResource FunctionGlyphKeyStyle}" Content="→" Click="ArrowRightButton_Click"/>
+            <Button Grid.Column="3" Style="{StaticResource FunctionKeyStyle}" Content="Home" Click="HomeButton_Click"/>
+            <Button Grid.Column="4" Style="{StaticResource FunctionKeyStyle}" Content="End" Click="EndButton_Click"/>
+            <Button Grid.Column="5" Style="{StaticResource FunctionGlyphKeyStyle}" Content="←" Click="ArrowLeftButton_Click"/>
+            <Button Grid.Column="6" Style="{StaticResource FunctionGlyphKeyStyle}" Content="↑" Click="ArrowUpButton_Click"/>
+            <Button Grid.Column="7" Style="{StaticResource FunctionGlyphKeyStyle}" Content="↓" Click="ArrowDownButton_Click"/>
+            <Button Grid.Column="8" Style="{StaticResource FunctionGlyphKeyStyle}" Content="→" Click="ArrowRightButton_Click"/>
         </Grid>
 
         <!-- Shortcut panel. Four rows are the same everywhere, each one kind of action;
              the fifth follows the program in front and is labelled with its name. Labels
              on the keys are filled in by the code. The row words are plain text, not
              keys, so the highlight passes straight over them. -->
-        <Grid x:Name="ShortcutPanel" Grid.Row="1" Grid.RowSpan="5" Grid.Column="1" Margin="10,0,0,0">
+        <Grid x:Name="ShortcutPanel" Grid.Row="0" Grid.RowSpan="5" Grid.Column="1" Margin="10,0,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="0.8*"/>
                 <ColumnDefinition Width="5*"/>
