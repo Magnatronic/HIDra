@@ -43,8 +43,11 @@ VIRTUAL KEYBOARD:
   A Button   = Type the highlighted key
   B Button   = Type its shifted version (£ $ % : ? and CAPITALS)
   LB = Backspace   RB = Space   Y = Enter
+  D-pad left/right = move the text cursor (to fix a mistake)
+  Press the left stick in = numbers and symbols (again for letters)
+  Start = Caps Lock   Back = Escape
   (from anywhere on the keyboard - the keys show LB, RB and Y on them.
-   Close the keyboard and LB, RB and Y do their usual jobs again)
+   Close the keyboard and they all do their usual jobs again)
   (Big UK layout, letters offset like a real keyboard)
   123 #+ key (bottom left) = numbers and symbols. abc = back to letters
   Green row at the top = Word suggestions. Push up to reach them:
@@ -93,7 +96,7 @@ Type Text:
   2. Press X Button (opens the keyboard)
   3. Use the LEFT STICK to move the orange highlight to a letter
      (hold a direction to travel quickly across the keyboard)
-     (the D-pad also works, if you prefer it)
+     (D-pad up and down also move it; left and right move the text cursor)
   4. Press A to type the highlighted letter
   5. Press B for the symbol printed ABOVE the key,
      or for a CAPITAL letter (e.g. A gives 3, B gives £)

@@ -30,10 +30,14 @@ public sealed record ButtonJob(string Id, string Label, string Description, stri
 /// <param name="Label">What it is called on the controller</param>
 /// <param name="StandardJob">The job it has for a new student</param>
 /// <param name="KeepsJobWhileTyping">
-/// Whether it still does its job while the keyboard is open. A, B, Y, LB, RB and the
-/// D-pad type instead, so only these can be what closes the keyboard.
+/// Whether it can be what opens and closes the keyboard. A, B, Y, LB, RB, LT and the
+/// D-pad always type while the keyboard is open, so the keyboard cannot go on them.
 /// </param>
-public sealed record RemappableButton(string Name, string Label, string StandardJob, bool KeepsJobWhileTyping);
+/// <param name="TypingJob">
+/// What it does instead while the keyboard is open, or null if it keeps its job. The
+/// button that opens the keyboard always keeps that job, so it can close it.
+/// </param>
+public sealed record RemappableButton(string Name, string Label, string StandardJob, bool KeepsJobWhileTyping, string? TypingJob = null);
 
 /// <summary>
 /// Every job a button can be given, and which buttons can be given one.
@@ -98,20 +102,20 @@ public static class ButtonJobCatalogue
     /// </summary>
     public static readonly IReadOnlyList<RemappableButton> Buttons = new[]
     {
-        new RemappableButton(LeftTrigger, "LT", "escape", false),
-        new RemappableButton("ButtonA", "A", Click, false),
-        new RemappableButton("ButtonB", "B", "right-click", false),
+        new RemappableButton(LeftTrigger, "LT", "escape", false, "Keyboard to top or bottom"),
+        new RemappableButton("ButtonA", "A", Click, false, "Type the key"),
+        new RemappableButton("ButtonB", "B", "right-click", false, "Capital, or the symbol on top"),
         new RemappableButton("ButtonX", "X", Keyboard, true),
-        new RemappableButton("ButtonY", "Y", "swap-sticks", false),
-        new RemappableButton("LeftBumper", "LB", "switch-programs", false),
-        new RemappableButton("RightBumper", "RB", "double-click", false),
-        new RemappableButton("Back", "Back", "start-menu", true),
-        new RemappableButton("Start", "Start", "all-windows", true),
-        new RemappableButton("DpadUp", "D-pad up", "maximise", false),
-        new RemappableButton("DpadDown", "D-pad down", "minimise", false),
-        new RemappableButton("DpadLeft", "D-pad left", "snap-left", false),
-        new RemappableButton("DpadRight", "D-pad right", "snap-right", false),
-        new RemappableButton("LeftStickClick", "Left stick press", "undo", true),
+        new RemappableButton("ButtonY", "Y", "swap-sticks", false, "Enter"),
+        new RemappableButton("LeftBumper", "LB", "switch-programs", false, "Backspace"),
+        new RemappableButton("RightBumper", "RB", "double-click", false, "Space"),
+        new RemappableButton("Back", "Back", "start-menu", true, "Escape"),
+        new RemappableButton("Start", "Start", "all-windows", true, "Caps Lock"),
+        new RemappableButton("DpadUp", "D-pad up", "maximise", false, "Move the orange box"),
+        new RemappableButton("DpadDown", "D-pad down", "minimise", false, "Move the orange box"),
+        new RemappableButton("DpadLeft", "D-pad left", "snap-left", false, "Text cursor left"),
+        new RemappableButton("DpadRight", "D-pad right", "snap-right", false, "Text cursor right"),
+        new RemappableButton("LeftStickClick", "Left stick press", "undo", true, "Numbers, symbols"),
         new RemappableButton("RightStickClick", "Right stick press", "undo", true),
     };
 

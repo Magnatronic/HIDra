@@ -669,11 +669,13 @@ public class HIDraEngine : IDisposable
         {
             UpdateKeyboardNavigation(state);
             UpdateSectionJump(state);
+            UpdateTextCursor(state);
         }
         else
         {
             _heldDirection = null;
             _keyRepeatTimer.Reset();
+            _heldCursorKey = null;
         }
 
         // Process buttons
@@ -895,6 +897,67 @@ public class HIDraEngine : IDisposable
         return y > 0 ? KeyboardNavigationDirection.Up : KeyboardNavigationDirection.Down;
     }
 
+    // D-pad left or right held while typing: the text cursor repeats, as the highlight does
+    private KeyboardQuickKey? _heldCursorKey;
+    private readonly System.Diagnostics.Stopwatch _cursorRepeatTimer = new();
+    private int _cursorRepeatCount;
+
+    private void UpdateTextCursor(ControllerState state)
+    {
+        KeyboardQuickKey? key = state.DpadLeft ? KeyboardQuickKey.CursorLeft
+            : state.DpadRight ? KeyboardQuickKey.CursorRight
+            : null;
+
+        if (key == null)
+        {
+            _heldCursorKey = null;
+            return;
+        }
+
+        if (key != _heldCursorKey)
+        {
+            _heldCursorKey = key;
+            _cursorRepeatCount = 0;
+            _cursorRepeatTimer.Restart();
+            KeyboardQuickKeyRequested?.Invoke(this, key.Value);
+            return;
+        }
+
+        int due = _cursorRepeatCount == 0 ? KeyRepeatDelayMs : KeyRepeatIntervalMs;
+        if (_cursorRepeatTimer.ElapsedMilliseconds >= due)
+        {
+            _cursorRepeatCount++;
+            _cursorRepeatTimer.Restart();
+            KeyboardQuickKeyRequested?.Invoke(this, key.Value);
+        }
+    }
+
+    /// <summary>
+    /// Whether this button's job is opening and closing the keyboard. That button keeps
+    /// its job while typing, whichever it is, or the keyboard could not be closed.
+    /// </summary>
+    private bool OpensKeyboard(string buttonName) =>
+        _buttonMappings.TryGetValue(buttonName, out var mapping)
+        && string.Equals(mapping.Default?.Action, "ToggleOnScreenKeyboard", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A button with a typing job while the keyboard is open, unless it is the one that
+    /// closes the keyboard
+    /// </summary>
+    private void ProcessTypingButton(string buttonName, bool current, bool previous, KeyboardQuickKey typingKey, string? modifier)
+    {
+        if (KeyboardNavigationActive && !OpensKeyboard(buttonName))
+        {
+            if (_inputProcessor.IsButtonPressed(current, previous))
+            {
+                KeyboardQuickKeyRequested?.Invoke(this, typingKey);
+            }
+            return;
+        }
+
+        ProcessButton(buttonName, current, previous, modifier);
+    }
+
     private void UpdateSectionJump(ControllerState state)
     {
         if (_useRightStickForCursor)
@@ -930,11 +993,11 @@ public class HIDraEngine : IDisposable
         // The left stick is the primary control: the D-pad asks for more precise finger
         // placement than it is reasonable to require. The D-pad still works, because
         // supporting both costs nothing and leaves the choice open.
+        // D-pad left and right move the text cursor instead (UpdateTextCursor), so a
+        // mistake a few letters back can be reached without leaving the keys
         KeyboardNavigationDirection? direction =
             DirectionFromStick(state.LeftStickX, state.LeftStickY)
-            ?? (state.DpadLeft ? KeyboardNavigationDirection.Left
-              : state.DpadRight ? KeyboardNavigationDirection.Right
-              : state.DpadUp ? KeyboardNavigationDirection.Up
+            ?? (state.DpadUp ? KeyboardNavigationDirection.Up
               : state.DpadDown ? KeyboardNavigationDirection.Down
               : null);
 
@@ -1041,10 +1104,11 @@ public class HIDraEngine : IDisposable
         // While the recovery chord is being formed, only the button pressed first runs
         // its normal action. Suppressing the second one stops the chord from also
         // firing Task View or the Start menu on top of restoring the window.
+        // While typing, Back is Escape and Start is Caps Lock
         if (!(current.Back && current.Start))
         {
-            ProcessButton("Back", current.Back, previous.Back, activeModifier);
-            ProcessButton("Start", current.Start, previous.Start, activeModifier);
+            ProcessTypingButton("Back", current.Back, previous.Back, KeyboardQuickKey.Escape, activeModifier);
+            ProcessTypingButton("Start", current.Start, previous.Start, KeyboardQuickKey.CapsLock, activeModifier);
         }
 
         if (!KeyboardNavigationActive)
@@ -1054,7 +1118,8 @@ public class HIDraEngine : IDisposable
             ProcessButton("DpadLeft", current.DpadLeft, previous.DpadLeft, activeModifier);
             ProcessButton("DpadRight", current.DpadRight, previous.DpadRight, activeModifier);
         }
-        ProcessButton("LeftStickClick", current.LeftStickClick, previous.LeftStickClick, activeModifier);
+        // While typing, pressing the left stick in swaps to the numbers and symbols
+        ProcessTypingButton("LeftStickClick", current.LeftStickClick, previous.LeftStickClick, KeyboardQuickKey.SymbolLayer, activeModifier);
         ProcessButton("RightStickClick", current.RightStickClick, previous.RightStickClick, activeModifier);
     }
 

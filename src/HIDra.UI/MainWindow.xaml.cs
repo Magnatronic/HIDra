@@ -797,8 +797,12 @@ namespace HIDra.UI
             var jobs = Jobs;
 
             // The button that opens the keyboard is the one that closes it
+            // While typing: the button that opens the keyboard closes it, the typing
+            // buttons type, and the rest keep their jobs
             string Job(string name) =>
-                typing && jobs[name].Id == ButtonJobCatalogue.Keyboard ? "Close the keyboard" : jobs[name].Label;
+                !typing ? jobs[name].Label
+                : jobs[name].Id == ButtonJobCatalogue.Keyboard ? "Close the keyboard"
+                : ButtonJobCatalogue.Button(name)?.TypingJob ?? jobs[name].Label;
 
             // The D-pad and the stick presses are more than one button under one label:
             // one job for them all is said once, different jobs each get a line
@@ -809,7 +813,7 @@ namespace HIDra.UI
                     return standard;
                 }
 
-                if (Array.TrueForAll(parts, p => jobs[p.Name] == jobs[parts[0].Name]))
+                if (Array.TrueForAll(parts, p => Job(p.Name) == Job(parts[0].Name)))
                 {
                     return Job(parts[0].Name);
                 }
@@ -831,17 +835,17 @@ namespace HIDra.UI
                 _ => "Right:"
             };
 
-            drawing.ActLT.Text = typing ? "Keyboard to top or bottom" : Job(ButtonJobCatalogue.LeftTrigger);
+            drawing.ActLT.Text = Job(ButtonJobCatalogue.LeftTrigger);
             drawing.ActRT.Text = "Hold to click and drag";
-            drawing.ActLB.Text = typing ? "Backspace" : Job("LeftBumper");
-            drawing.ActRB.Text = typing ? "Space" : Job("RightBumper");
-            drawing.ActY.Text = typing ? "Enter" : Job("ButtonY");
-            drawing.ActB.Text = typing ? "Capital, or the symbol on top" : Job("ButtonB");
+            drawing.ActLB.Text = Job("LeftBumper");
+            drawing.ActRB.Text = Job("RightBumper");
+            drawing.ActY.Text = Job("ButtonY");
+            drawing.ActB.Text = Job("ButtonB");
             drawing.ActX.Text = Job("ButtonX");
-            drawing.ActA.Text = typing ? "Type the key" : Job("ButtonA");
+            drawing.ActA.Text = Job("ButtonA");
             drawing.ActBack.Text = Job("Back");
             drawing.ActStart.Text = Job("Start");
-            drawing.ActDPad.Text = typing ? "Move the orange box" : Several(DPadParts, "Maximise, minimise, snap");
+            drawing.ActDPad.Text = typing ? "Up, down: the orange box\nLeft, right: the text cursor" : Several(DPadParts, "Maximise, minimise, snap");
             drawing.ActStickPress.Text = Several(StickPressParts, null);
 
             // Four jobs in one label need a smaller size to fit
@@ -1099,11 +1103,11 @@ namespace HIDra.UI
             string? locked = ButtonJobCatalogue.WhyLocked(_userSettings.ButtonJobs, button.Name);
 
             JobChooserTitle.Text = $"What {button.Label} does:  {current.Label}";
-            JobChooserHint.Text = current.Description + ". " + (button.Name == ButtonJobCatalogue.LeftTrigger
-                ? "While the keyboard is open, LT always moves it to the top or bottom instead."
-                : button.KeepsJobWhileTyping
+            JobChooserHint.Text = current.Description + ". " + (button.TypingJob == null
                     ? "It does this while the keyboard is open, too."
-                    : "While the keyboard is open it types instead.")
+                    : current.Id == ButtonJobCatalogue.Keyboard
+                        ? "While the keyboard is open it closes it."
+                        : $"While the keyboard is open: {button.TypingJob}.")
                 + $" Standard: {ButtonJobCatalogue.Find(button.StandardJob)!.Label}.";
 
             if (locked != null)

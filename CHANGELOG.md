@@ -171,6 +171,13 @@ screen, pages needed scrolling on a laptop, and Practice was more play than prac
 - **The right stick jumps around the keyboard** while it is open: up to the word row,
   right to the shortcuts, back to the letters - landing on the nearest key - instead of
   a long walk across it. (With the sticks swapped it stays the pointer.)
+- **More buttons type while the keyboard is open**, as on Windows' own gamepad
+  keyboard: **D-pad left and right move the text cursor** (repeating when held), so a
+  mistake a few letters back is reached without leaving the keys; **pressing the left
+  stick in** swaps to the numbers and symbols; **Start** is Caps Lock and **Back** is
+  Escape. D-pad up and down still move the orange box. Whichever button opens a
+  student's keyboard keeps closing it, even if it is Back, Start or the left stick. The
+  Guide's Typing view, a new "Fix a mistake" card and the Buttons tab say so.
 - **No close key on the keyboard.** The button that opens it closes it; the red key was
   one overshoot from ending typing by mistake.
 

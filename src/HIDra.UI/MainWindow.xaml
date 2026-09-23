@@ -195,8 +195,8 @@
             <Setter Property="BorderThickness" Value="3"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Padding" Value="12,5"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
         <Style x:Key="HowToTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
@@ -385,8 +385,14 @@
                             </Border>
                             <Border Style="{StaticResource HowToCard}">
                                 <StackPanel>
+                                    <TextBlock Text="Fix a mistake" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="The D-pad, left and right, moves the text cursor to it."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LB"/></InlineUIContainer><Run Text="deletes the letter before the cursor."/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource HowToCard}">
+                                <StackPanel>
                                     <TextBlock Text="Type numbers and symbols" Style="{StaticResource HowToTitle}"/>
-                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Go to 123 #+ at the bottom left and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><LineBreak/><Run Text="abc, in the same place, brings the letters back."/></TextBlock>
+                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Press the left stick in, or go to 123 #+ at the bottom left. Press it again for the letters."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="Start"/></InlineUIContainer><Run Text="turns Caps Lock on and off."/></TextBlock>
                                 </StackPanel>
                             </Border>
                             <Border Style="{StaticResource HowToCard}">

@@ -1517,6 +1517,21 @@ public partial class VirtualKeyboardWindow : Window
             case KeyboardQuickKey.Enter:
                 RaiseKeyPressed(VirtualKey.Return);
                 break;
+            case KeyboardQuickKey.CursorLeft:
+                ArrowLeftButton_Click(this, new RoutedEventArgs());
+                break;
+            case KeyboardQuickKey.CursorRight:
+                ArrowRightButton_Click(this, new RoutedEventArgs());
+                break;
+            case KeyboardQuickKey.SymbolLayer:
+                LayerKey_Click(this, new RoutedEventArgs());
+                break;
+            case KeyboardQuickKey.CapsLock:
+                CapsLockButton_Click(this, new RoutedEventArgs());
+                break;
+            case KeyboardQuickKey.Escape:
+                EscapeButton_Click(this, new RoutedEventArgs());
+                break;
         }
     }
 
