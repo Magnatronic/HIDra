@@ -655,12 +655,25 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <Grid Margin="0,0,0,12">
-                            <Border Style="{StaticResource SegmentBar}" HorizontalAlignment="Left">
-                                <StackPanel Orientation="Horizontal">
-                                    <Button x:Name="ActivityPointerButton" Style="{StaticResource Segment}" MinWidth="150" Content="Pointer test" Tag="Pointer" Click="Activity_Click"/>
-                                    <Button x:Name="ActivityTypingButton" Style="{StaticResource Segment}" MinWidth="150" Content="Typing test" Tag="Typing" Click="Activity_Click"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource SegmentBar}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="ActivityPointerButton" Style="{StaticResource Segment}" MinWidth="150" Content="Pointer test" Tag="Pointer" Click="Activity_Click"/>
+                                        <Button x:Name="ActivityTypingButton" Style="{StaticResource Segment}" MinWidth="150" Content="Typing test" Tag="Typing" Click="Activity_Click"/>
+                                    </StackPanel>
+                                </Border>
+                                <!-- The typing test's level, on the same row, while it is showing -->
+                                <StackPanel x:Name="TypingLevelPanel" Orientation="Horizontal" Margin="24,0,0,0" Visibility="Collapsed">
+                                    <TextBlock Text="Level" Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <Border Style="{StaticResource SegmentBar}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button x:Name="TypingLevel0" Style="{StaticResource Segment}" Content="Words" Tag="0" Click="TypingLevel_Click"/>
+                                            <Button x:Name="TypingLevel1" Style="{StaticResource Segment}" Content="Phrases" Tag="1" Click="TypingLevel_Click"/>
+                                            <Button x:Name="TypingLevel2" Style="{StaticResource Segment}" Content="Sentences" Tag="2" Click="TypingLevel_Click"/>
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
-                            </Border>
+                            </StackPanel>
                             <TextBlock x:Name="ActivityScore" Style="{StaticResource SettingHint}" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                         </Grid>
 
@@ -692,19 +705,9 @@
                              and the bottom for the next, so the keyboard is sometimes in the way -->
                         <Grid x:Name="TypingActivity" Grid.Row="1" Visibility="Collapsed">
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="0"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                <TextBlock Text="Level" Style="{StaticResource SettingTitle}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                <Border Style="{StaticResource SegmentBar}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button x:Name="TypingLevel0" Style="{StaticResource Segment}" Content="Words" Tag="0" Click="TypingLevel_Click"/>
-                                        <Button x:Name="TypingLevel1" Style="{StaticResource Segment}" Content="Phrases" Tag="1" Click="TypingLevel_Click"/>
-                                        <Button x:Name="TypingLevel2" Style="{StaticResource Segment}" Content="Sentences" Tag="2" Click="TypingLevel_Click"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
                             <Border Grid.Row="1" Background="{DynamicResource RaisedBrush}" CornerRadius="8" Padding="24,16">
                                 <Grid>
                                     <StackPanel x:Name="TypingItem" VerticalAlignment="Top" HorizontalAlignment="Center" Visibility="Collapsed">

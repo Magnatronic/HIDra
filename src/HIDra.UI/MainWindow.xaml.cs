@@ -1602,6 +1602,7 @@ namespace HIDra.UI
             TypingActivity.Visibility = activity == "Typing" ? Visibility.Visible : Visibility.Collapsed;
             SetSegment(ActivityPointerButton, activity == "Pointer");
             SetSegment(ActivityTypingButton, activity == "Typing");
+            TypingLevelPanel.Visibility = activity == "Typing" ? Visibility.Visible : Visibility.Collapsed;
             ActivityScore.Text = "";
         }
 

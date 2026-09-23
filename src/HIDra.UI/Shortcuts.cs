@@ -171,24 +171,34 @@ public static class ShortcutCatalogue
     public static Shortcut?[] Resolve(IList<string>? ids)
     {
         var keys = new Shortcut?[SlotCount];
+        var unresolved = new List<int>();
 
         for (int i = 0; i < SlotCount; i++)
         {
-            string standard = Standard[i];
-            string? chosen = ids != null && i < ids.Count ? ids[i] : standard;
+            string? chosen = ids != null && i < ids.Count ? ids[i] : Standard[i];
 
             if (chosen == "")
             {
                 keys[i] = null;
             }
-            else if (Find(chosen) is { } key && FitsRow(key, i / RowLength))
+            else if (Find(chosen) is { } key && FitsRow(key, i / RowLength) && !keys.Contains(key))
             {
                 keys[i] = key;
             }
             else
             {
-                keys[i] = Find(standard);
+                unresolved.Add(i);
             }
+        }
+
+        // A key that is gone, or has moved to another row, gives its place to one of the
+        // row's defaults that the row does not already have - never a second copy
+        foreach (int i in unresolved)
+        {
+            int row = i / RowLength;
+            keys[i] = Enumerable.Range(row * RowLength, RowLength)
+                .Select(slot => Find(Standard[slot]))
+                .FirstOrDefault(key => key != null && !keys.Contains(key));
         }
 
         return keys;

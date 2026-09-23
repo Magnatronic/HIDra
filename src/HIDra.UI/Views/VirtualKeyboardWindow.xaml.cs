@@ -1345,6 +1345,7 @@ public partial class VirtualKeyboardWindow : Window
     private double HighlightBorderThickness => _highContrast ? 7 : 4;
 
     private bool _highContrast;
+    private Brush? _normalBackground;
 
     /// <summary>
     /// High contrast: every key black with a white edge and white text. The key colours
@@ -1379,14 +1380,10 @@ public partial class VirtualKeyboardWindow : Window
             }
         }
 
-        if (on)
-        {
-            Background = Brushes.Black;
-        }
-        else
-        {
-            ClearValue(BackgroundProperty);
-        }
+        // The window's own colour is set on it directly, so it is kept to put back -
+        // clearing it would leave Windows' default white behind the keys
+        _normalBackground ??= Background;
+        Background = on ? Brushes.Black : _normalBackground;
 
         UpdateModifierButtons();
         if (highlighted != null)
