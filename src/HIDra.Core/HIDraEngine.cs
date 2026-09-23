@@ -457,6 +457,14 @@ public class HIDraEngine : IDisposable
     }
 
     /// <summary>
+    /// Run a button's job straight away - for LT, whose job the main window runs
+    /// </summary>
+    public void RunAction(ActionMapping action)
+    {
+        _buttonActionHandler.ExecuteAction(action);
+    }
+
+    /// <summary>
     /// Send a key press (for virtual keyboard)
     /// </summary>
     public void SendKeyPress(VirtualKey key)

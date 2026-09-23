@@ -9,6 +9,12 @@ namespace HIDra.Models;
 /// </summary>
 public sealed record ButtonJob(string Id, string Label, string Description, string Action, params string[] Keys)
 {
+    /// <summary>
+    /// The one button this job can go on, or null for any. Zoom and Slow pointer are run
+    /// by the main window rather than the engine, which it only does for LT.
+    /// </summary>
+    public string? OnlyOn { get; init; }
+
     public ActionMapping ToMapping() => new()
     {
         Action = Action,
@@ -50,6 +56,12 @@ public static class ButtonJobCatalogue
     public const string Nothing = "nothing";
 
     /// <summary>
+    /// LT is a trigger, not a button, so the main window runs its job rather than the
+    /// engine's button mappings
+    /// </summary>
+    public const string LeftTrigger = "LeftTrigger";
+
+    /// <summary>
     /// Ids are what is saved in a student's settings. Never renamed once released.
     /// </summary>
     public static readonly IReadOnlyList<ButtonJob> All = new[]
@@ -74,16 +86,19 @@ public static class ButtonJobCatalogue
         new ButtonJob("enter", "Enter", "Presses Enter", "Key", "Enter"),
         new ButtonJob("tab", "Tab", "Moves to the next box or button", "Key", "Tab"),
         new ButtonJob("close-window", "Close window", "Closes the window in front (Alt+F4)", "CloseWindow"),
+        new ButtonJob("zoom", "Zoom in and out", "Windows Magnifier: bigger around the pointer. Again to zoom out", "") { OnlyOn = "LeftTrigger" },
+        new ButtonJob("slow-pointer", "Slow pointer on and off", "A slower pointer for small targets. Its speed is on the Pointer tab", "") { OnlyOn = "LeftTrigger" },
         new ButtonJob(Nothing, "Nothing", "The button does nothing", ""),
     };
 
     /// <summary>
-    /// The buttons whose jobs can be chosen, in the order the editor offers them. LT has
-    /// its own list (<see cref="LeftTriggerAction"/>); RT stays click-and-drag and the
-    /// sticks stay pointer and scroll, because each is the only way to do those.
+    /// The buttons whose jobs can be chosen. RT stays click-and-drag and the sticks stay
+    /// pointer and scroll, because each is the only way to do those. LT's job is only
+    /// while the keyboard is closed - while it is open, LT always moves the keyboard.
     /// </summary>
     public static readonly IReadOnlyList<RemappableButton> Buttons = new[]
     {
+        new RemappableButton(LeftTrigger, "LT", "escape", false),
         new RemappableButton("ButtonA", "A", Click, false),
         new RemappableButton("ButtonB", "B", "right-click", false),
         new RemappableButton("ButtonX", "X", Keyboard, true),
@@ -127,7 +142,7 @@ public static class ButtonJobCatalogue
         var mappings = new Dictionary<string, ButtonMapping>();
         foreach (var (name, job) in Resolve(chosen))
         {
-            if (job.Id != Nothing)
+            if (job.Id != Nothing && name != LeftTrigger)
             {
                 mappings[name] = new ButtonMapping { Default = job.ToMapping() };
             }
@@ -140,7 +155,7 @@ public static class ButtonJobCatalogue
     /// closed again.
     /// </summary>
     public static bool Allowed(RemappableButton button, ButtonJob job) =>
-        job.Id != Keyboard || button.KeepsJobWhileTyping;
+        (job.Id != Keyboard || button.KeepsJobWhileTyping) && (job.OnlyOn == null || job.OnlyOn == button.Name);
 
     /// <summary>
     /// Why this button cannot be given a different job right now, or null if it can: it

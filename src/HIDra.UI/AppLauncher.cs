@@ -14,10 +14,11 @@ namespace HIDra.UI
     /// The programs the keyboard's Apps key can open in one press. Reaching them through
     /// the Start menu with a controller is a long string of deliberate movements.
     ///
-    /// Only programs actually installed on this PC are offered, found the way Windows
-    /// itself finds them (the App Paths registry), and each is shown with its own icon -
-    /// the PowerPoint logo is recognisable at a glance, which matters for a student who
-    /// relies on pictures more than words.
+    /// A new student starts with a standard few, found the way Windows itself finds them
+    /// (the App Paths registry). Staff can choose any program on the Start menu instead -
+    /// Store apps too, such as the new Outlook, which the registry never lists. Each is
+    /// shown with its own icon: the PowerPoint logo is recognisable at a glance, which
+    /// matters for a student who relies on pictures more than words.
     /// </summary>
     public static class AppLauncher
     {
@@ -79,8 +80,40 @@ namespace HIDra.UI
                     return app;
                 }
             }
-            return null;
+
+            return id != null && id.StartsWith(StartPrefix) ? StartMenu.FromId(id) : null;
         }
+
+        /// <summary>
+        /// What staff can choose from: the standard programs, then everything else on the
+        /// Start menu, by name
+        /// </summary>
+        public static IReadOnlyList<App> Choices => _choices ??= ListChoices();
+
+        private static IReadOnlyList<App>? _choices;
+
+        private static IReadOnlyList<App> ListChoices()
+        {
+            var choices = new List<App>(Installed);
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var app in Installed)
+            {
+                names.Add(app.Name);
+            }
+
+            foreach (var app in StartMenu.All())
+            {
+                if (names.Add(app.Name))
+                {
+                    choices.Add(app);
+                }
+            }
+
+            return choices;
+        }
+
+        /// <summary>Ids of Start menu programs begin with this; the rest is Windows' own name for it</summary>
+        internal const string StartPrefix = "start:";
 
         private static IReadOnlyList<App>? _installed;
 
@@ -94,7 +127,12 @@ namespace HIDra.UI
         {
             try
             {
-                Process.Start(new ProcessStartInfo(app.Path) { UseShellExecute = true });
+                // A Start menu program is opened the way the Start menu opens it, which is
+                // the only way for a Store app
+                var start = app.Id.StartsWith(StartPrefix)
+                    ? new ProcessStartInfo("explorer.exe", app.Path)
+                    : new ProcessStartInfo(app.Path) { UseShellExecute = true };
+                Process.Start(start);
             }
             catch
             {

@@ -507,14 +507,9 @@ namespace HIDra.UI
         }
 
         /// <summary>
-        /// Left Trigger: flip the keyboard between the top and bottom of the screen, and
-        /// remember the choice for next time. Does nothing when the keyboard is closed,
-        /// so a stray press cannot silently change where it next appears.
-        /// </summary>
-        /// <summary>
         /// LT while the keyboard is closed: whatever job staff have given it for this
-        /// student. Each says what it did in the same message as swapping the sticks, so
-        /// nothing changes without the student seeing why.
+        /// student. Zoom and Slow pointer say what they did in the same message as
+        /// swapping the sticks, so nothing changes without the student seeing why.
         /// </summary>
         private void UseLeftTrigger()
         {
@@ -523,9 +518,10 @@ namespace HIDra.UI
                 return;
             }
 
-            switch (_userSettings.LeftTrigger)
+            var job = Jobs[ButtonJobCatalogue.LeftTrigger];
+            switch (job.Id)
             {
-                case LeftTriggerAction.Magnifier:
+                case "zoom":
                     bool zoomed = System.Diagnostics.Process.GetProcessesByName("Magnify") is { Length: > 0 } running
                         && DisposeAll(running);
                     _engine.SendKeyCombo(zoomed
@@ -534,13 +530,13 @@ namespace HIDra.UI
                     ShowToast(zoomed ? "Zoom off" : "Zoomed in\nLT again to zoom out");
                     break;
 
-                case LeftTriggerAction.Escape:
-                    _engine.SendKeyPress(VirtualKey.Escape);
-                    break;
-
-                case LeftTriggerAction.SlowPointer:
+                case "slow-pointer":
                     _engine.SlowPointer = !_engine.SlowPointer;
                     ShowToast(_engine.SlowPointer ? "Slow pointer on\nLT again for normal speed" : "Slow pointer off");
+                    break;
+
+                default:
+                    _engine.RunAction(job.ToMapping());
                     break;
             }
         }
@@ -625,6 +621,7 @@ namespace HIDra.UI
         {
             JobsDrawing.EnableEditing();
             JobsDrawing.PartChosen += (_, part) => ChooseJobPart(part);
+            SetUpHowTo();
 
             SetGuideMode(typing: _virtualKeyboard?.IsVisible == true);
             ShowPage("Guide");
@@ -651,15 +648,20 @@ namespace HIDra.UI
             {
                 (GuidePage, GuideTabButton),
                 (PracticePage, PracticeTabButton),
-                (ControllerPage, ControllerTabButton),
+                (ButtonsPage, ButtonsTabButton),
+                (PointerPage, PointerTabButton),
                 (KeyboardPage, KeyboardTabButton),
             };
 
+            var accent = (Brush)FindResource("AccentBrush");
             foreach (var (element, tab) in pages)
             {
                 bool showing = (string)tab.Tag == page;
                 element.Visibility = showing ? Visibility.Visible : Visibility.Collapsed;
-                tab.Background = showing ? OnBrush : OffBrush;
+
+                // The page showing has the orange bar under its name
+                tab.Background = showing ? accent : Brushes.Transparent;
+                tab.Foreground = showing ? Brushes.White : new SolidColorBrush(Color.FromRgb(0xBB, 0xBB, 0xBB));
             }
         }
 
@@ -675,6 +677,62 @@ namespace HIDra.UI
             UpdateGuideText();
         }
 
+        // "How do I..." shows one answer at a time: click a question to open it. All the
+        // answers at once needed a scroll bar on a laptop screen, and a scroll bar is one
+        // more thing to aim at.
+        private readonly Dictionary<StackPanel, Border?> _openHowTo = new();
+
+        private void SetUpHowTo()
+        {
+            var accent = (Brush)FindResource("AccentBrush");
+            foreach (var list in new[] { HowToPointer, HowToTyping })
+            {
+                foreach (var child in list.Children)
+                {
+                    if (child is Border card)
+                    {
+                        card.Cursor = System.Windows.Input.Cursors.Hand;
+                        card.MouseEnter += (_, _) => card.BorderBrush = accent;
+                        card.MouseLeave += (_, _) => card.BorderBrush = Brushes.Transparent;
+                        card.MouseLeftButtonUp += (_, _) => OpenHowTo(list, card);
+                    }
+                }
+                OpenHowTo(list, null);
+            }
+        }
+
+        /// <summary>
+        /// Open one card and close the rest. Null keeps the open card if it is still
+        /// showing, or opens the first one that is.
+        /// </summary>
+        private void OpenHowTo(StackPanel list, Border? open)
+        {
+            if (open == null && _openHowTo.TryGetValue(list, out var current) && current?.Visibility == Visibility.Visible)
+            {
+                open = current;
+            }
+
+            var cards = new List<Border>();
+            foreach (var child in list.Children)
+            {
+                if (child is Border { Child: StackPanel { Children.Count: >= 2 } } card)
+                {
+                    cards.Add(card);
+                }
+            }
+            open ??= cards.Find(card => card.Visibility == Visibility.Visible);
+            _openHowTo[list] = open;
+
+            var accent = (Brush)FindResource("AccentBrush");
+            foreach (var card in cards)
+            {
+                var parts = ((StackPanel)card.Child).Children;
+                bool isOpen = card == open;
+                parts[1].Visibility = isOpen ? Visibility.Visible : Visibility.Collapsed;
+                ((TextBlock)parts[0]).Foreground = isOpen ? accent : Brushes.White;
+                }
+        }
+
         /// <summary>This student's job for every button that can be given one</summary>
         private Dictionary<string, ButtonJob> Jobs => ButtonJobCatalogue.Resolve(_userSettings.ButtonJobs);
 
@@ -688,13 +746,6 @@ namespace HIDra.UI
             ("LeftStickClick", "Left stick"), ("RightStickClick", "Right stick")
         };
 
-        private string LeftTriggerLabel => _userSettings.LeftTrigger switch
-        {
-            LeftTriggerAction.Magnifier => "Zoom in and out",
-            LeftTriggerAction.Escape => "Close a menu (Escape)",
-            LeftTriggerAction.SlowPointer => "Slow pointer on and off",
-            _ => "Only used while typing"
-        };
 
         private void UpdateGuideText()
         {
@@ -702,11 +753,12 @@ namespace HIDra.UI
             HowToTyping.Visibility = _guideTyping ? Visibility.Visible : Visibility.Collapsed;
             HowToModeText.Text = _guideTyping ? "While the keyboard is open" : "While using the pointer";
 
-            (string title, string text) = _userSettings.LeftTrigger switch
+            // A card of its own for LT's jobs that are about seeing and aiming; any other
+            // job it has is named on the card for that job
+            (string title, string text) = Jobs[ButtonJobCatalogue.LeftTrigger].Id switch
             {
-                LeftTriggerAction.Magnifier => ("See small things", "zooms in around the pointer. Press it again to zoom out."),
-                LeftTriggerAction.Escape => ("Close a menu", "closes a menu or box opened by mistake, or ends a slideshow."),
-                LeftTriggerAction.SlowPointer => ("Hit small things", "makes the pointer slow. Press it again for normal speed."),
+                "zoom" => ("See small things", "zooms in around the pointer. Press it again to zoom out."),
+                "slow-pointer" => ("Hit small things", "makes the pointer slow. Press it again for normal speed."),
                 _ => ("", "")
             };
             HowToLeftTriggerTitle.Text = title;
@@ -724,6 +776,13 @@ namespace HIDra.UI
             FillDrawing(JobsDrawing, typing: false);
 
             WriteHowTo();
+
+            // A card may have been hidden or shown by the buttons this student has
+            if (_openHowTo.Count > 0)
+            {
+                OpenHowTo(HowToPointer, null);
+                OpenHowTo(HowToTyping, null);
+            }
         }
 
         /// <summary>
@@ -769,7 +828,7 @@ namespace HIDra.UI
                 _ => "Right:"
             };
 
-            drawing.ActLT.Text = typing ? "Keyboard to top or bottom" : LeftTriggerLabel;
+            drawing.ActLT.Text = typing ? "Keyboard to top or bottom" : Job(ButtonJobCatalogue.LeftTrigger);
             drawing.ActRT.Text = "Hold to click and drag";
             drawing.ActLB.Text = typing ? "Backspace" : Job("LeftBumper");
             drawing.ActRB.Text = typing ? "Space" : Job("RightBumper");
@@ -988,7 +1047,6 @@ namespace HIDra.UI
                 _jobPart = part;
                 _jobButton = part switch
                 {
-                    "LeftTrigger" => null,
                     "DPad" => DPadParts[0].Name,
                     "StickPress" => StickPressParts[0].Name,
                     _ => part
@@ -1008,31 +1066,10 @@ namespace HIDra.UI
             if (_jobPart == null)
             {
                 JobChooserTitle.Text = "Choose a button";
-                JobChooserHint.Text = "Click a label on the drawing to see what that button can do. "
+                JobChooserHint.Text = "Click a label, or a button on the drawing, to choose what it does for this student while the keyboard is closed. "
                     + "The sticks and RT cannot be changed.\n\n"
                     + "Holding Back and Start together always brings HIDra back, whatever Back and Start are given here. "
                     + "Some button always clicks, and some button always opens the keyboard.";
-                return;
-            }
-
-            if (_jobPart == "LeftTrigger")
-            {
-                JobChooserTitle.Text = "LT, while the keyboard is closed";
-                JobChooserHint.Text = "While the keyboard is open, LT always moves it to the top or bottom of the screen.";
-
-                foreach (var (action, label, description) in new[]
-                {
-                    (LeftTriggerAction.Magnifier, "Zoom", "Windows Magnifier: bigger around the pointer. LT again zooms out"),
-                    (LeftTriggerAction.Escape, "Escape", "Closes a menu or box opened by mistake, or ends a slideshow"),
-                    (LeftTriggerAction.SlowPointer, "Slow pointer", "A slower pointer for small targets, on and off. Its speed is under Pointer"),
-                    (LeftTriggerAction.Nothing, "Nothing", "LT is only used while the keyboard is open"),
-                })
-                {
-                    var choice = EditorKey("JobChoice", label, description: description);
-                    choice.Background = _userSettings.LeftTrigger == action ? OnBrush : OffBrush;
-                    choice.Click += (_, _) => ChangeSettings(s => s.LeftTrigger = action);
-                    JobChoices.Children.Add(choice);
-                }
                 return;
             }
 
@@ -1049,6 +1086,7 @@ namespace HIDra.UI
                 {
                     Style = (Style)FindResource("ToggleButtonStyle"),
                     Width = 118,
+                    Height = 40,
                     Margin = new Thickness(0, 0, 8, 0),
                     Content = label,
                     Background = name == _jobButton ? OnBrush : OffBrush
@@ -1065,10 +1103,13 @@ namespace HIDra.UI
             var current = Jobs[button.Name];
             string? locked = ButtonJobCatalogue.WhyLocked(_userSettings.ButtonJobs, button.Name);
 
-            JobChooserTitle.Text = $"What {button.Label} does";
-            JobChooserHint.Text = button.KeepsJobWhileTyping
-                ? "It does this while the keyboard is open, too."
-                : "While the keyboard is open it types instead, so this is its job with the pointer.";
+            JobChooserTitle.Text = $"What {button.Label} does:  {current.Label}";
+            JobChooserHint.Text = current.Description + ". " + (button.Name == ButtonJobCatalogue.LeftTrigger
+                ? "While the keyboard is open, LT always moves it to the top or bottom instead."
+                : button.KeepsJobWhileTyping
+                    ? "It does this while the keyboard is open, too."
+                    : "While the keyboard is open it types instead.")
+                + $" Standard: {ButtonJobCatalogue.Find(button.StandardJob)!.Label}.";
 
             if (locked != null)
             {
@@ -1076,20 +1117,62 @@ namespace HIDra.UI
                 JobLockedText.Visibility = Visibility.Visible;
             }
 
-            foreach (var job in ButtonJobCatalogue.All)
+            // A row or two for each kind of job, so the one wanted is quick to find. Jobs only
+            // one button can have are left out for the rest; the keyboard is shown but
+            // greyed where it could not be closed again.
+            foreach (var (group, ids) in JobGroups)
             {
-                bool allowed = ButtonJobCatalogue.Allowed(button, job);
-                string description = !allowed ? "Only on X, Back, Start or a stick press, so it can close the keyboard too"
-                    : job.Id == button.StandardJob ? "Standard for this button" : job.Description;
+                var tiles = new WrapPanel();
+                foreach (var id in ids)
+                {
+                    var job = ButtonJobCatalogue.Find(id)!;
+                    if (job.OnlyOn != null && job.OnlyOn != button.Name)
+                    {
+                        continue;
+                    }
 
-                var choice = EditorKey("JobChoice", job.Label, description: description);
-                choice.Background = job == current ? OnBrush : OffBrush;
-                choice.IsEnabled = allowed && (locked == null || job == current);
-                choice.Opacity = choice.IsEnabled ? 1 : 0.6;
-                choice.Click += (_, _) => SetButtonJob(button, job);
-                JobChoices.Children.Add(choice);
+                    bool allowed = ButtonJobCatalogue.Allowed(button, job);
+                    var choice = EditorKey("JobChoice", job.Label);
+                    choice.ToolTip = allowed ? job.Description : "Only on X, Back, Start or a stick press, so it can close the keyboard too";
+                    choice.Background = job == current ? OnBrush : OffBrush;
+                    choice.IsEnabled = allowed && (locked == null || job == current);
+                    choice.Opacity = choice.IsEnabled ? 1 : 0.5;
+                    choice.Click += (_, _) => SetButtonJob(button, job);
+                    tiles.Children.Add(choice);
+                }
+
+                if (tiles.Children.Count == 0)
+                {
+                    continue;
+                }
+
+                var line = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
+                var name = new TextBlock
+                {
+                    Text = group,
+                    Width = 86,
+                    FontSize = 14,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA)),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 12, 6, 0)
+                };
+                DockPanel.SetDock(name, Dock.Left);
+                line.Children.Add(name);
+                line.Children.Add(tiles);
+                JobChoices.Children.Add(line);
             }
         }
+
+        private static readonly (string Group, string[] Ids)[] JobGroups =
+        {
+            ("Clicks", new[] { "click", "right-click", "double-click" }),
+            ("Keyboard and pointer", new[] { "keyboard", "swap-sticks", "zoom", "slow-pointer" }),
+            ("Windows", new[] { "switch-programs", "start-menu", "all-windows", "close-window",
+                "maximise", "minimise", "snap-left", "snap-right" }),
+            ("Editing", new[] { "undo", "redo", "copy", "paste" }),
+            ("Keys", new[] { "escape", "enter", "tab", "nothing" }),
+        };
 
         private void SetButtonJob(RemappableButton button, ButtonJob job)
         {
@@ -1110,11 +1193,7 @@ namespace HIDra.UI
         private void ButtonsStandard_Click(object sender, RoutedEventArgs e)
         {
             _jobPart = _jobButton = null;
-            ChangeSettings(s =>
-            {
-                s.ButtonJobs = null;
-                s.LeftTrigger = LeftTriggerAction.Magnifier;
-            });
+            ChangeSettings(s => s.ButtonJobs = null);
         }
 
         // ---------------------------------------------------------------------------
@@ -1649,9 +1728,10 @@ namespace HIDra.UI
         // Shortcut keys and the Apps key, chosen per student
         //
         // A copy of the keyboard's four shortcut rows, and of the Apps row: click a place
-        // to see what can go there, then click a choice. Choices come from fixed lists of
-        // keys and installed programs, never typed-in key combinations. Choosing a key
-        // already elsewhere in the row swaps the two, rather than having it twice.
+        // to see what can go there, then click a choice. Choices come from a fixed list
+        // of keys and the programs on the Start menu, never typed-in key combinations.
+        // Choosing a key already elsewhere in the row swaps the two, rather than having
+        // it twice.
         // ---------------------------------------------------------------------------
 
         private static readonly string[] ShortcutRowNames = { "Edit", "Select", "Style", "Tools" };
@@ -1671,15 +1751,15 @@ namespace HIDra.UI
                 {
                     Text = glyph.ToString(),
                     FontFamily = ShortcutCatalogue.IconFont,
-                    FontSize = 24,
+                    FontSize = 19,
                     FontWeight = FontWeights.Normal,
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    Margin = new Thickness(0, 0, 0, 3)
+                    Margin = new Thickness(0, 0, 0, 2)
                 });
             }
             else if (logo != null)
             {
-                content.Children.Add(new Image { Source = logo, Width = 28, Height = 28, Margin = new Thickness(0, 0, 0, 3) });
+                content.Children.Add(new Image { Source = logo, Width = 24, Height = 24, Margin = new Thickness(0, 0, 0, 2) });
             }
 
             content.Children.Add(new TextBlock
@@ -1743,32 +1823,29 @@ namespace HIDra.UI
 
         private void ChooseShortcutSlot(int slot)
         {
-            // Clicking the place being changed again puts the list away
-            _editingShortcutSlot = slot == _editingShortcutSlot ? -1 : slot;
+            _editingShortcutSlot = slot;
+            _editingAppSlot = -1;
             BuildShortcutEditor();
-            ShortcutChooser.Visibility = _editingShortcutSlot < 0 ? Visibility.Collapsed : Visibility.Visible;
-            if (_editingShortcutSlot < 0)
-            {
-                return;
-            }
+            BuildAppEditor();
 
             int row = slot / ShortcutCatalogue.RowLength;
             var current = ShortcutCatalogue.Resolve(_userSettings.ShortcutKeys)[slot];
-            ShortcutChooserTitle.Text = $"Choose a key for the {ShortcutRowNames[row]} row";
 
-            ShortcutChoices.Children.Clear();
+            var choices = new List<Button>();
             foreach (var key in ShortcutCatalogue.InGroup(ShortcutCatalogue.GroupOfRow(row)))
             {
                 var choice = EditorKey("ChoiceKey", key.Label, key.Icon, description: key.Description);
                 choice.Background = key == current ? OnBrush : OffBrush;
                 choice.Click += (_, _) => SetShortcut(slot, key.Id);
-                ShortcutChoices.Children.Add(choice);
+                choices.Add(choice);
             }
 
             var empty = EditorKey("ChoiceKey", "Empty", description: "Leave this place empty");
             empty.Background = current == null ? OnBrush : OffBrush;
             empty.Click += (_, _) => SetShortcut(slot, "");
-            ShortcutChoices.Children.Add(empty);
+            choices.Add(empty);
+
+            ShowKeyChooser($"Choose a key for the {ShortcutRowNames[row]} row", choices, search: false);
         }
 
         private void SetShortcut(int slot, string id)
@@ -1782,15 +1859,13 @@ namespace HIDra.UI
             }
             ids[slot] = id;
 
-            _editingShortcutSlot = -1;
-            ShortcutChooser.Visibility = Visibility.Collapsed;
+            HideKeyChooser();
             ChangeSettings(s => s.ShortcutKeys = ids);
         }
 
         private void ShortcutsStandard_Click(object sender, RoutedEventArgs e)
         {
-            _editingShortcutSlot = -1;
-            ShortcutChooser.Visibility = Visibility.Collapsed;
+            HideKeyChooser();
             ChangeSettings(s => s.ShortcutKeys = null);
         }
 
@@ -1812,29 +1887,35 @@ namespace HIDra.UI
 
         private void ChooseAppSlot(int slot)
         {
-            _editingAppSlot = slot == _editingAppSlot ? -1 : slot;
+            _editingAppSlot = slot;
+            _editingShortcutSlot = -1;
+            BuildShortcutEditor();
             BuildAppEditor();
-            AppChooser.Visibility = _editingAppSlot < 0 ? Visibility.Collapsed : Visibility.Visible;
-            if (_editingAppSlot < 0)
-            {
-                return;
-            }
+
+            // Reading the Start menu takes a moment the first time; say so rather than
+            // looking stuck
+            Cursor = System.Windows.Input.Cursors.Wait;
+            var programs = AppLauncher.Choices;
+            Cursor = null;
 
             var current = AppLauncher.Chosen(_userSettings.AppKeys, AppSlots)[slot];
 
-            AppChoices.Children.Clear();
-            foreach (var app in AppLauncher.Installed)
-            {
-                var choice = EditorKey("ChoiceKey", app.Name, logo: app.Icon);
-                choice.Background = app == current ? OnBrush : OffBrush;
-                choice.Click += (_, _) => SetApp(slot, app.Id);
-                AppChoices.Children.Add(choice);
-            }
-
+            var choices = new List<Button>();
             var empty = EditorKey("ChoiceKey", "Empty", description: "Leave this place empty");
             empty.Background = current == null ? OnBrush : OffBrush;
             empty.Click += (_, _) => SetApp(slot, "");
-            AppChoices.Children.Add(empty);
+            choices.Add(empty);
+
+            foreach (var app in programs)
+            {
+                var choice = EditorKey("ChoiceKey", app.Name, logo: app.Icon);
+                choice.Background = app.Id == current?.Id ? OnBrush : OffBrush;
+                choice.Tag = app.Name;
+                choice.Click += (_, _) => SetApp(slot, app.Id);
+                choices.Add(choice);
+            }
+
+            ShowKeyChooser("Choose a program for this place", choices, search: true);
         }
 
         private void SetApp(int slot, string id)
@@ -1852,16 +1933,65 @@ namespace HIDra.UI
             }
             ids[slot] = id;
 
-            _editingAppSlot = -1;
-            AppChooser.Visibility = Visibility.Collapsed;
+            HideKeyChooser();
             ChangeSettings(s => s.AppKeys = ids);
         }
 
         private void AppsStandard_Click(object sender, RoutedEventArgs e)
         {
-            _editingAppSlot = -1;
-            AppChooser.Visibility = Visibility.Collapsed;
+            HideKeyChooser();
             ChangeSettings(s => s.AppKeys = null);
+        }
+
+        // The choices open over the Keyboard tab, where there is room for all of them -
+        // a program list can be long - without the page ever needing to scroll
+
+        private void ShowKeyChooser(string title, List<Button> choices, bool search)
+        {
+            KeyChooserTitle.Text = title;
+            KeyChoices.Children.Clear();
+            foreach (var choice in choices)
+            {
+                KeyChoices.Children.Add(choice);
+            }
+
+            AppSearchRow.Visibility = search ? Visibility.Visible : Visibility.Collapsed;
+            AppSearchBox.Text = "";
+            KeyChooserOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void HideKeyChooser()
+        {
+            KeyChooserOverlay.Visibility = Visibility.Collapsed;
+            _editingShortcutSlot = _editingAppSlot = -1;
+            BuildShortcutEditor();
+            BuildAppEditor();
+        }
+
+        private void KeyChooserClose_Click(object sender, RoutedEventArgs e) => HideKeyChooser();
+
+        /// <summary>A click on the dark edge, not on the choices, puts them away</summary>
+        private void KeyChooserOverlay_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource == KeyChooserOverlay)
+            {
+                HideKeyChooser();
+            }
+        }
+
+        /// <summary>Show only the programs whose name has the words typed</summary>
+        private void AppSearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string find = AppSearchBox.Text.Trim();
+            foreach (var child in KeyChoices.Children)
+            {
+                if (child is Button { Tag: string name } choice)
+                {
+                    choice.Visibility = find.Length == 0 || name.Contains(find, StringComparison.CurrentCultureIgnoreCase)
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+                }
+            }
         }
 
         // ---------------------------------------------------------------------------
@@ -2119,7 +2249,7 @@ namespace HIDra.UI
                 _engine.SetButtonMappings(ButtonJobCatalogue.ToMappings(_userSettings.ButtonJobs));
 
                 // Slow pointer only stays on while LT is what switches it
-                if (_userSettings.LeftTrigger != LeftTriggerAction.SlowPointer)
+                if (Jobs[ButtonJobCatalogue.LeftTrigger].Id != "slow-pointer")
                 {
                     _engine.SlowPointer = false;
                 }

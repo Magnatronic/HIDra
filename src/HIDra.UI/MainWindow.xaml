@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Title="HIDra - Controller to Mouse/Keyboard"
         Height="900" Width="1600"
-        MinHeight="480" MinWidth="820"
+        MinHeight="720" MinWidth="1280"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         Background="#1B1B1B">
@@ -81,19 +81,45 @@
             <Setter Property="FontSize" Value="18"/>
         </Style>
 
-        <!-- The two pages. Orange for the one showing, like any other choice here. -->
-        <Style x:Key="TabButton" TargetType="Button" BasedOn="{StaticResource BigButton}">
-            <Setter Property="Width" Value="200"/>
-            <Setter Property="Height" Value="52"/>
+        <!-- A page tab: a word with a bar under it, orange for the page showing. Drawn as a
+             tab, not a button, so the tabs are not mistaken for things that do something.
+             The code sets Background (the bar) and Foreground for the page showing; the
+             bar shows faintly under the pointer. Still big, to be easy to aim at. -->
+        <Style x:Key="TabButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#BBBBBB"/>
             <Setter Property="FontSize" Value="20"/>
-            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="MinWidth" Value="150"/>
+            <Setter Property="Height" Value="46"/>
+            <Setter Property="Padding" Value="24,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="#01000000">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                            <Border x:Name="hover" Height="3" VerticalAlignment="Bottom" Opacity="0"
+                                    Background="{StaticResource AccentBrush}"/>
+                            <Border x:Name="bar" Height="5" VerticalAlignment="Bottom" CornerRadius="2"
+                                    Background="{TemplateBinding Background}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter TargetName="hover" Property="Opacity" Value="0.7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- A key in the shortcut and Apps editors: an icon or logo above a word, like the
              key it stands for on the keyboard -->
         <Style x:Key="EditorKey" TargetType="Button" BasedOn="{StaticResource BigButton}">
             <Setter Property="Width" Value="Auto"/>
-            <Setter Property="Height" Value="76"/>
+            <Setter Property="Height" Value="48"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,0,6,6"/>
@@ -106,12 +132,13 @@
 
         <!-- A job a controller button can be given, on the Controller tab -->
         <Style x:Key="JobChoice" TargetType="Button" BasedOn="{StaticResource EditorKey}">
-            <Setter Property="Width" Value="164"/>
-            <Setter Property="Height" Value="80"/>
+            <Setter Property="Width" Value="112"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="FontSize" Value="14"/>
         </Style>
 
         <Style x:Key="ValueText" TargetType="TextBlock">
-            <Setter Property="Width" Value="70"/>
+            <Setter Property="Width" Value="96"/>
             <Setter Property="FontSize" Value="19"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="White"/>
@@ -151,8 +178,8 @@
 
         <Style x:Key="PhraseBox" TargetType="TextBox">
             <Setter Property="FontSize" Value="16"/>
-            <Setter Property="Height" Value="42"/>
-            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Margin" Value="0,0,8,6"/>
             <Setter Property="Padding" Value="8,0"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Background" Value="#3C3C3C"/>
@@ -162,8 +189,11 @@
             <Setter Property="BorderThickness" Value="2"/>
         </Style>
 
+        <!-- A "How do I..." question, opened by clicking it. Orange border under the pointer. -->
         <Style x:Key="HowToCard" TargetType="Border">
             <Setter Property="Background" Value="#262626"/>
+            <Setter Property="BorderThickness" Value="3"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
@@ -191,7 +221,7 @@
 
         <!-- Status bar: is it working, and the one button that stops it. Above both
              pages, so it is always in view. -->
-        <Border Grid.Row="0" Background="#141414" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="20,10">
+        <Border Grid.Row="0" Background="#141414" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="20,6">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -231,14 +261,17 @@
 
         <!-- The pages. The student's two come first; the settings, for staff, sit apart
              after them, so it is plain which are which. -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="16,14,16,0">
-            <Button x:Name="GuideTabButton" Style="{StaticResource TabButton}" Content="Guide" Tag="Guide" Click="Tab_Click"/>
-            <Button x:Name="PracticeTabButton" Style="{StaticResource TabButton}" Content="Practice" Tag="Practice" Click="Tab_Click"/>
-            <Border Width="2" Background="#3A3A3A" Margin="22,6,18,6"/>
-            <TextBlock Text="Settings" FontSize="15" Foreground="#999999" VerticalAlignment="Center" Margin="0,0,14,0"/>
-            <Button x:Name="ControllerTabButton" Style="{StaticResource TabButton}" Content="Controller" Tag="Controller" Click="Tab_Click"/>
-            <Button x:Name="KeyboardTabButton" Style="{StaticResource TabButton}" Content="Keyboard" Tag="Keyboard" Click="Tab_Click"/>
-        </StackPanel>
+        <Border Grid.Row="1" BorderBrush="#333333" BorderThickness="0,0,0,1" Padding="16,4,16,0">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="GuideTabButton" Style="{StaticResource TabButton}" Content="Guide" Tag="Guide" Click="Tab_Click"/>
+                <Button x:Name="PracticeTabButton" Style="{StaticResource TabButton}" Content="Practice" Tag="Practice" Click="Tab_Click"/>
+                <Border Width="2" Background="#3A3A3A" Margin="22,12,18,12"/>
+                <TextBlock Text="Settings" FontSize="15" Foreground="#999999" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <Button x:Name="ButtonsTabButton" Style="{StaticResource TabButton}" Content="Buttons" Tag="Buttons" Click="Tab_Click"/>
+                <Button x:Name="PointerTabButton" Style="{StaticResource TabButton}" Content="Pointer" Tag="Pointer" Click="Tab_Click"/>
+                <Button x:Name="KeyboardTabButton" Style="{StaticResource TabButton}" Content="Keyboard" Tag="Keyboard" Click="Tab_Click"/>
+            </StackPanel>
+        </Border>
 
         <!-- ============================== Guide ============================== -->
         <Grid x:Name="GuidePage" Grid.Row="2" Margin="16">
@@ -274,9 +307,10 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- The Viewbox scales the drawing to the space available, so it stays
-                         whole on a small laptop screen -->
-                    <views:ControllerDrawing x:Name="GuideDrawing" Grid.Row="1"/>
+                    <!-- The drawing scales to the space available, so it stays whole on a
+                         small laptop screen - but only a little past its own size, so a big
+                         screen does not blow the words up -->
+                    <views:ControllerDrawing x:Name="GuideDrawing" Grid.Row="1" MaxHeight="580" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
 
@@ -289,106 +323,105 @@
                         <TextBlock x:Name="HowToModeText" Style="{StaticResource SettingHint}" FontSize="14"/>
                     </StackPanel>
                     <!-- One set of cards for each side of the switch, so only what can be
-                         done right now is shown -->
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <Grid>
-                            <StackPanel x:Name="HowToPointer">
-                                <Border x:Name="HowToLeftTrigger" Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock x:Name="HowToLeftTriggerTitle" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LT"/></InlineUIContainer><Run x:Name="HowToLeftTriggerText"/></TextBlock>
-                                    </StackPanel>
-                                </Border>
-                                <Border x:Name="HowToClick" Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Click on something" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock x:Name="HowToClickText" Style="{StaticResource HowToText}"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border x:Name="HowToScroll" Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Scroll a page" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock x:Name="HowToScrollText" Style="{StaticResource HowToText}"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border x:Name="HowToWindows" Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Arrange windows" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock x:Name="HowToWindowsText" Style="{StaticResource HowToText}"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border x:Name="HowToSwitch" Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Switch programs" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock x:Name="HowToSwitchText" Style="{StaticResource HowToText}"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border x:Name="HowToOpen" Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Open a program" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock x:Name="HowToOpenText" Style="{StaticResource HowToText}"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border x:Name="HowToStartTyping" Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Start typing" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock x:Name="HowToStartTypingText" Style="{StaticResource HowToText}"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                            <StackPanel x:Name="HowToTyping" Visibility="Collapsed">
-                                <Border Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Type" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Steer the orange box with the left stick."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="types the key, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="types a capital or the symbol on top."/></TextBlock>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Type faster" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LB"/></InlineUIContainer><Run Text="deletes, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="RB"/></InlineUIContainer><Run Text="space, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeY}"/></InlineUIContainer><Run Text="Enter."/><LineBreak/><Run Text="Push up from the top row to pick a green word."/></TextBlock>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Type numbers and symbols" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Go to 123 #+ at the bottom left and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><LineBreak/><Run Text="abc, in the same place, brings the letters back."/></TextBlock>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Type a saved phrase" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Go up to Phrases, at the start of the green row, and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="- then pick the phrase. Staff set them on the Keyboard tab."/></TextBlock>
-                                    </StackPanel>
-                                </Border>
-                                <!-- Only for a student whose keyboard has the Read key -->
-                                <Border x:Name="HowToReadAloud" Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Hear it read aloud" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Select the words, then press Read in the Tools row. Press Read again to stop."/></TextBlock>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Copy and paste" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Select, then move to highlight the text, then Copy. Go to where it belongs, then Paste."/></TextBlock>
-                                    </StackPanel>
-                                </Border>
-                                <Border x:Name="HowToKeyboardWay" Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Keyboard in the way?" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock x:Name="HowToKeyboardWayText" Style="{StaticResource HowToText}"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource HowToCard}">
-                                    <StackPanel>
-                                        <TextBlock Text="Open a program" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Go to Apps at the top left and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="on the program."/></TextBlock>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Grid>
-                    </ScrollViewer>
+                         done right now is shown. Only one card is open at a time - click a
+                         question to open it - so they always fit without scrolling. -->
+                    <Grid>
+                        <StackPanel x:Name="HowToPointer">
+                            <Border x:Name="HowToLeftTrigger" Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock x:Name="HowToLeftTriggerTitle" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LT"/></InlineUIContainer><Run x:Name="HowToLeftTriggerText"/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="HowToClick" Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Click on something" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock x:Name="HowToClickText" Style="{StaticResource HowToText}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="HowToScroll" Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Scroll a page" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock x:Name="HowToScrollText" Style="{StaticResource HowToText}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="HowToWindows" Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Arrange windows" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock x:Name="HowToWindowsText" Style="{StaticResource HowToText}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="HowToSwitch" Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Switch programs" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock x:Name="HowToSwitchText" Style="{StaticResource HowToText}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="HowToOpen" Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Open a program" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock x:Name="HowToOpenText" Style="{StaticResource HowToText}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="HowToStartTyping" Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Start typing" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock x:Name="HowToStartTypingText" Style="{StaticResource HowToText}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                        <StackPanel x:Name="HowToTyping" Visibility="Collapsed">
+                            <Border Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Type" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Steer the orange box with the left stick."/><LineBreak/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="types the key, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeB}"/></InlineUIContainer><Run Text="types a capital or the symbol on top."/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Type faster" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock Style="{StaticResource HowToText}"><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="LB"/></InlineUIContainer><Run Text="deletes, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="RB"/></InlineUIContainer><Run Text="space, "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeY}"/></InlineUIContainer><Run Text="Enter."/><LineBreak/><Run Text="Push up from the top row to pick a green word."/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Type numbers and symbols" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Go to 123 #+ at the bottom left and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><LineBreak/><Run Text="abc, in the same place, brings the letters back."/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Type a saved phrase" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Go up to Phrases, at the start of the green row, and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="- then pick the phrase. Staff set them on the Keyboard tab."/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <!-- Only for a student whose keyboard has the Read key -->
+                            <Border x:Name="HowToReadAloud" Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Hear it read aloud" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Select the words, then press Read in the Tools row. Press Read again to stop."/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Copy and paste" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Select, then move to highlight the text, then Copy. Go to where it belongs, then Paste."/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border x:Name="HowToKeyboardWay" Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Keyboard in the way?" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock x:Name="HowToKeyboardWayText" Style="{StaticResource HowToText}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource HowToCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Open a program" Style="{StaticResource HowToTitle}"/>
+                                    <TextBlock Style="{StaticResource HowToText}"><Run Text="Go to Apps at the top left and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="on the program."/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
                 </DockPanel>
             </Border>
         </Grid>
@@ -534,402 +567,394 @@
             </Grid>
         </Grid>
 
-        <!-- ============================ Controller ============================ -->
-        <!-- Saved for this student as soon as a setting is changed -->
-        <ScrollViewer x:Name="ControllerPage" Grid.Row="2" Margin="16" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-            <StackPanel>
-                <!-- Buttons: the Guide's drawing again, where clicking a label chooses
-                     that button's job for this student -->
-                <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                    <StackPanel>
-                        <Grid Margin="0,0,0,8">
-                            <StackPanel VerticalAlignment="Center" Margin="0,0,200,0">
-                                <TextBlock Text="Buttons" Style="{StaticResource PanelTitle}"/>
-                                <TextBlock Style="{StaticResource SettingHint}" FontSize="14"
-                                           Text="Click a label, or a button on the drawing, to choose what it does for this student. These are the jobs while the keyboard is closed; while it is open, A, B, Y, LB, RB and the D-pad type."/>
-                            </StackPanel>
-                            <Button Style="{StaticResource ToggleButtonStyle}" Width="180" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Top"
-                                    Content="Back to standard" Click="ButtonsStandard_Click"/>
-                        </Grid>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="540"/>
-                            </Grid.ColumnDefinitions>
-                            <views:ControllerDrawing x:Name="JobsDrawing" Grid.Column="0" MaxHeight="520" VerticalAlignment="Top"/>
-                            <Border Grid.Column="2" Background="#262626" CornerRadius="8" Padding="12">
-                                <StackPanel>
-                                    <TextBlock x:Name="JobChooserTitle" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock x:Name="JobChooserHint" Style="{StaticResource SettingHint}" FontSize="14" Margin="0,2,0,0"/>
-                                    <!-- The D-pad and the stick presses are more than one button: which one -->
-                                    <WrapPanel x:Name="JobParts" Margin="0,10,0,0"/>
-                                    <TextBlock x:Name="JobLockedText" Foreground="{StaticResource WarningBrush}" FontSize="15" FontWeight="SemiBold"
-                                               TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
-                                    <WrapPanel x:Name="JobChoices" Margin="0,10,0,0"/>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </StackPanel>
-                </Border>
+        <!-- ============================= Buttons ============================= -->
+        <!-- Each button's job for this student, on the Guide's own drawing. Saved as
+             soon as a job is chosen. -->
+        <Border x:Name="ButtonsPage" Grid.Row="2" Margin="16" Style="{StaticResource Panel}" Visibility="Collapsed">
+            <Grid>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="16"/>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="600"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0">
-                        <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                            <StackPanel>
-                                <TextBlock Text="Pointer" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
-
-                                <Grid Style="{StaticResource SettingRow}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="Pointer speed" Style="{StaticResource SettingTitle}"/>
-                                        <TextBlock Text="Left stick. Slower is easier to control" Style="{StaticResource SettingHint}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Style="{StaticResource BigButton}" Content="−" Click="CursorSlower_Click"/>
-                                        <TextBlock x:Name="CursorSpeedValue" Style="{StaticResource ValueText}"/>
-                                        <Button Style="{StaticResource BigButton}" Content="+" Click="CursorFaster_Click"/>
-                                    </StackPanel>
-                                </Grid>
-
-                                <Grid Style="{StaticResource SettingRow}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="Scroll speed" Style="{StaticResource SettingTitle}"/>
-                                        <TextBlock Text="Right stick" Style="{StaticResource SettingHint}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Style="{StaticResource BigButton}" Content="−" Click="ScrollSlower_Click"/>
-                                        <TextBlock x:Name="ScrollSpeedValue" Style="{StaticResource ValueText}"/>
-                                        <Button Style="{StaticResource BigButton}" Content="+" Click="ScrollFaster_Click"/>
-                                    </StackPanel>
-                                </Grid>
-
-                                <Grid Style="{StaticResource SettingRow}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="Click by resting" Style="{StaticResource SettingTitle}"/>
-                                        <TextBlock Text="Clicks when the pointer stops, instead of A" Style="{StaticResource SettingHint}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button x:Name="DwellClickToggle" Style="{StaticResource ToggleButtonStyle}" Click="DwellClickToggle_Click"/>
-                                        <Button Style="{StaticResource BigButton}" Content="−" Click="DwellClickShorter_Click" Margin="8,0,0,0"/>
-                                        <TextBlock x:Name="DwellClickValue" Style="{StaticResource ValueText}"/>
-                                        <Button Style="{StaticResource BigButton}" Content="+" Click="DwellClickLonger_Click"/>
-                                    </StackPanel>
-                                </Grid>
-                                <Grid Style="{StaticResource SettingRow}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="Pointer feel" Style="{StaticResource SettingTitle}"/>
-                                        <TextBlock Text="Gentle: slower for a small push, faster for a big one" Style="{StaticResource SettingHint}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button x:Name="CurveSteadyButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Steady" Click="CurveSteady_Click"/>
-                                        <Button x:Name="CurveGentleButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Gentle" Click="CurveGentle_Click" Margin="8,0,0,0"/>
-                                    </StackPanel>
-                                </Grid>
-                                <Grid Style="{StaticResource SettingRow}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="Smooth out wobbles" Style="{StaticResource SettingTitle}"/>
-                                        <TextBlock Text="Steadies a shaky stick. More lags a little behind" Style="{StaticResource SettingHint}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Style="{StaticResource BigButton}" Content="−" Click="SmoothingLess_Click"/>
-                                        <TextBlock x:Name="SmoothingValue" Style="{StaticResource ValueText}" Width="96"/>
-                                        <Button Style="{StaticResource BigButton}" Content="+" Click="SmoothingMore_Click"/>
-                                    </StackPanel>
-                                </Grid>
-                                <Grid Style="{StaticResource SettingRow}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="Ignore quick repeat presses" Style="{StaticResource SettingTitle}"/>
-                                        <TextBlock Text="A press this soon after letting go is ignored" Style="{StaticResource SettingHint}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Style="{StaticResource BigButton}" Content="−" Click="RepeatShorter_Click"/>
-                                        <TextBlock x:Name="IgnoreRepeatValue" Style="{StaticResource ValueText}" Width="96"/>
-                                        <Button Style="{StaticResource BigButton}" Content="+" Click="RepeatLonger_Click"/>
-                                    </StackPanel>
-                                </Grid>
-                                <Grid Style="{StaticResource SettingRow}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="Slow pointer speed" Style="{StaticResource SettingTitle}"/>
-                                        <TextBlock Text="A share of the normal speed, while Slow pointer is on" Style="{StaticResource SettingHint}"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Style="{StaticResource BigButton}" Content="−" Click="SlowPointerSlower_Click"/>
-                                        <TextBlock x:Name="SlowPointerValue" Style="{StaticResource ValueText}"/>
-                                        <Button Style="{StaticResource BigButton}" Content="+" Click="SlowPointerFaster_Click"/>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                            <StackPanel>
-                                <TextBlock Text="Other programs" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
-                                <Grid Style="{StaticResource SettingRow}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="Pause while Grid 3 is open" Style="{StaticResource SettingTitle}"/>
-                                        <TextBlock Text="So the two do not fight over the pointer" Style="{StaticResource SettingHint}"/>
-                                    </StackPanel>
-                                    <Button x:Name="Grid3Toggle" Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" VerticalAlignment="Center" Click="Grid3Toggle_Click"/>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                            <StackPanel>
-                                <TextBlock Text="This student's settings" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
-                                <TextBlock Text="Changes are saved for this student straight away." Style="{StaticResource SettingHint}" FontSize="14"/>
-                                <TextBlock x:Name="SettingsLocationText" Style="{StaticResource SettingHint}" Margin="0,2,0,10"/>
-                                <TextBlock Text="To give another student the same settings, export them here, then import them while logged in as that student." Style="{StaticResource SettingHint}" FontSize="14" Margin="0,0,0,8"/>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Style="{StaticResource ToggleButtonStyle}" Width="190" Content="Export settings..." Click="ExportSettings_Click"/>
-                                    <Button Style="{StaticResource ToggleButtonStyle}" Width="190" Content="Import settings..." Click="ImportSettings_Click" Margin="8,0,0,0"/>
-                                </StackPanel>
-                                <TextBlock x:Name="ExportImportStatus" Style="{StaticResource SettingHint}" FontSize="14" Margin="0,8,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </Grid>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- ============================= Keyboard ============================= -->
-        <ScrollViewer x:Name="KeyboardPage" Grid.Row="2" Margin="16" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="16"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
+                    <views:ControllerDrawing x:Name="JobsDrawing" Grid.Column="0" MaxHeight="580" VerticalAlignment="Center" Margin="0,0,0,56"/>
+                    <Button Grid.Column="0" Style="{StaticResource ToggleButtonStyle}" Width="200" FontSize="16" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                            Content="All back to standard" Click="ButtonsStandard_Click"/>
+                    <Border Grid.Column="2" Background="#262626" CornerRadius="8" Padding="14,12">
                         <StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="Keyboard" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="KeyboardButtonHint" Style="{StaticResource SettingHint}" FontSize="14" VerticalAlignment="Center" Margin="12,2,0,0"/>
-                            </StackPanel>
+                            <TextBlock x:Name="JobChooserTitle" Style="{StaticResource SettingTitle}" FontSize="19"/>
+                            <TextBlock x:Name="JobChooserHint" Style="{StaticResource SettingHint}" FontSize="14" Margin="0,2,0,0"/>
+                            <TextBlock x:Name="JobLockedText" Foreground="{StaticResource WarningBrush}" FontSize="14.5" FontWeight="SemiBold"
+                                       TextWrapping="Wrap" Margin="0,6,0,0" Visibility="Collapsed"/>
+                            <!-- The D-pad and the stick presses are more than one button: which one -->
+                            <WrapPanel x:Name="JobParts" Margin="0,8,0,0"/>
+                            <!-- The jobs, a row or two for each kind -->
+                            <StackPanel x:Name="JobChoices" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
 
+        <!-- ============================= Pointer ============================= -->
+        <Grid x:Name="PointerPage" Grid.Row="2" Margin="16" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource Panel}" VerticalAlignment="Top">
+                <StackPanel>
+                    <TextBlock Text="Pointer" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
                             <Grid Style="{StaticResource SettingRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="Pointer speed" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Text="Left stick. Slower is easier to control" Style="{StaticResource SettingHint}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="CursorSlower_Click"/>
+                                    <TextBlock x:Name="CursorSpeedValue" Style="{StaticResource ValueText}"/>
+                                    <Button Style="{StaticResource BigButton}" Content="+" Click="CursorFaster_Click"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Style="{StaticResource SettingRow}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="Scroll speed" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Text="Right stick" Style="{StaticResource SettingHint}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="ScrollSlower_Click"/>
+                                    <TextBlock x:Name="ScrollSpeedValue" Style="{StaticResource ValueText}"/>
+                                    <Button Style="{StaticResource BigButton}" Content="+" Click="ScrollFaster_Click"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Style="{StaticResource SettingRow}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="Click by resting" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Text="Clicks when the pointer stops, instead of A" Style="{StaticResource SettingHint}"/>
+                                </StackPanel>
+                                <Button x:Name="DwellClickToggle" Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Click="DwellClickToggle_Click"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="DwellClickShorter_Click"/>
+                                    <TextBlock x:Name="DwellClickValue" Style="{StaticResource ValueText}"/>
+                                    <Button Style="{StaticResource BigButton}" Content="+" Click="DwellClickLonger_Click"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Style="{StaticResource SettingRow}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="Pointer feel" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Text="Gentle: slower for a small push, faster for a big one" Style="{StaticResource SettingHint}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button x:Name="CurveSteadyButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Steady" Click="CurveSteady_Click"/>
+                                    <Button x:Name="CurveGentleButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Gentle" Click="CurveGentle_Click" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Style="{StaticResource SettingRow}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="Smooth out wobbles" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Text="Steadies a shaky stick. More lags a little behind" Style="{StaticResource SettingHint}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="SmoothingLess_Click"/>
+                                    <TextBlock x:Name="SmoothingValue" Style="{StaticResource ValueText}"/>
+                                    <Button Style="{StaticResource BigButton}" Content="+" Click="SmoothingMore_Click"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Style="{StaticResource SettingRow}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="Ignore quick repeat presses" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Text="A press this soon after letting go is ignored" Style="{StaticResource SettingHint}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="RepeatShorter_Click"/>
+                                    <TextBlock x:Name="IgnoreRepeatValue" Style="{StaticResource ValueText}"/>
+                                    <Button Style="{StaticResource BigButton}" Content="+" Click="RepeatLonger_Click"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Style="{StaticResource SettingRow}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                    <TextBlock Text="Slow pointer speed" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Text="A share of normal speed, while Slow pointer is on" Style="{StaticResource SettingHint}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="SlowPointerSlower_Click"/>
+                                    <TextBlock x:Name="SlowPointerValue" Style="{StaticResource ValueText}"/>
+                                    <Button Style="{StaticResource BigButton}" Content="+" Click="SlowPointerFaster_Click"/>
+                                </StackPanel>
+                            </Grid>
+                </StackPanel>
+            </Border>
+            <StackPanel Grid.Column="2">
+                <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Other programs" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
+                        <Grid Style="{StaticResource SettingRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="92"/>
+                                <ColumnDefinition Width="208"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                                <TextBlock Text="Pause while Grid 3 is open" Style="{StaticResource SettingTitle}"/>
+                                <TextBlock Text="So the two do not fight over the pointer" Style="{StaticResource SettingHint}"/>
+                            </StackPanel>
+                            <Button x:Name="Grid3Toggle" Grid.Column="2" Style="{StaticResource ToggleButtonStyle}" Width="96" HorizontalAlignment="Center" VerticalAlignment="Center" Click="Grid3Toggle_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Panel}">
+                    <StackPanel>
+                        <TextBlock Text="This student's settings" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
+                        <TextBlock Text="Changes are saved for this student straight away." Style="{StaticResource SettingHint}" FontSize="14"/>
+                        <TextBlock x:Name="SettingsLocationText" Style="{StaticResource SettingHint}" Margin="0,2,0,10"/>
+                        <TextBlock Text="To give another student the same settings, export them here, then import them while logged in as that student." Style="{StaticResource SettingHint}" FontSize="14" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource ToggleButtonStyle}" Width="190" Content="Export settings..." Click="ExportSettings_Click"/>
+                            <Button Style="{StaticResource ToggleButtonStyle}" Width="190" Content="Import settings..." Click="ImportSettings_Click" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <TextBlock x:Name="ExportImportStatus" Style="{StaticResource SettingHint}" FontSize="14" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <!-- ============================= Keyboard ============================= -->
+        <Grid x:Name="KeyboardPage" Grid.Row="2" Margin="16" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource Panel}" VerticalAlignment="Top">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="Keyboard" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="KeyboardButtonHint" Style="{StaticResource SettingHint}" FontSize="14" VerticalAlignment="Center" Margin="12,2,0,0"/>
+                    </StackPanel>
+                            <Grid Style="{StaticResource SettingRow}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="Size" Style="{StaticResource SettingTitle}"/>
                                     <TextBlock Text="Bigger keys and text" Style="{StaticResource SettingHint}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="KeyboardSmaller_Click"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="KeyboardSmaller_Click"/>
                                     <TextBlock x:Name="KeyboardSizeValue" Style="{StaticResource ValueText}"/>
                                     <Button Style="{StaticResource BigButton}" Content="+" Click="KeyboardBigger_Click"/>
                                 </StackPanel>
                             </Grid>
-
                             <Grid Style="{StaticResource SettingRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="Where it opens" Style="{StaticResource SettingTitle}"/>
                                     <TextBlock Text="LT moves it while it is open" Style="{StaticResource SettingHint}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Button x:Name="KeyboardTopButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Top" Click="KeyboardTop_Click"/>
                                     <Button x:Name="KeyboardBottomButton" Style="{StaticResource ToggleButtonStyle}" Width="100" Content="Bottom" Click="KeyboardBottom_Click" Margin="8,0,0,0"/>
                                 </StackPanel>
                             </Grid>
-
                             <Grid Style="{StaticResource SettingRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="Type by resting" Style="{StaticResource SettingTitle}"/>
                                     <TextBlock Text="Types the key the orange box rests on" Style="{StaticResource SettingHint}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button x:Name="KeyboardDwellToggle" Style="{StaticResource ToggleButtonStyle}" Click="KeyboardDwellToggle_Click"/>
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="KeyboardDwellShorter_Click" Margin="8,0,0,0"/>
+                                <Button x:Name="KeyboardDwellToggle" Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Click="KeyboardDwellToggle_Click"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="KeyboardDwellShorter_Click"/>
                                     <TextBlock x:Name="KeyboardDwellValue" Style="{StaticResource ValueText}"/>
                                     <Button Style="{StaticResource BigButton}" Content="+" Click="KeyboardDwellLonger_Click"/>
                                 </StackPanel>
                             </Grid>
-
                             <Grid Style="{StaticResource SettingRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="Fade when resting" Style="{StaticResource SettingTitle}"/>
                                     <TextBlock Text="See the text behind it" Style="{StaticResource SettingHint}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button x:Name="KeyboardFadeToggle" Style="{StaticResource ToggleButtonStyle}" Click="KeyboardFadeToggle_Click"/>
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="KeyboardFadeShorter_Click" Margin="8,0,0,0"/>
+                                <Button x:Name="KeyboardFadeToggle" Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" HorizontalAlignment="Left" VerticalAlignment="Center" Click="KeyboardFadeToggle_Click"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="KeyboardFadeShorter_Click"/>
                                     <TextBlock x:Name="KeyboardFadeValue" Style="{StaticResource ValueText}"/>
                                     <Button Style="{StaticResource BigButton}" Content="+" Click="KeyboardFadeLonger_Click"/>
                                 </StackPanel>
                             </Grid>
-
                             <Grid Style="{StaticResource SettingRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="Faded keyboard shows" Style="{StaticResource SettingTitle}"/>
                                     <TextBlock Text="How much stays visible" Style="{StaticResource SettingHint}"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource BigButton}" Content="−" Click="KeyboardFadeFainter_Click"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource BigButton}" Content="&#x2212;" Click="KeyboardFadeFainter_Click"/>
                                     <TextBlock x:Name="KeyboardFadeOpacityValue" Style="{StaticResource ValueText}"/>
                                     <Button Style="{StaticResource BigButton}" Content="+" Click="KeyboardFadeStronger_Click"/>
                                 </StackPanel>
                             </Grid>
-
                             <Grid Style="{StaticResource SettingRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="Capitals automatically" Style="{StaticResource SettingTitle}"/>
                                     <TextBlock Text="Starts sentences, and I, with a capital" Style="{StaticResource SettingHint}"/>
                                 </StackPanel>
-                                <Button x:Name="AutoCapitalToggle" Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" VerticalAlignment="Center" Click="AutoCapitalToggle_Click"/>
+                                <Button x:Name="AutoCapitalToggle" Grid.Column="2" Style="{StaticResource ToggleButtonStyle}" Width="96" HorizontalAlignment="Center" VerticalAlignment="Center" Click="AutoCapitalToggle_Click"/>
                             </Grid>
-
                             <Grid Style="{StaticResource SettingRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
-                                    <TextBlock Text="Shortcut keys" Style="{StaticResource SettingTitle}"/>
-                                    <TextBlock Text="The Edit, Select, Style and Tools rows" Style="{StaticResource SettingHint}"/>
+                                    <TextBlock Text="Shortcut panel" Style="{StaticResource SettingTitle}"/>
+                                    <TextBlock Text="The shortcut and Apps keys beside the keyboard" Style="{StaticResource SettingHint}"/>
                                 </StackPanel>
-                                <Button x:Name="ShortcutsToggle" Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" VerticalAlignment="Center" Click="ShortcutsToggle_Click"/>
+                                <Button x:Name="ShortcutsToggle" Grid.Column="2" Style="{StaticResource ToggleButtonStyle}" Width="96" HorizontalAlignment="Center" VerticalAlignment="Center" Click="ShortcutsToggle_Click"/>
                             </Grid>
-                        </StackPanel>
-                    </Border>
-                    <!-- The Apps key: which programs it offers this student -->
-                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <Grid>
-                                <TextBlock Text="Apps key" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
-                                <Button Style="{StaticResource ToggleButtonStyle}" Width="180" FontSize="16" HorizontalAlignment="Right"
-                                        Content="Back to standard" Click="AppsStandard_Click"/>
-                            </Grid>
-                            <TextBlock Style="{StaticResource SettingHint}" FontSize="14" Margin="0,4,0,10"
-                                       Text="The programs the keyboard's Apps key opens in one press. Click one to change it. Only programs installed on this PC are offered."/>
-                            <UniformGrid x:Name="AppEditor" Columns="3"/>
-                            <Border x:Name="AppChooser" Visibility="Collapsed" Background="#262626" CornerRadius="8" Padding="12" Margin="0,6,0,0">
-                                <StackPanel>
-                                    <TextBlock Text="Choose a program for this place" Style="{StaticResource SettingTitle}"/>
-                                    <WrapPanel x:Name="AppChoices" Margin="0,10,0,0"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <!-- Shortcut keys: this student's own set, from a fixed list of safe keys.
-                         Built by the code from the catalogue. -->
-                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <Grid>
-                                <TextBlock Text="Shortcut keys" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
-                                <Button Style="{StaticResource ToggleButtonStyle}" Width="180" FontSize="16" HorizontalAlignment="Right"
-                                        Content="Back to standard" Click="ShortcutsStandard_Click"/>
-                            </Grid>
-                            <TextBlock Style="{StaticResource SettingHint}" FontSize="14" Margin="0,4,0,10"
-                                       Text="Click a key to change it, or to leave its place empty. Each row keeps to its own kind of key. The keyboard's bottom row follows the program in front and is not changed here."/>
-                            <StackPanel x:Name="ShortcutEditor"/>
-                            <Border x:Name="ShortcutChooser" Visibility="Collapsed" Background="#262626" CornerRadius="8" Padding="12" Margin="0,6,0,0">
-                                <StackPanel>
-                                    <TextBlock x:Name="ShortcutChooserTitle" Style="{StaticResource SettingTitle}"/>
-                                    <WrapPanel x:Name="ShortcutChoices" Margin="0,10,0,0"/>
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="Phrases" Style="{StaticResource PanelTitle}" Margin="0,0,0,2"/>
-                            <TextBlock Style="{StaticResource SettingHint}" FontSize="14" Margin="0,0,0,10"
-                                       Text="Typed whole from the Phrases key on the keyboard - a name, an email address, a sentence used often. Type them here with a normal keyboard."/>
-                            <UniformGrid Columns="2">
-                                <TextBox x:Name="Phrase0" Style="{StaticResource PhraseBox}" Tag="0"
-                                         TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
-                                <TextBox x:Name="Phrase1" Style="{StaticResource PhraseBox}" Tag="1"
-                                         TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
-                                <TextBox x:Name="Phrase2" Style="{StaticResource PhraseBox}" Tag="2"
-                                         TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
-                                <TextBox x:Name="Phrase3" Style="{StaticResource PhraseBox}" Tag="3"
-                                         TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
-                                <TextBox x:Name="Phrase4" Style="{StaticResource PhraseBox}" Tag="4"
-                                         TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
-                                <TextBox x:Name="Phrase5" Style="{StaticResource PhraseBox}" Tag="5"
-                                         TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
-                            </UniformGrid>
-                        </StackPanel>
-                    </Border>
-                    <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="Windows keyboard" Style="{StaticResource PanelTitle}" Margin="0,0,0,4"/>
                             <Grid Style="{StaticResource SettingRow}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="92"/>
+                                    <ColumnDefinition Width="208"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                                     <TextBlock Text="Block the Windows keyboard" Style="{StaticResource SettingTitle}"/>
                                     <TextBlock Text="It pops up and takes over the controller" Style="{StaticResource SettingHint}"/>
                                 </StackPanel>
-                                <Button x:Name="StopWindowsKeyboardToggle" Grid.Column="1" Style="{StaticResource ToggleButtonStyle}" VerticalAlignment="Center" Click="StopWindowsKeyboardToggle_Click"/>
+                                <Button x:Name="StopWindowsKeyboardToggle" Grid.Column="2" Style="{StaticResource ToggleButtonStyle}" Width="96" HorizontalAlignment="Center" VerticalAlignment="Center" Click="StopWindowsKeyboardToggle_Click"/>
                             </Grid>
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
+            </Border>
+            <StackPanel Grid.Column="2">
+                <!-- The keys beside the keyboard: four rows of shortcuts and the Apps key's
+                     programs. Built by the code; a choice opens over the page. -->
+                <Border Style="{StaticResource Panel}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <Grid>
+                            <TextBlock Text="Shortcut and Apps keys" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Style="{StaticResource ToggleButtonStyle}" Width="150" Height="40" FontSize="15" Content="Standard keys" Click="ShortcutsStandard_Click"/>
+                                <Button Style="{StaticResource ToggleButtonStyle}" Width="150" Height="40" FontSize="15" Content="Standard apps" Click="AppsStandard_Click" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Style="{StaticResource SettingHint}" FontSize="14" Margin="0,4,0,8"
+                                   Text="Click a key to change it, or to leave its place empty. Each row keeps to its own kind of key."/>
+                        <StackPanel x:Name="ShortcutEditor"/>
+                        <DockPanel>
+                            <TextBlock Text="Apps" Width="64" FontSize="15" FontWeight="SemiBold" Foreground="#CCCCCC" VerticalAlignment="Center"/>
+                            <UniformGrid x:Name="AppEditor" Columns="6"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Panel}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="Phrases" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
+                            <TextBlock Style="{StaticResource SettingHint}" FontSize="14" VerticalAlignment="Center" Margin="12,2,0,0"
+                                       Text="Typed whole from the Phrases key. Type them here with a normal keyboard."/>
+                        </StackPanel>
+                        <UniformGrid Columns="3">
+                            <TextBox x:Name="Phrase0" Style="{StaticResource PhraseBox}" Tag="0"
+                                     TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
+                            <TextBox x:Name="Phrase1" Style="{StaticResource PhraseBox}" Tag="1"
+                                     TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
+                            <TextBox x:Name="Phrase2" Style="{StaticResource PhraseBox}" Tag="2"
+                                     TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
+                            <TextBox x:Name="Phrase3" Style="{StaticResource PhraseBox}" Tag="3"
+                                     TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
+                            <TextBox x:Name="Phrase4" Style="{StaticResource PhraseBox}" Tag="4"
+                                     TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
+                            <TextBox x:Name="Phrase5" Style="{StaticResource PhraseBox}" Tag="5"
+                                     TextChanged="Phrase_TextChanged" LostKeyboardFocus="Phrase_LostFocus"/>
+                        </UniformGrid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Choosing a key: over the whole page, so there is room for every choice.
+                 Clicking the dark edge, or Close, puts it away. -->
+            <Grid x:Name="KeyChooserOverlay" Grid.ColumnSpan="3" Background="#D8101010" Visibility="Collapsed"
+                  MouseLeftButtonUp="KeyChooserOverlay_MouseUp">
+                <Border Style="{StaticResource Panel}" Background="#262626" Width="980" Margin="0,24" VerticalAlignment="Center"
+                        BorderBrush="#555555" BorderThickness="2">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                            <TextBlock x:Name="KeyChooserTitle" Style="{StaticResource PanelTitle}" VerticalAlignment="Center"/>
+                            <Button Style="{StaticResource ToggleButtonStyle}" Width="110" FontSize="16" HorizontalAlignment="Right" Content="Close" Click="KeyChooserClose_Click"/>
+                        </Grid>
+                        <!-- Programs only: find one by name -->
+                        <DockPanel x:Name="AppSearchRow" DockPanel.Dock="Top" Margin="0,0,0,10">
+                            <TextBlock Text="Find" FontSize="16" Foreground="#CCCCCC" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBox x:Name="AppSearchBox" Style="{StaticResource PhraseBox}" Margin="0" TextChanged="AppSearchBox_TextChanged"/>
+                        </DockPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <WrapPanel x:Name="KeyChoices"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
             </Grid>
-        </ScrollViewer>
+        </Grid>
     </Grid>
 </Window>
