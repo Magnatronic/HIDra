@@ -271,11 +271,6 @@ public partial class VirtualKeyboardWindow : Window
         UpdateModifierButtons();
     }
 
-    private void CloseButton_Click(object sender, RoutedEventArgs e)
-    {
-        this.Hide();
-    }
-
     private void UpdateLetterCase()
     {
         // Update all letter key displays based on shift and caps lock state
@@ -1404,6 +1399,75 @@ public partial class VirtualKeyboardWindow : Window
             StartDwell();
         }
     }
+
+    /// <summary>
+    /// Jump to another part of the keyboard - up to the word row, down to the letters,
+    /// right to the shortcuts, left back to the letters - landing on the key nearest the
+    /// one left, so the whole board is a push or two of the right stick away instead of
+    /// a long walk across it.
+    /// </summary>
+    public void JumpSection(KeyboardNavigationDirection direction)
+    {
+        NotifyActivity();
+        EnsureKeysCollected();
+
+        if (_highlightedKey == null)
+        {
+            SetHighlight(DefaultKey());
+            return;
+        }
+
+        var from = SectionOf(_highlightedKey);
+        var to = (from, direction) switch
+        {
+            (KeyboardSection.Letters or KeyboardSection.Shortcuts, KeyboardNavigationDirection.Up) => KeyboardSection.Top,
+            (KeyboardSection.Top, KeyboardNavigationDirection.Down) => KeyboardSection.Letters,
+            (KeyboardSection.Letters or KeyboardSection.Top, KeyboardNavigationDirection.Right) => KeyboardSection.Shortcuts,
+            (KeyboardSection.Shortcuts, KeyboardNavigationDirection.Left) => KeyboardSection.Letters,
+            _ => from
+        };
+
+        if (to == from)
+        {
+            return;
+        }
+
+        // The nearest key in that part, keeping to the same row going sideways and the
+        // same column going up or down, so the jump lands where the eye expects
+        var here = CentreOf(_highlightedKey);
+        bool sideways = direction is KeyboardNavigationDirection.Left or KeyboardNavigationDirection.Right;
+        Button? best = null;
+        double bestScore = double.MaxValue;
+        foreach (var key in _navigableKeys)
+        {
+            if (SectionOf(key) != to)
+            {
+                continue;
+            }
+
+            var there = CentreOf(key);
+            double dx = Math.Abs(there.X - here.X), dy = Math.Abs(there.Y - here.Y);
+            double score = sideways ? dy * 3 + dx : dx * 3 + dy;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = key;
+            }
+        }
+
+        if (best != null)
+        {
+            SetHighlight(best);
+            StartDwell();
+        }
+    }
+
+    private enum KeyboardSection { Top, Letters, Shortcuts }
+
+    private KeyboardSection SectionOf(Button key) =>
+        TopRow.IsAncestorOf(key) ? KeyboardSection.Top
+        : ShortcutPanel.IsAncestorOf(key) ? KeyboardSection.Shortcuts
+        : KeyboardSection.Letters;
 
     /// <summary>
     /// Press the highlighted key, exactly as clicking it would.

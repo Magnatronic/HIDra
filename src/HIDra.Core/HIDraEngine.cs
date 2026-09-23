@@ -237,6 +237,15 @@ public class HIDraEngine : IDisposable
     /// <summary>Move the on-screen keyboard highlight one key.</summary>
     public event EventHandler<KeyboardNavigationDirection>? KeyboardNavigateRequested;
 
+    /// <summary>
+    /// Jump the keyboard highlight to another part of the keyboard - the word row, the
+    /// letters, the shortcuts - from the right stick, so crossing it is one push
+    /// </summary>
+    public event EventHandler<KeyboardNavigationDirection>? KeyboardSectionJumpRequested;
+
+    // A jump happens once per push; the stick must come back to the middle before the next
+    private bool _sectionJumpHeld;
+
     /// <summary>Press the highlighted key on the on-screen keyboard.</summary>
     public event EventHandler? KeyboardSelectRequested;
 
@@ -601,6 +610,14 @@ public class HIDraEngine : IDisposable
             pointerState = state.Clone();
             pointerState.LeftStickX = 0f;
             pointerState.LeftStickY = 0f;
+
+            // The right stick jumps between parts of the keyboard instead of scrolling -
+            // unless the sticks are swapped, when it is the pointer and stays so
+            if (!_useRightStickForCursor)
+            {
+                pointerState.RightStickX = 0f;
+                pointerState.RightStickY = 0f;
+            }
         }
 
         float cursorDeltaX = 0f, cursorDeltaY = 0f;
@@ -651,6 +668,7 @@ public class HIDraEngine : IDisposable
         if (KeyboardNavigationActive)
         {
             UpdateKeyboardNavigation(state);
+            UpdateSectionJump(state);
         }
         else
         {
@@ -875,6 +893,36 @@ public class HIDraEngine : IDisposable
 
         // Pushing the stick up gives a positive Y, and up the keyboard is what is meant.
         return y > 0 ? KeyboardNavigationDirection.Up : KeyboardNavigationDirection.Down;
+    }
+
+    private void UpdateSectionJump(ControllerState state)
+    {
+        if (_useRightStickForCursor)
+        {
+            _sectionJumpHeld = false;
+            return;
+        }
+
+        float x = state.RightStickX, y = state.RightStickY;
+        float threshold = _sectionJumpHeld ? KeyboardStickReleaseThreshold : KeyboardStickEngageThreshold;
+        bool pushed = Math.Abs(x) >= threshold || Math.Abs(y) >= threshold;
+
+        if (!pushed)
+        {
+            _sectionJumpHeld = false;
+            return;
+        }
+
+        if (_sectionJumpHeld)
+        {
+            return;
+        }
+
+        _sectionJumpHeld = true;
+        var direction = Math.Abs(x) >= Math.Abs(y)
+            ? (x > 0 ? KeyboardNavigationDirection.Right : KeyboardNavigationDirection.Left)
+            : (y > 0 ? KeyboardNavigationDirection.Up : KeyboardNavigationDirection.Down);
+        KeyboardSectionJumpRequested?.Invoke(this, direction);
     }
 
     private void UpdateKeyboardNavigation(ControllerState state)

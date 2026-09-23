@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Media;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
@@ -148,6 +149,8 @@ namespace HIDra.UI
                 _engine.KeyboardSelectRequested += OnKeyboardSelect;
                 _engine.KeyboardSelectShiftedRequested += OnKeyboardSelectShifted;
                 _engine.KeyboardQuickKeyRequested += OnKeyboardQuickKey;
+                _engine.KeyboardSectionJumpRequested += (_, direction) =>
+                    Dispatcher.BeginInvoke(() => _virtualKeyboard?.JumpSection(direction));
                 _engine.ActiveControlsChanged += OnActiveControlsChanged;
 
                 InitializeVirtualKeyboard();
@@ -465,7 +468,6 @@ namespace HIDra.UI
 
                     // The guide shows what the buttons do right now
                     SetGuideMode(typing: _virtualKeyboard?.IsVisible == true);
-                    PracticeKeyboardChanged(open: _virtualKeyboard?.IsVisible == true);
                 };
             }
         }
@@ -486,9 +488,9 @@ namespace HIDra.UI
                 // If a phrase box on this window still has the typing cursor, whatever the
                 // student types would land in it whenever this window is in front - a
                 // Backspace could quietly erase a saved phrase. Keep the edit, lose the cursor.
-                // The Practice word box is the exception: it is there to be typed into.
+                // The Practice typing box is the exception: it is there to be typed into.
                 if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox box
-                    && box != WordTypingBox)
+                    && box != TypingBox)
                 {
                     UserSettingsStore.Save(_userSettings);
                     System.Windows.Input.Keyboard.ClearFocus();
@@ -570,6 +572,7 @@ namespace HIDra.UI
                 UserSettingsStore.Save(_userSettings);
                 _virtualKeyboard.MoveToEdge(_userSettings.KeyboardAtTop);
                 RefreshSettingsDisplay();
+                PracticeKeyboardMoved();
             });
         }
 
@@ -848,7 +851,7 @@ namespace HIDra.UI
             // While typing, the left stick always steers the keyboard. Otherwise the
             // sticks follow the swap.
             drawing.ActLeftStick.Text = typing ? "Move the orange box" : _sticksSwapped ? "Scroll" : "Move the pointer";
-            drawing.ActRightStick.Text = _sticksSwapped ? "Move the pointer" : "Scroll";
+            drawing.ActRightStick.Text = _sticksSwapped ? "Move the pointer" : typing ? "Jump to words or shortcuts" : "Scroll";
         }
 
         /// <summary>
@@ -957,18 +960,10 @@ namespace HIDra.UI
             var keyboardHint = new List<object>(Keyboard()) { "opens and closes it" };
             WriteText(KeyboardButtonHint, keyboardHint);
 
-            var openStep = new List<object> { "Open the keyboard: press " };
-            openStep.AddRange(Keyboard());
-            WriteText(KeyboardStepOpenText, openStep);
-
-            var closeStep = new List<object> { "Now close it: press " };
-            closeStep.AddRange(Keyboard());
-            WriteText(KeyboardStepCloseText, closeStep);
-
             var practiceHint = new List<object> { "Click in the box, then " };
             practiceHint.AddRange(Keyboard());
             practiceHint.Add("for the keyboard");
-            WriteText(WordTypingHint, practiceHint);
+            WriteText(TypingHint, practiceHint);
         }
 
         /// <summary>
@@ -1199,54 +1194,40 @@ namespace HIDra.UI
         // ---------------------------------------------------------------------------
         // Practice
         //
-        // Three activities, each getting a little harder as the student gets better:
-        // clicking a circle that shrinks, typing a word, opening and closing the
-        // keyboard. Also for staff to try a setting straight after changing it. Every
-        // hit, miss and word is counted into today's line of the student's record, which
-        // staff can look back on, or save as a spreadsheet, for a review. Feedback is
-        // all on screen - some students cannot hear it.
+        // Two tests of everyday skills - pointing (with scrolling) and typing - each the
+        // same every time at a given size or level, so one run compares fairly with the
+        // last. Every run is kept in the student's practice record, shown beside the
+        // tests and saved as a spreadsheet for reviews. Feedback is all on screen: some
+        // students cannot hear it.
         // ---------------------------------------------------------------------------
 
-        private readonly Random _random = new();
         private PracticeProgress _progress = PracticeProgressStore.Load();
-        private System.Windows.Threading.DispatcherTimer? _progressSaveTimer;
-        private string _activity = "Circles";
+        private string _activity = "Pointer";
 
         private void InitializeTryItOut()
         {
             _progress.CircleLevel = Math.Clamp(_progress.CircleLevel, 0, CircleSizes.Length - 1);
+            _progress.TypingLevel = Math.Clamp(_progress.TypingLevel, 0, TypingItems.Length - 1);
 
             _target = new Border
             {
                 Background = OffBrush,
                 BorderBrush = (Brush)FindResource("AccentBrush"),
                 BorderThickness = new Thickness(4),
-                Cursor = System.Windows.Input.Cursors.Hand
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Visibility = Visibility.Collapsed
             };
             _target.MouseEnter += (_, _) => _target.Background = OnBrush;
             _target.MouseLeave += (_, _) => _target.Background = OffBrush;
             _target.MouseLeftButtonDown += (_, e) =>
             {
                 e.Handled = true;
-                CircleClicked(hit: true);
+                TargetHit(e.GetPosition(PointerCanvas));
             };
-            TargetCanvas.Children.Add(_target);
-            SizeTarget();
+            PointerCanvas.Children.Add(_target);
 
-            for (int i = 1; i <= 40; i++)
-            {
-                TryScrollList.Children.Add(new TextBlock
-                {
-                    Text = $"Line {i}",
-                    FontSize = 17,
-                    Foreground = Brushes.White,
-                    Margin = new Thickness(0, 3, 0, 3)
-                });
-            }
-
-            ShowTargetScore();
-            NextWord();
-            ShowKeyboardStep();
+            ShowPointerStart();
+            ShowTypingStart();
             ShowActivity(_activity);
             ShowProgress();
         }
@@ -1262,447 +1243,562 @@ namespace HIDra.UI
         private void ShowActivity(string activity)
         {
             _activity = activity;
-            (UIElement Page, Button Button, string Name)[] activities =
-            {
-                (CirclesActivity, ActivityCirclesButton, "Circles"),
-                (WordActivity, ActivityWordButton, "Word"),
-                (KeyboardActivity, ActivityKeyboardButton, "Keyboard"),
-            };
-
-            foreach (var (page, button, name) in activities)
-            {
-                page.Visibility = name == activity ? Visibility.Visible : Visibility.Collapsed;
-                button.Background = name == activity ? OnBrush : OffBrush;
-            }
+            PointerActivity.Visibility = activity == "Pointer" ? Visibility.Visible : Visibility.Collapsed;
+            TypingActivity.Visibility = activity == "Typing" ? Visibility.Visible : Visibility.Collapsed;
+            ActivityPointerButton.Background = activity == "Pointer" ? OnBrush : OffBrush;
+            ActivityTypingButton.Background = activity == "Typing" ? OnBrush : OffBrush;
+            ActivityScore.Text = "";
         }
 
-        /// <summary>
-        /// Count something into today's line, and save a moment later - not on every
-        /// click, as the file may be on a network drive
-        /// </summary>
-        private void Record(Action<PracticeDay> change)
+        private void SaveProgress()
         {
-            change(PracticeProgressStore.Today(_progress));
+            PracticeProgressStore.Save(_progress);
             ShowProgress();
-
-            if (_progressSaveTimer == null)
-            {
-                _progressSaveTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-                _progressSaveTimer.Tick += (_, _) =>
-                {
-                    _progressSaveTimer.Stop();
-                    PracticeProgressStore.Save(_progress);
-                };
-            }
-
-            _progressSaveTimer.Stop();
-            _progressSaveTimer.Start();
         }
 
-        // --- Circles ---
+        // --- Pointer test ---
 
         /// <summary>
-        /// The circle's width at each level. The first is easy to hit with a very slow
+        /// The circle's width at each size. The first is easy to hit with a very slow
         /// pointer; the last is the size of a small button in an ordinary program.
         /// </summary>
         private static readonly double[] CircleSizes = { 150, 124, 102, 84, 70, 58, 48, 40 };
 
-        /// <summary>Hits in a round, before the circle may get smaller</summary>
-        private const int CircleRound = 5;
+        /// <summary>
+        /// Where the circles appear, in order, the same every run: across as a share of
+        /// the width, down in screens of the page, which is three screens tall. Four need
+        /// a scroll to reach - down the page, and back up again - and the distances vary,
+        /// so near and far pointing are both measured.
+        /// </summary>
+        private static readonly (double X, double Y)[] CirclePlaces =
+        {
+            (0.15, 0.25), (0.85, 0.70), (0.30, 0.80), (0.70, 0.20),
+            (0.50, 1.60), (0.20, 2.40), (0.80, 2.70), (0.40, 0.30),
+            (0.90, 0.50), (0.10, 0.60), (0.60, 1.90), (0.35, 0.45),
+        };
+
+        private const double PageScreens = 3;
 
         private Border _target = new();
-        private int _roundHits;
-        private int _roundMisses;
-        private int _sessionHits;
-        private int _sessionMisses;
-        private System.Windows.Threading.DispatcherTimer? _circleMessageTimer;
+        private bool _pointerRunning;
+        private int _circle;
+        private int _runMisses;
+        private int _runScrolled;
+        private int _runOvershoots;
+        private readonly System.Diagnostics.Stopwatch _runTimer = new();
+        private readonly System.Diagnostics.Stopwatch _circleTimer = new();
+        private readonly List<double> _throughputs = new();
 
-        private void CircleClicked(bool hit)
+        // The circle showing: whether it was in sight when it appeared (so pointing at it
+        // measures pointing alone), whether it has been in sight since, and where the
+        // last click was, which is where the pointer set off from
+        private bool _circleStartedInView;
+        private bool _circleSeen;
+        private Point? _lastClick;
+
+        private void ShowPointerStart(string? title = null, string? text = null)
         {
-            if (hit)
-            {
-                _roundHits++;
-                _sessionHits++;
-                Record(day => day.CircleHits++);
-            }
-            else
-            {
-                _roundMisses++;
-                _sessionMisses++;
-                Record(day => day.CircleMisses++);
-            }
-
-            // Five hits with no more than one miss: smaller. More misses than hits in a
-            // round: bigger, so a hard patch never becomes a wall.
-            if (_roundHits >= CircleRound)
-            {
-                if (_roundMisses <= 1 && _progress.CircleLevel < CircleSizes.Length - 1)
-                {
-                    ChangeCircleLevel(+1, "Well done! A smaller circle");
-                }
-                _roundHits = _roundMisses = 0;
-            }
-            else if (_roundMisses > CircleRound)
-            {
-                if (_progress.CircleLevel > 0)
-                {
-                    ChangeCircleLevel(-1, "A bigger circle");
-                }
-                _roundHits = _roundMisses = 0;
-            }
-
-            if (hit)
-            {
-                _target.Background = OffBrush;
-                Place(_target);
-            }
-
-            ShowTargetScore();
+            PointerStartTitle.Text = title ?? "Pointer test";
+            PointerStartText.Text = text ?? $"Click each circle as it appears - {CirclePlaces.Length} in all. "
+                + "Some are further down or up the page: scroll to find them with the right stick.\n"
+                + $"Circle size {_progress.CircleLevel + 1} of {CircleSizes.Length}.";
+            PointerStartButton.Content = title == null ? "Start" : "Go again";
+            PointerStartPanel.Visibility = Visibility.Visible;
+            _target.Visibility = Visibility.Collapsed;
+            ScrollHintTop.Visibility = ScrollHintBottom.Visibility = Visibility.Collapsed;
         }
 
-        private void ChangeCircleLevel(int change, string message)
+        private void PointerStart_Click(object sender, RoutedEventArgs e)
         {
-            _progress.CircleLevel = Math.Clamp(_progress.CircleLevel + change, 0, CircleSizes.Length - 1);
-            Record(day => day.SmallestCircle = Math.Max(day.SmallestCircle, _progress.CircleLevel));
-            SizeTarget();
-            ShowMessage(CircleMessage, ref _circleMessageTimer, message);
-        }
+            PointerStartPanel.Visibility = Visibility.Collapsed;
+            SizePointerPage();
+            PointerScroll.ScrollToTop();
 
-        /// <summary>
-        /// Show a message for a couple of seconds
-        /// </summary>
-        private static void ShowMessage(TextBlock text, ref System.Windows.Threading.DispatcherTimer? timer, string message)
-        {
-            text.Text = message;
-            timer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
-            var clearing = timer;
-            clearing.Stop();
-            clearing.Tick -= ClearMessage;
-            clearing.Tag = text;
-            clearing.Tick += ClearMessage;
-            clearing.Start();
-        }
+            _pointerRunning = true;
+            _circle = 0;
+            _runMisses = _runScrolled = _runOvershoots = 0;
+            _throughputs.Clear();
+            _lastClick = null;
 
-        private static void ClearMessage(object? sender, EventArgs e)
-        {
-            if (sender is System.Windows.Threading.DispatcherTimer { Tag: TextBlock text } timer)
-            {
-                timer.Stop();
-                text.Text = "";
-            }
-        }
-
-        private void SizeTarget()
-        {
             double size = CircleSizes[_progress.CircleLevel];
             _target.Width = _target.Height = size;
             _target.CornerRadius = new CornerRadius(size / 2);
-            Place(_target);
+            _target.Visibility = Visibility.Visible;
 
-            CircleLevelDots.Children.Clear();
-            for (int level = 0; level < CircleSizes.Length; level++)
+            _runTimer.Restart();
+            ShowCircle();
+        }
+
+        /// <summary>The page is three screens of the box tall, whatever size the box is</summary>
+        private void SizePointerPage()
+        {
+            PointerCanvas.Width = Math.Max(0, PointerScroll.ViewportWidth);
+            PointerCanvas.Height = Math.Max(0, PointerScroll.ViewportHeight * PageScreens);
+        }
+
+        private void PointerScroll_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            SizePointerPage();
+            if (_pointerRunning)
             {
-                double dot = 26 - level * 2;
-                CircleLevelDots.Children.Add(new Ellipse
-                {
-                    Width = dot,
-                    Height = dot,
-                    Margin = new Thickness(0, 0, 6, 0),
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Fill = level <= _progress.CircleLevel ? OnBrush : OffBrush,
-                    Stroke = (Brush)FindResource("AccentBrush"),
-                    StrokeThickness = level == _progress.CircleLevel ? 2 : 0
-                });
+                PlaceCircle();
             }
         }
 
-        private void TargetCanvas_SizeChanged(object sender, SizeChangedEventArgs e) => Place(_target);
-
-        private void TargetArea_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e) =>
-            CircleClicked(hit: false);
-
-        /// <summary>
-        /// Back to the biggest circle, for a new student or a bad day. Counts already
-        /// made are kept.
-        /// </summary>
-        private void TargetReset_Click(object sender, RoutedEventArgs e)
+        private void ShowCircle()
         {
-            _roundHits = _roundMisses = _sessionHits = _sessionMisses = 0;
-            _progress.CircleLevel = 0;
-            PracticeProgressStore.Save(_progress);
-            SizeTarget();
-            ShowTargetScore();
+            PlaceCircle();
+            _circleStartedInView = CircleInView();
+            _circleSeen = _circleStartedInView;
+            if (!_circleStartedInView)
+            {
+                _runScrolled++;
+            }
+            _circleTimer.Restart();
+            ShowScrollHint();
+            ActivityScore.Text = $"Circle {_circle + 1} of {CirclePlaces.Length}    Misses {_runMisses}";
         }
 
-        private void ShowTargetScore() =>
-            TargetScore.Text = $"Hits {_sessionHits}    Misses {_sessionMisses}    Circle {_progress.CircleLevel + 1} of {CircleSizes.Length}";
-
-        /// <summary>
-        /// Somewhere new in the box, away from where it was
-        /// </summary>
-        private void Place(Border target)
+        private void PlaceCircle()
         {
-            double width = TargetCanvas.ActualWidth, height = TargetCanvas.ActualHeight;
-            if (width <= 0 || height <= 0)
+            var (x, y) = CirclePlaces[_circle];
+            double size = _target.Width, viewport = PointerScroll.ViewportHeight;
+            Canvas.SetLeft(_target, Math.Clamp(x * PointerCanvas.Width - size / 2, 0, Math.Max(0, PointerCanvas.Width - size)));
+            Canvas.SetTop(_target, Math.Clamp(y * viewport - size / 2, 0, Math.Max(0, PointerCanvas.Height - size)));
+        }
+
+        /// <summary>Whether the whole circle is on screen</summary>
+        private bool CircleInView()
+        {
+            double top = Canvas.GetTop(_target), offset = PointerScroll.VerticalOffset;
+            return top >= offset && top + _target.Height <= offset + PointerScroll.ViewportHeight;
+        }
+
+        private void ShowScrollHint()
+        {
+            bool running = _pointerRunning && PracticePage.Visibility == Visibility.Visible;
+            double top = Canvas.GetTop(_target), offset = PointerScroll.VerticalOffset;
+            ScrollHintTop.Visibility = running && top + _target.Height <= offset ? Visibility.Visible : Visibility.Collapsed;
+            ScrollHintBottom.Visibility = running && top >= offset + PointerScroll.ViewportHeight ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void PointerScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (!_pointerRunning)
             {
                 return;
             }
 
-            double oldX = Canvas.GetLeft(target), oldY = Canvas.GetTop(target);
-            for (int attempt = 0; attempt < 30; attempt++)
+            // Scrolled into view and then out of it again, the other way: past it
+            bool inView = CircleInView();
+            if (_circleSeen && !inView && e.VerticalChange != 0)
             {
-                double x = _random.NextDouble() * Math.Max(0, width - target.Width);
-                double y = _random.NextDouble() * Math.Max(0, height - target.Height);
-
-                // A new place a fair way off, so every hit means moving the pointer
-                bool farEnough = double.IsNaN(oldX) || Math.Abs(x - oldX) + Math.Abs(y - oldY) > target.Width * 1.5;
-                if (farEnough || attempt == 29)
+                bool gone = e.VerticalChange > 0
+                    ? Canvas.GetTop(_target) + _target.Height <= PointerScroll.VerticalOffset
+                    : Canvas.GetTop(_target) >= PointerScroll.VerticalOffset + PointerScroll.ViewportHeight;
+                if (gone)
                 {
-                    Canvas.SetLeft(target, x);
-                    Canvas.SetTop(target, y);
-                    return;
+                    _runOvershoots++;
+                    _circleSeen = false;
                 }
             }
+            _circleSeen |= inView;
+
+            ShowScrollHint();
         }
 
-        // --- Type the word ---
+        private void PointerCanvas_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (_pointerRunning)
+            {
+                _runMisses++;
+                ActivityScore.Text = $"Circle {_circle + 1} of {CirclePlaces.Length}    Misses {_runMisses}";
+            }
+        }
+
+        private void TargetHit(Point click)
+        {
+            if (!_pointerRunning)
+            {
+                return;
+            }
+
+            // Fitts's law: how hard the move was (distance against size, in bits) over
+            // how long it took. Only for circles in sight from the start, and not the
+            // first, whose starting point is the Start button.
+            double seconds = _circleTimer.Elapsed.TotalSeconds;
+            if (_circleStartedInView && _lastClick is Point from && seconds > 0)
+            {
+                var centre = new Point(Canvas.GetLeft(_target) + _target.Width / 2, Canvas.GetTop(_target) + _target.Height / 2);
+                double distance = (centre - from).Length;
+                double difficulty = Math.Log2(distance / _target.Width + 1);
+                _throughputs.Add(difficulty / seconds);
+            }
+            _lastClick = click;
+
+            _circle++;
+            if (_circle < CirclePlaces.Length)
+            {
+                ShowCircle();
+                return;
+            }
+
+            FinishPointerRun();
+        }
+
+        private void FinishPointerRun()
+        {
+            _pointerRunning = false;
+            _runTimer.Stop();
+
+            var run = new PointerRun
+            {
+                When = DateTime.Now,
+                Size = _progress.CircleLevel,
+                Targets = CirclePlaces.Length,
+                Seconds = Math.Round(_runTimer.Elapsed.TotalSeconds, 1),
+                Misses = _runMisses,
+                Scrolled = _runScrolled,
+                Overshoots = _runOvershoots,
+                Throughput = _throughputs.Count > 0 ? Math.Round(_throughputs.Average(), 2) : 0
+            };
+
+            // The best before this run, at this size - the fair comparison
+            double? best = null;
+            foreach (var earlier in _progress.PointerRuns)
+            {
+                if (earlier.Size == run.Size && (best == null || earlier.Seconds < best))
+                {
+                    best = earlier.Seconds;
+                }
+            }
+            _progress.PointerRuns.Add(run);
+
+            string verdict = best == null ? "Your first run at this size."
+                : run.Seconds < best ? $"Your fastest yet at this size! (was {best:0.0} s)"
+                : $"Your best at this size: {best:0.0} s";
+
+            // At most one miss: smaller circles next time. Half or more missed: bigger.
+            string next = "";
+            if (run.Misses <= 1 && _progress.CircleLevel < CircleSizes.Length - 1)
+            {
+                _progress.CircleLevel++;
+                next = "\nSmaller circles next time!";
+            }
+            else if (run.Misses >= CirclePlaces.Length / 2 && _progress.CircleLevel > 0)
+            {
+                _progress.CircleLevel--;
+                next = "\nBigger circles next time.";
+            }
+
+            SaveProgress();
+            ActivityScore.Text = "";
+            ShowPointerStart("Done!",
+                $"{run.Targets} circles in {run.Seconds:0.0} seconds, {run.Misses} {(run.Misses == 1 ? "miss" : "misses")}.\n{verdict}{next}");
+        }
+
+        // --- Typing test ---
+
+        private static readonly string[] TypingLevelNames = { "Words", "Phrases", "Sentences" };
 
         /// <summary>
-        /// Short, everyday words, shortest first. The words offered grow longer as more
-        /// are typed.
+        /// The same items every time at each level, so runs compare. Everyday words the
+        /// students use, UK spelling, and only the punctuation a sentence needs.
         /// </summary>
-        private static readonly string[] PracticeWords =
+        private static readonly string[][] TypingItems =
         {
-            "cat", "dog", "sun", "red", "hat", "cup", "bus", "yes", "no", "hi",
-            "blue", "home", "book", "cake", "fish", "tree", "rain", "milk", "shop", "game",
-            "hello", "happy", "music", "water", "phone", "apple", "chair", "pizza", "horse", "smile",
-            "orange", "school", "friend", "garden", "family", "dinner", "pencil", "monkey", "summer", "yellow",
-            "holiday", "picture", "chicken", "weekend", "birthday", "computer", "sandwich", "football",
+            new[] { "cat", "sun", "home", "happy", "music", "water", "friend", "orange" },
+            new[] { "good morning", "thank you", "see you soon", "I like music", "a cup of tea" },
+            new[] { "I am going to the shop.", "The bus is late today.", "Can I have a drink please?", "My favourite colour is orange." },
         };
 
-        private string _word = "";
-        private int _sessionWords;
-        private int _sessionWrongLetters;
+        private bool _typingRunning;
+        private int _item;
+        private string _itemText = "";
         private int _lastTypedLength;
-        private System.Windows.Threading.DispatcherTimer? _wordMessageTimer;
-        private System.Windows.Threading.DispatcherTimer? _nextWordTimer;
+        private readonly System.Diagnostics.Stopwatch _itemTimer = new();
+        private TypingRun _typingRun = new();
+        private System.Windows.Threading.DispatcherTimer? _nextItemTimer;
 
-        private void NextWord()
+        private void TypingLevel_Click(object sender, RoutedEventArgs e)
         {
-            // Three-letter words first; one letter longer for every ten typed
-            int typed = 0;
-            foreach (var day in _progress.Days)
+            if (sender is Button { Tag: string tag } && int.TryParse(tag, out int level))
             {
-                typed += day.WordsTyped;
+                _progress.TypingLevel = level;
+                PracticeProgressStore.Save(_progress);
+                _typingRunning = false;
+                ShowTypingStart();
             }
-            int longest = 3 + typed / 10;
-
-            var pool = Array.FindAll(PracticeWords, w => w.Length <= longest && w != _word);
-            _word = pool[_random.Next(pool.Length)];
-
-            _lastTypedLength = 0;
-            if (WordTypingBox.Text.Length > 0)
-            {
-                WordTypingBox.Text = "";
-            }
-            ShowWord();
         }
 
-        /// <summary>
-        /// The word, with the letters typed right so far in orange
-        /// </summary>
-        private void ShowWord()
+        private void ShowTypingStart(string? title = null, string? text = null)
         {
-            string typed = WordTypingBox.Text.TrimEnd();
+            int level = _progress.TypingLevel;
+            for (int i = 0; i < TypingItems.Length; i++)
+            {
+                ((Button)FindName($"TypingLevel{i}")).Background = i == level ? OnBrush : OffBrush;
+            }
+
+            TypingStartTitle.Text = title ?? $"Typing test: {TypingLevelNames[level].ToLowerInvariant()}";
+            TypingStartText.Text = text ?? $"Type each of the {TypingItems[level].Length} {TypingLevelNames[level].ToLowerInvariant()} as it appears. "
+                + "The box moves between the top and bottom of the page: if the keyboard covers it, move the keyboard with LT.";
+            TypingStartPanel.Visibility = Visibility.Visible;
+            TypingItem.Visibility = Visibility.Collapsed;
+            TypingMessage.Text = "";
+        }
+
+        private void TypingStart_Click(object sender, RoutedEventArgs e)
+        {
+            TypingStartPanel.Visibility = Visibility.Collapsed;
+            _typingRunning = true;
+            _item = 0;
+            _typingRun = new TypingRun { Level = _progress.TypingLevel };
+            ShowItem();
+        }
+
+        private void ShowItem()
+        {
+            _itemText = TypingItems[_typingRun.Level][_item];
+            _itemTimer.Reset();
+            _lastTypedLength = 0;
+            TypingBox.Text = "";
+            TypingMessage.Text = "";
+
+            // Top for one, bottom for the next, so wherever the keyboard opens it is in
+            // the way some of the time
+            TypingItem.VerticalAlignment = _item % 2 == 0 ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+            TypingItem.Visibility = Visibility.Visible;
+            ShowItemProgress();
+            TypingBox.Focus();
+
+            ActivityScore.Text = $"{_item + 1} of {TypingItems[_typingRun.Level].Length}";
+        }
+
+        /// <summary>The item, with what has been typed right so far in orange</summary>
+        private void ShowItemProgress()
+        {
+            string typed = TypingBox.Text;
             int right = 0;
-            while (right < typed.Length && right < _word.Length
-                && char.ToLowerInvariant(typed[right]) == _word[right])
+            while (right < typed.Length && right < _itemText.Length
+                && char.ToLowerInvariant(typed[right]) == char.ToLowerInvariant(_itemText[right]))
             {
                 right++;
             }
 
-            WordTarget.Inlines.Clear();
-            WordTarget.Inlines.Add(new Run(_word[..right]) { Foreground = (Brush)FindResource("AccentBrush") });
-            WordTarget.Inlines.Add(new Run(_word[right..]));
-
-            WordScore.Text = $"Words {_sessionWords}    Wrong letters {_sessionWrongLetters}";
+            TypingTarget.Inlines.Clear();
+            TypingTarget.Inlines.Add(new Run(_itemText[..right]) { Foreground = (Brush)FindResource("AccentBrush") });
+            TypingTarget.Inlines.Add(new Run(_itemText[right..]));
         }
 
-        private void WordTypingBox_TextChanged(object sender, TextChangedEventArgs e)
+        private void TypingBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            string text = WordTypingBox.Text;
-
-            // A letter added that does not fit the word is a wrong letter. Taking one away
-            // is not counted, and nor is a space after the word, which a word suggestion adds.
-            string trimmed = text.TrimEnd();
-            if (text.Length > _lastTypedLength && trimmed.Length == text.Length
-                && !_word.StartsWith(trimmed, StringComparison.OrdinalIgnoreCase))
-            {
-                _sessionWrongLetters++;
-                Record(day => day.WrongLetters++);
-            }
-            _lastTypedLength = text.Length;
-
-            ShowWord();
-
-            if (trimmed.Equals(_word, StringComparison.OrdinalIgnoreCase) && _nextWordTimer?.IsEnabled != true)
-            {
-                _sessionWords++;
-                Record(day => day.WordsTyped++);
-                ShowWord();
-                ShowMessage(WordMessage, ref _wordMessageTimer, "Well done!");
-
-                // A moment to see it finished, then the next one
-                _nextWordTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1.2) };
-                _nextWordTimer.Tick -= NextWordTick;
-                _nextWordTimer.Tick += NextWordTick;
-                _nextWordTimer.Start();
-            }
-        }
-
-        private void NextWordTick(object? sender, EventArgs e)
-        {
-            _nextWordTimer?.Stop();
-            NextWord();
-        }
-
-        private void WordSkip_Click(object sender, RoutedEventArgs e)
-        {
-            _nextWordTimer?.Stop();
-            NextWord();
-        }
-
-        // --- Keyboard on and off ---
-
-        private bool _keyboardStepClose;
-        private int _sessionKeyboardRounds;
-        private readonly System.Diagnostics.Stopwatch _keyboardRoundTimer = new();
-        private System.Windows.Threading.DispatcherTimer? _keyboardMessageTimer;
-
-        /// <summary>
-        /// The keyboard opened or closed. Counts only while the activity is on screen, so
-        /// ordinary typing elsewhere is not mistaken for practice.
-        /// </summary>
-        private void PracticeKeyboardChanged(bool open)
-        {
-            if (PracticePage.Visibility != Visibility.Visible || _activity != "Keyboard")
+            if (!_typingRunning || _nextItemTimer?.IsEnabled == true)
             {
                 return;
             }
 
-            if (open && !_keyboardStepClose)
+            string text = TypingBox.Text;
+            if (text.Length > 0 && !_itemTimer.IsRunning)
             {
-                _keyboardStepClose = true;
-                _keyboardRoundTimer.Restart();
-                ShowMessage(KeyboardMessage, ref _keyboardMessageTimer, "Open! Now close it");
-            }
-            else if (!open && _keyboardStepClose)
-            {
-                _keyboardStepClose = false;
-                _sessionKeyboardRounds++;
-                Record(day => day.KeyboardRounds++);
-                ShowMessage(KeyboardMessage, ref _keyboardMessageTimer,
-                    $"Well done! {_keyboardRoundTimer.Elapsed.TotalSeconds:0.0} seconds");
+                _itemTimer.Start();
             }
 
-            ShowKeyboardStep();
+            // A letter added that does not fit is a wrong letter; anything taken away is
+            // a correction. A space after the last word, which a word suggestion adds, is
+            // neither.
+            if (text.Length > _lastTypedLength)
+            {
+                string fits = text.TrimEnd();
+                if (fits.Length == text.Length && !_itemText.StartsWith(fits, StringComparison.OrdinalIgnoreCase))
+                {
+                    _typingRun.WrongLetters++;
+                }
+            }
+            else if (text.Length < _lastTypedLength)
+            {
+                _typingRun.Corrections++;
+            }
+            _lastTypedLength = text.Length;
+
+            ShowItemProgress();
+
+            if (Matches(text, _itemText))
+            {
+                _itemTimer.Stop();
+                _typingRun.Seconds += _itemTimer.Elapsed.TotalSeconds;
+                _typingRun.Characters += _itemText.Length;
+                NextItemSoon("Well done!");
+            }
         }
 
-        private void ShowKeyboardStep()
+        /// <summary>
+        /// Done, whatever the capitals, extra spaces, or a missing full stop at the end
+        /// </summary>
+        private static bool Matches(string typed, string item)
         {
-            var accent = (Brush)FindResource("AccentBrush");
-            var cardBorder = (Brush)FindResource("CardBorderBrush");
+            static string Plain(string s) => string.Join(' ', s.Trim().TrimEnd('.').Split(' ', StringSplitOptions.RemoveEmptyEntries));
+            return Plain(typed).Equals(Plain(item), StringComparison.OrdinalIgnoreCase);
+        }
 
-            KeyboardStepOpen.BorderBrush = _keyboardStepClose ? cardBorder : accent;
-            KeyboardStepClose.BorderBrush = _keyboardStepClose ? accent : cardBorder;
-            KeyboardStepOpen.Opacity = _keyboardStepClose ? 0.6 : 1;
-            KeyboardStepClose.Opacity = _keyboardStepClose ? 1 : 0.6;
-            KeyboardStepOpenMark.Text = _keyboardStepClose ? "\u2713" : "1";
+        private void TypingSkip_Click(object sender, RoutedEventArgs e)
+        {
+            if (_typingRunning && _nextItemTimer?.IsEnabled != true)
+            {
+                _typingRun.Skipped++;
+                NextItemSoon("Skipped");
+            }
+        }
 
-            KeyboardScore.Text = $"Done {_sessionKeyboardRounds} times";
+        /// <summary>A moment to see it finished, then the next one</summary>
+        private void NextItemSoon(string message)
+        {
+            TypingMessage.Text = message;
+            TypingItem.Visibility = Visibility.Collapsed;
+            _nextItemTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _nextItemTimer.Tick -= NextItemTick;
+            _nextItemTimer.Tick += NextItemTick;
+            _nextItemTimer.Start();
+        }
+
+        private void NextItemTick(object? sender, EventArgs e)
+        {
+            _nextItemTimer?.Stop();
+            _item++;
+            if (_item < TypingItems[_typingRun.Level].Length)
+            {
+                ShowItem();
+            }
+            else
+            {
+                FinishTypingRun();
+            }
+        }
+
+        /// <summary>LT moved the keyboard: counted while a typing run is on</summary>
+        private void PracticeKeyboardMoved()
+        {
+            if (_typingRunning)
+            {
+                _typingRun.KeyboardMoves++;
+            }
+        }
+
+        private void FinishTypingRun()
+        {
+            _typingRunning = false;
+            var run = _typingRun;
+            run.When = DateTime.Now;
+            run.Seconds = Math.Round(run.Seconds, 1);
+
+            double? best = null;
+            foreach (var earlier in _progress.TypingRuns)
+            {
+                if (earlier.Level == run.Level && earlier.Characters > 0 && (best == null || earlier.LettersPerMinute > best))
+                {
+                    best = earlier.LettersPerMinute;
+                }
+            }
+            _progress.TypingRuns.Add(run);
+            SaveProgress();
+
+            string verdict = run.Characters == 0 ? "Nothing typed this time."
+                : best == null ? "Your first run at this level."
+                : run.LettersPerMinute > best ? $"Your fastest yet! (was {best:0})"
+                : $"Your best at this level: {best:0} letters a minute";
+
+            // Few slips: time for the next level
+            string next = run.Skipped == 0 && run.WrongLetters <= 2 && run.Level < TypingItems.Length - 1
+                ? $"\nReady for {TypingLevelNames[run.Level + 1].ToLowerInvariant()}?"
+                : "";
+
+            ActivityScore.Text = "";
+            ShowTypingStart("Done!",
+                $"{run.LettersPerMinute:0} letters a minute. {run.WrongLetters} wrong {(run.WrongLetters == 1 ? "letter" : "letters")}, "
+                + $"{run.Corrections} {(run.Corrections == 1 ? "correction" : "corrections")}.\n{verdict}{next}");
         }
 
         // --- The record ---
 
         /// <summary>
-        /// The last week of practice, newest first, as a small table
+        /// The latest runs of each test, newest first, with the best so far
         /// </summary>
         private void ShowProgress()
         {
-            ProgressTable.Children.Clear();
-            ProgressTable.RowDefinitions.Clear();
-            ProgressTable.ColumnDefinitions.Clear();
-
-            string[] headings = { "Day", "Circles hit", "Missed", "Smallest", "Words", "Wrong letters", "Keyboard" };
-            foreach (var _ in headings)
+            var pointer = new List<string[]>();
+            for (int i = _progress.PointerRuns.Count - 1; i >= 0 && pointer.Count < 6; i--)
             {
-                ProgressTable.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                var run = _progress.PointerRuns[i];
+                pointer.Add(new[] { RunDay(run.When), $"{run.Size + 1}", $"{run.Seconds:0.0} s", $"{run.Misses}", $"{run.Throughput:0.0}" });
             }
-            ProgressTable.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+            FillTable(PointerTable, new[] { "When", "Size", "Time", "Misses", "Speed" }, pointer);
 
-            void Cell(int row, int column, string text, bool heading = false)
+            var typing = new List<string[]>();
+            for (int i = _progress.TypingRuns.Count - 1; i >= 0 && typing.Count < 6; i--)
+            {
+                var run = _progress.TypingRuns[i];
+                typing.Add(new[] { RunDay(run.When), TypingLevelNames[Math.Clamp(run.Level, 0, 2)], $"{run.LettersPerMinute:0}", $"{run.WrongLetters}", $"{run.Corrections}" });
+            }
+            FillTable(TypingTable, new[] { "When", "Level", "A minute", "Wrong", "Fixed" }, typing);
+
+            PointerBest.Text = _progress.PointerRuns.Count == 0 ? "No runs yet"
+                : $"Circle size now {_progress.CircleLevel + 1} of {CircleSizes.Length}. Speed is in bits a second - higher is better.";
+            TypingBest.Text = _progress.TypingRuns.Count == 0 ? "No runs yet"
+                : $"Level now: {TypingLevelNames[_progress.TypingLevel].ToLowerInvariant()}. Letters typed a minute.";
+        }
+
+        private static void FillTable(Grid table, string[] headings, List<string[]> rows)
+        {
+            table.Children.Clear();
+            table.RowDefinitions.Clear();
+            table.ColumnDefinitions.Clear();
+            for (int column = 0; column < headings.Length; column++)
+            {
+                table.ColumnDefinitions.Add(new ColumnDefinition { Width = column == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(62) });
+            }
+
+            void Cell(int row, int column, string text, bool heading)
             {
                 var cell = new TextBlock
                 {
                     Text = text,
-                    FontSize = heading ? 12.5 : 15,
+                    FontSize = heading ? 12.5 : 14.5,
                     FontWeight = heading ? FontWeights.SemiBold : FontWeights.Normal,
                     Foreground = heading ? new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA)) : Brushes.White,
                     TextAlignment = column == 0 ? TextAlignment.Left : TextAlignment.Right,
-                    TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = column == 0 ? double.PositiveInfinity : 62,
-                    VerticalAlignment = VerticalAlignment.Bottom,
-                    Margin = new Thickness(column == 0 ? 0 : 10, 3, 0, 3)
+                    Margin = new Thickness(0, 2, 0, 2)
                 };
                 Grid.SetRow(cell, row);
                 Grid.SetColumn(cell, column);
-                ProgressTable.Children.Add(cell);
+                table.Children.Add(cell);
             }
 
-            ProgressTable.RowDefinitions.Add(new RowDefinition());
+            if (rows.Count == 0)
+            {
+                return;
+            }
+
+            table.RowDefinitions.Add(new RowDefinition());
             for (int column = 0; column < headings.Length; column++)
             {
                 Cell(0, column, headings[column], heading: true);
             }
-
-            var days = _progress.Days;
-            if (days.Count == 0)
+            for (int row = 0; row < rows.Count; row++)
             {
-                ProgressTable.RowDefinitions.Add(new RowDefinition());
-                Cell(1, 0, "No practice yet");
-                return;
-            }
-
-            int row = 1;
-            for (int i = days.Count - 1; i >= 0 && row <= 7; i--, row++)
-            {
-                var day = days[i];
-                ProgressTable.RowDefinitions.Add(new RowDefinition());
-                Cell(row, 0, DayName(day.Date));
-                Cell(row, 1, day.CircleHits.ToString());
-                Cell(row, 2, day.CircleMisses.ToString());
-                Cell(row, 3, $"{day.SmallestCircle + 1} of {CircleSizes.Length}");
-                Cell(row, 4, day.WordsTyped.ToString());
-                Cell(row, 5, day.WrongLetters.ToString());
-                Cell(row, 6, day.KeyboardRounds.ToString());
+                table.RowDefinitions.Add(new RowDefinition());
+                for (int column = 0; column < headings.Length; column++)
+                {
+                    Cell(row + 1, column, rows[row][column], heading: false);
+                }
             }
         }
 
-        private static string DayName(string date)
-        {
-            if (!DateTime.TryParseExact(date, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.None, out var day))
-            {
-                return date;
-            }
-
-            return day.Date == DateTime.Today ? "Today"
-                : day.Date == DateTime.Today.AddDays(-1) ? "Yesterday"
-                : day.ToString("ddd d MMM");
-        }
+        private static string RunDay(DateTime when) =>
+            when.Date == DateTime.Today ? $"Today {when:HH:mm}"
+            : when.Date == DateTime.Today.AddDays(-1) ? $"Yesterday {when:HH:mm}"
+            : when.ToString("ddd d MMM");
 
         /// <summary>
-        /// Every day of practice as a spreadsheet, for a review
+        /// Every run as a spreadsheet, for a review
         /// </summary>
         private void ExportProgress_Click(object sender, RoutedEventArgs e)
         {
@@ -1719,7 +1815,8 @@ namespace HIDra.UI
                 return;
             }
 
-            ProgressStatus.Text = PracticeProgressStore.ExportCsv(_progress, dialog.FileName, level => $"{level + 1} of {CircleSizes.Length}")
+            ProgressStatus.Text = PracticeProgressStore.ExportCsv(_progress, dialog.FileName,
+                    level => $"Circle {level + 1} of {CircleSizes.Length}", level => TypingLevelNames[Math.Clamp(level, 0, 2)])
                 ? $"Saved to {dialog.FileName}"
                 : "Could not write that file. Try another folder.";
         }
