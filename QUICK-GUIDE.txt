@@ -48,7 +48,8 @@ VIRTUAL KEYBOARD:
   Start = Caps Lock   Back = Escape
   (from anywhere on the keyboard - the keys show LB, RB and Y on them.
    Close the keyboard and they all do their usual jobs again)
-  (Big UK layout, letters offset like a real keyboard)
+  (Big UK layout: the letters in QWERTY order, in straight columns, so
+   up and down always go straight to the key above or below)
   123 #+ key (bottom left) = numbers and symbols. abc = back to letters
   Green row at the top = Word suggestions. Push up to reach them:
                A types the whole word, B types it with a Capital
@@ -202,10 +203,12 @@ VIRTUAL KEYBOARD TIPS
 - The keys on the right are SHORTCUTS - one press each - in rows:
     Edit    Undo, Redo, Cut, Copy, Paste
     Select  Select, Select all, word left/right, Delete word
-    Style   Bold, Italic, Underline, Bigger, Smaller
-    Tools   Emoji, Captions, Voice (speak instead of typing), Save, Snip
-  EMOJI shows the keyboard's own emoji in place of the letters; abc
-  brings the letters back.
+    Sound   Play, Quieter, Louder, Mute, Captions
+    Tools   Voice (speak instead of typing), Save, Snip, Find, Print
+  Bold, Italic and other formatting are on the row below them when
+  Word or PowerPoint is in front.
+  EMOJI: go to 123 #+, then the Emoji key beside it. The most used
+  emoji show in place of the letters; abc brings the letters back.
   The keys in each row can be changed in Settings, Shortcut keys -
   e.g. Read, Print, Magnify, Clipboard, Find - or leave
   a place empty. The bottom row changes to suit the program in front,

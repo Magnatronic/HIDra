@@ -85,6 +85,7 @@ namespace HIDra.UI
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             FitToScreen();
+            ApplyContrast();
 
             if (WindowsTouchKeyboard.Apply(_userSettings))
             {
@@ -453,6 +454,7 @@ namespace HIDra.UI
                 };
                 _virtualKeyboard.SetScale(_userSettings.KeyboardScale);
                 _virtualKeyboard.SetShortcutKeys(_userSettings.ShortcutKeys);
+                _virtualKeyboard.SetHighContrast(_userSettings.HighContrast);
                 _virtualKeyboard.KeyPressed += OnVirtualKeyboardKeyPressed;
                 _virtualKeyboard.TextEntered += OnVirtualKeyboardTextEntered;
                 _virtualKeyboard.KeyComboPressed += OnVirtualKeyboardKeyCombo;
@@ -1158,6 +1160,7 @@ namespace HIDra.UI
 
             // The jobs open over the drawing
             SheetOverlay.Visibility = Visibility.Visible;
+            SheetHeader.Visibility = Visibility.Collapsed;
             JobSheet.Visibility = Visibility.Visible;
             KeySheet.Visibility = Visibility.Collapsed;
 
@@ -1212,9 +1215,10 @@ namespace HIDra.UI
             WriteLabelled(JobTypingText, "While typing", button.TypingJob == null
                 ? "the same"
                 : current.Id == ButtonJobCatalogue.Keyboard ? "closes the keyboard" : button.TypingJob);
-            SheetTitle.Text = $"Choose what {button.Label} does";
+            // The default, and the way back to it, only once the button has been changed
             WriteLabelled(JobStandardText, "Default", standard.Label);
-            JobResetButton.IsEnabled = current != standard && locked == null;
+            JobDefaultRow.Visibility = current != standard ? Visibility.Visible : Visibility.Collapsed;
+            JobResetButton.IsEnabled = locked == null;
             JobResetButton.Opacity = JobResetButton.IsEnabled ? 1 : 0.5;
 
             if (locked != null)
@@ -1430,6 +1434,7 @@ namespace HIDra.UI
             "volume-up" => '\uE995',
             "volume-down" => '\uE993',
             "mute" => '\uE74F',
+            "play-pause" => '\uE768',
             _ => '\uE738'
         };
 
@@ -1505,15 +1510,15 @@ namespace HIDra.UI
         private static readonly (int Page, string Group, string[] Ids)[] JobGroups =
         {
             (0, "Clicks", new[] { "click", "right-click", "double-click" }),
-            (0, "Keyboard and pointer", new[] { "keyboard", "swap-sticks", "zoom", "slow-pointer" }),
+            (0, "Pointer", new[] { "keyboard", "swap-sticks", "zoom", "slow-pointer" }),
             (0, "Windows", new[] { "switch-programs", "start-menu", "all-windows", "close-window",
                 "maximise", "minimise", "snap-left", "snap-right" }),
             (0, "Editing", new[] { "undo", "redo", "copy", "paste" }),
             (0, "Keys", new[] { "escape", "enter", "tab", "nothing" }),
-            (1, "Talk and see", new[] { "voice", "captions", "emoji" }),
+            (1, "Voice", new[] { "voice", "captions", "emoji" }),
             (1, "Tools", new[] { "snip", "clipboard", "find", "save", "file-explorer", "desktop", "notifications" }),
             (1, "Pages", new[] { "web-back", "page-up", "page-down" }),
-            (1, "Sound", new[] { "volume-up", "volume-down", "mute" }),
+            (1, "Sound", new[] { "play-pause", "volume-up", "volume-down", "mute" }),
         };
 
         // The page of jobs showing; -1 shows the page with the button's current job
@@ -2193,7 +2198,7 @@ namespace HIDra.UI
         // it twice.
         // ---------------------------------------------------------------------------
 
-        private static readonly string[] ShortcutRowNames = { "Edit", "Select", "Style", "Tools" };
+        private static readonly string[] ShortcutRowNames = { "Edit", "Select", "Sound", "Tools" };
 
         private int _editingShortcutSlot = -1;
         private int _editingAppSlot = -1;
@@ -2292,7 +2297,7 @@ namespace HIDra.UI
             var current = ShortcutCatalogue.Resolve(_userSettings.ShortcutKeys)[slot];
 
             var choices = new List<Button>();
-            foreach (var key in ShortcutCatalogue.InGroup(ShortcutCatalogue.GroupOfRow(row)))
+            foreach (var key in ShortcutCatalogue.ForRow(row))
             {
                 var choice = EditorKey("ChoiceKey", key.Label, key.Icon, description: key.Description);
                 choice.Background = key == current ? OnBrush : OffBrush;
@@ -2409,6 +2414,7 @@ namespace HIDra.UI
         private void ShowKeyChooser(string title, List<Button> choices, bool search)
         {
             SheetTitle.Text = title;
+            SheetHeader.Visibility = Visibility.Visible;
             JobSheet.Visibility = Visibility.Collapsed;
             KeySheet.Visibility = Visibility.Visible;
             KeyChoices.Children.Clear();
@@ -2472,7 +2478,8 @@ namespace HIDra.UI
 
         // Orange, the same as Shift, Caps and Select on the keyboard: one colour for "on"
         private static readonly Brush OnBrush = (Brush)Application.Current.FindResource("AccentOnBrush");
-        private static readonly Brush OffBrush = new SolidColorBrush(Color.FromRgb(0x3C, 0x3C, 0x3C));
+        // The palette's control colour, so it follows High contrast
+        private static Brush OffBrush => (Brush)Application.Current.Resources["ControlBrush"];
 
         /// <summary>
         /// Cursor speed is shown as a percentage and moves in whole-number steps: 1% below
@@ -2588,6 +2595,62 @@ namespace HIDra.UI
 
         private void StopWindowsKeyboardToggle_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.StopWindowsKeyboard = !s.StopWindowsKeyboard);
+
+        private void HighContrastToggle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.HighContrast = !s.HighContrast);
+
+        /// <summary>
+        /// The colour each named surface and text brush had when HIDra started, so High
+        /// contrast can be turned off again
+        /// </summary>
+        private static readonly Dictionary<string, Color> NormalColours = new();
+
+        /// <summary>
+        /// Black and white for High contrast: the named brushes in App.xaml are recoloured,
+        /// so everything drawn with them follows at once, and the keyboard repaints its keys
+        /// </summary>
+        private void ApplyContrast()
+        {
+            (string Key, Color High)[] palette =
+            {
+                ("PageBrush", Colors.Black),
+                ("HeaderBrush", Colors.Black),
+                ("CardBrush", Colors.Black),
+                ("CardEdgeBrush", Colors.White),
+                ("RaisedBrush", Colors.Black),
+                ("ControlBrush", Colors.Black),
+                ("ControlBorderBrush", Colors.White),
+                ("LineBrush", Color.FromRgb(0xAA, 0xAA, 0xAA)),
+                ("TrackBrush", Color.FromRgb(0x88, 0x88, 0x88)),
+                ("SubtleTextBrush", Colors.White),
+                ("BodyTextBrush", Colors.White),
+                ("GuideCardBrush", Colors.Black),
+                ("CardBorderBrush", Colors.White),
+            };
+
+            bool high = _userSettings.HighContrast;
+            var resources = Application.Current.Resources;
+            foreach (var (key, highColour) in palette)
+            {
+                if (resources[key] is not SolidColorBrush brush)
+                {
+                    continue;
+                }
+
+                NormalColours.TryAdd(key, brush.Color);
+                var colour = high ? highColour : NormalColours[key];
+                if (brush.IsFrozen)
+                {
+                    resources[key] = new SolidColorBrush(colour);
+                }
+                else
+                {
+                    brush.Color = colour;
+                }
+            }
+
+            _virtualKeyboard?.SetHighContrast(high);
+        }
 
         private void Grid3Toggle_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.EnableGrid3AutoSuspend = !s.EnableGrid3AutoSuspend);
@@ -2750,6 +2813,8 @@ namespace HIDra.UI
                 _dwellRing?.StopCountdown();
             }
 
+            ApplyContrast();
+
             // Only this student's own Windows setting changes; the option is remembered
             WindowsTouchKeyboard.Apply(_userSettings);
         }
@@ -2799,6 +2864,7 @@ namespace HIDra.UI
             ShowToggle(KeyboardDwellToggle, _userSettings.KeyboardDwellEnabled);
             ShowToggle(StopWindowsKeyboardToggle, _userSettings.StopWindowsKeyboard);
             ShowToggle(Grid3Toggle, _userSettings.EnableGrid3AutoSuspend);
+            ShowToggle(HighContrastToggle, _userSettings.HighContrast);
 
             SetSegment(KeyboardTopButton, _userSettings.KeyboardAtTop);
             SetSegment(KeyboardBottomButton, !_userSettings.KeyboardAtTop);

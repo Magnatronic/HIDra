@@ -105,11 +105,7 @@
         <Style x:Key="PairedKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}"/>
         <!-- Emoji keys. Windows' own emoji panel takes the controller away from HIDra, so
              the everyday emoji are keys here instead. -->
-        <Style x:Key="EmojiKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
-            <Setter Property="FontFamily" Value="Segoe UI Emoji"/>
-            <Setter Property="FontSize" Value="26"/>
-            <Setter Property="FontWeight" Value="Normal"/>
-        </Style>
+        <Style x:Key="EmojiKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}"/>
 
         <!-- Function keys: they act rather than type, and say so by being lighter -->
         <Style x:Key="FunctionKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
@@ -217,17 +213,18 @@
         </Grid>
 
         <!--
-            The keys, in four rows measured in key widths, 13.5 to a row. Each row starts
-            with a wider key than the one above - Close, Tab, Shift - so the letters sit
-            offset the way every keyboard's do, instead of stacked in a grid. It reads as
-            a keyboard at a glance, and the highlight's routes are the ones a hand learns.
+            The letters in a straight grid, in QWERTY order: the same shape for all three
+            letter rows - one key each side, ten between - so the columns line up and
+            pushing up or down always goes straight to the key above or below. A staggered
+            layout, like a real keyboard's, helps fingers but not a highlight moved by a
+            stick: down from a key landed between two, and which one had to be learned.
 
             There used to be a number row and fourteen equal keys to every row, so the
             symbols typed least - [ ] \ ; # = - cost a full key each, on the way to the
             ones typed most. Now the letters share their places with a second layer, the
             way a phone does: the 123 key swaps the letters for digits and symbols, in the
-            same cells, and abc swaps them back. Everything around the edge - Close,
-            Backspace, Tab, Enter, Shift, Space, the arrows - stays exactly where it is on
+            same cells, and abc swaps them back. Everything around the edge - Tab,
+            Backspace, Esc, Enter, Shift, Del, Space, the arrows - stays exactly where it is on
             both, so switching never moves a key the student is heading for.
 
             The keys typed most are the biggest: Space by far, then Enter and Backspace.
@@ -236,18 +233,16 @@
             @ ? and the rest on B, as before.
         -->
 
-        <!-- Row 1: q to p, or 1 to 0 -->
+        <!-- Row 1: Tab, q to p (or 1 to 0), Backspace. There is no close key - the button
+             that opens the keyboard closes it, and a key that ends typing was one overshoot
+             away from doing so by mistake. -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="10*"/>
-                <ColumnDefinition Width="1.5*"/>
-                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
-            <!-- Column 0 is left empty: the indent at the start of the row, as on a real
-                 keyboard. There is no close key - the button that opens the keyboard
-                 closes it, and a key that ends typing was one overshoot away from doing
-                 so by mistake. -->
+            <Button Grid.Column="0" Style="{StaticResource FunctionKeyStyle}" Content="Tab" Click="TabButton_Click"/>
             <UniformGrid x:Name="LettersRow1" Grid.Column="1" Rows="1" Columns="10">
                 <Button x:Name="KeyQ" Style="{StaticResource LetterKeyStyle}" Content="q" Click="KeyButton_Click" Tag="Q"/>
                 <Button x:Name="KeyW" Style="{StaticResource LetterKeyStyle}" Content="w" Click="KeyButton_Click" Tag="W"/>
@@ -292,18 +287,20 @@
                     <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">)</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">0</Run></TextBlock>
                 </Button>
             </UniformGrid>
-            <!-- Emoji, reached from the Emoji shortcut key or button job -->
+            <!-- Emoji, reached from the Emoji key on the 123 #+ layer, or an Emoji button job.
+                 Colour pictures from Microsoft's Fluent Emoji (MIT licence, Emoji/LICENSE.txt):
+                 WPF can only draw emoji characters in one colour. -->
             <UniformGrid x:Name="EmojiRow1" Grid.Column="1" Rows="1" Columns="10" Visibility="Collapsed">
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F600;" Content="&#x1F600;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F602;" Content="&#x1F602;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F60A;" Content="&#x1F60A;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F60D;" Content="&#x1F60D;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F970;" Content="&#x1F970;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F622;" Content="&#x1F622;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F62D;" Content="&#x1F62D;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F621;" Content="&#x1F621;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F62E;" Content="&#x1F62E;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F634;" Content="&#x1F634;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F602;" ToolTip="Face with tears of joy"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f602.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x2764;&#xFE0F;" ToolTip="Red heart"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/2764.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F923;" ToolTip="Rolling on the floor laughing"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f923.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44D;" ToolTip="Thumbs up"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f44d.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F62D;" ToolTip="Loudly crying face"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f62d.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F64F;" ToolTip="Folded hands"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f64f.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F618;" ToolTip="Face blowing a kiss"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f618.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F970;" ToolTip="Smiling face with hearts"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f970.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F60D;" ToolTip="Smiling face with heart-eyes"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f60d.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F60A;" ToolTip="Smiling face with smiling eyes"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f60a.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
             </UniformGrid>
             <!-- LB, RB and Y type these from anywhere on the board, and say so on the key, so
                  the shortcut is learned by seeing it -->
@@ -313,19 +310,18 @@
                     <TextBlock Text="LB" FontSize="12" FontWeight="SemiBold" Foreground="#FFC27A" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Button>
-            <!-- Del beside Backspace: the end of the row is the one place to look for
-                 removing text -->
-            <Button Grid.Column="3" Style="{StaticResource FunctionKeyStyle}" Content="Del" Click="DeleteButton_Click"/>
         </Grid>
 
         <!-- Row 2: a to l, or the symbols typed least -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.5*"/>
+                <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="10*"/>
                 <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" Style="{StaticResource FunctionKeyStyle}" Content="Tab" Click="TabButton_Click"/>
+            <!-- Landing on Esc by mistake sends one Escape, the cheapest mistake there is,
+                 so it can sit at an edge -->
+            <Button Grid.Column="0" Style="{StaticResource FunctionKeyStyle}" Content="Esc" Click="EscapeButton_Click"/>
             <UniformGrid x:Name="LettersRow2" Grid.Column="1" Rows="1" Columns="10">
                 <Button x:Name="KeyA" Style="{StaticResource LetterKeyStyle}" Content="a" Click="KeyButton_Click" Tag="A"/>
                 <Button x:Name="KeyS" Style="{StaticResource LetterKeyStyle}" Content="s" Click="KeyButton_Click" Tag="S"/>
@@ -369,16 +365,16 @@
                 <Button Style="{StaticResource FunctionKeyStyle}" Content="Win" Click="WindowsKeyButton_Click"/>
             </UniformGrid>
             <UniformGrid x:Name="EmojiRow2" Grid.Column="1" Rows="1" Columns="10" Visibility="Collapsed">
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F914;" Content="&#x1F914;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44D;" Content="&#x1F44D;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44E;" Content="&#x1F44E;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44F;" Content="&#x1F44F;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F64F;" Content="&#x1F64F;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F4AA;" Content="&#x1F4AA;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44B;" Content="&#x1F44B;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F64C;" Content="&#x1F64C;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x2764;&#xFE0F;" Content="&#x2764;&#xFE0F;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x2B50;" Content="&#x2B50;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F389;" ToolTip="Party popper"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f389.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F601;" ToolTip="Beaming face with smiling eyes"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f601.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F495;" ToolTip="Two hearts"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f495.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F97A;" ToolTip="Pleading face"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f97a.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F605;" ToolTip="Grinning face with sweat"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f605.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F525;" ToolTip="Fire"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f525.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F926;" ToolTip="Person facepalming"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f926.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F937;" ToolTip="Person shrugging"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f937.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F644;" ToolTip="Face with rolling eyes"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f644.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F606;" ToolTip="Grinning squinting face"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f606.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
             </UniformGrid>
             <Button Grid.Column="2" Style="{StaticResource FunctionGlyphKeyStyle}" Click="EnterButton_Click">
                 <StackPanel>
@@ -393,7 +389,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="10*"/>
-                <ColumnDefinition Width="1.5*"/>
+                <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" x:Name="ShiftKey" Style="{StaticResource FunctionGlyphKeyStyle}" Content="⇧" Click="ShiftButton_Click"/>
             <UniformGrid x:Name="LettersRow3" Grid.Column="1" Rows="1" Columns="10">
@@ -429,20 +425,19 @@
                 <Button Style="{StaticResource FunctionKeyStyle}" Content="PgDn" Click="PageDownButton_Click"/>
             </UniformGrid>
             <UniformGrid x:Name="EmojiRow3" Grid.Column="1" Rows="1" Columns="10" Visibility="Collapsed">
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F389;" Content="&#x1F389;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F525;" Content="&#x1F525;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x2705;" Content="&#x2705;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x274C;" Content="&#x274C;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x2753;" Content="&#x2753;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F4AF;" Content="&#x1F4AF;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F382;" Content="&#x1F382;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F3B5;" Content="&#x1F3B5;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x26BD;" Content="&#x26BD;"/>
-                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F31E;" Content="&#x1F31E;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F917;" ToolTip="Hugging face"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f917.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F609;" ToolTip="Winking face"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f609.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F382;" ToolTip="Birthday cake"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f382.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F914;" ToolTip="Thinking face"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f914.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44F;" ToolTip="Clapping hands"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f44f.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F642;" ToolTip="Slightly smiling face"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f642.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F633;" ToolTip="Flushed face"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f633.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F973;" ToolTip="Partying face"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f973.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F60E;" ToolTip="Smiling face with sunglasses"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f60e.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44C;" ToolTip="Ok hand"><Image Source="pack://application:,,,/HIDra.UI;component/Emoji/1f44c.png" Width="34" Height="34" RenderOptions.BitmapScalingMode="HighQuality"/></Button>
             </UniformGrid>
-            <!-- Landing on Esc by mistake sends one Escape, the cheapest mistake there is,
-                 so it can sit at an edge -->
-            <Button Grid.Column="2" Style="{StaticResource FunctionKeyStyle}" Content="Esc" Click="EscapeButton_Click"/>
+            <!-- Del under Backspace: that edge of the board is where text is removed -->
+            <Button Grid.Column="2" Style="{StaticResource FunctionKeyStyle}" Content="Del" Click="DeleteButton_Click"/>
         </Grid>
 
         <!-- Row 4: the same on both layers. Home and End earn their place - without
@@ -488,7 +483,7 @@
             <UniformGrid Grid.Column="0" Rows="5" Columns="1">
                 <TextBlock Style="{StaticResource ShortcutRowLabel}" Text="Edit" Foreground="#8FB0D0"/>
                 <TextBlock Style="{StaticResource ShortcutRowLabel}" Text="Select" Foreground="#7FC2BC"/>
-                <TextBlock Style="{StaticResource ShortcutRowLabel}" Text="Style" Foreground="#AE9DD6"/>
+                <TextBlock Style="{StaticResource ShortcutRowLabel}" Text="Sound" Foreground="#AE9DD6"/>
                 <TextBlock Style="{StaticResource ShortcutRowLabel}" Text="Tools" Foreground="#D492A8"/>
                 <TextBlock x:Name="ProgramRowLabel" Style="{StaticResource ShortcutRowLabel}" Foreground="White"/>
             </UniformGrid>

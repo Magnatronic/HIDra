@@ -18,22 +18,22 @@ public enum ShortcutKind
     SelectSwitch,
 
     /// <summary>Reads the selected text aloud</summary>
-    ReadAloud,
-
-    /// <summary>Shows the keyboard's own emoji in place of the letters</summary>
-    EmojiLayer
+    ReadAloud
 }
 
 /// <summary>
-/// The four fixed rows of the shortcut panel. A key can only be put in its own group's
-/// row, so each row keeps meaning one kind of thing however it is customised.
+/// The four fixed rows of the shortcut panel, in order. A key can only be put in its own
+/// group's row, so each row keeps meaning one kind of thing however it is changed. Style
+/// has no row of its own - formatting belongs to the program row for Word and PowerPoint -
+/// but its keys can go in the Tools row.
 /// </summary>
 public enum ShortcutGroup
 {
     Edit,
     Select,
-    Style,
-    Tools
+    Sound,
+    Tools,
+    Style
 }
 
 /// <summary>
@@ -85,7 +85,7 @@ public static class ShortcutCatalogue
         Make("cut", ShortcutGroup.Edit, "Cut", '\uE8C6', "Move the selection, ready to paste", VirtualKey.Control, K('x')),
         Make("copy", ShortcutGroup.Edit, "Copy", '\uE8C8', "Copy the selection, ready to paste", VirtualKey.Control, K('c')),
         Make("paste", ShortcutGroup.Edit, "Paste", '\uE77F', "Put in what was cut or copied", VirtualKey.Control, K('v')),
-        Make("find", ShortcutGroup.Edit, "Find", '\uE721', "Search for words on the page", VirtualKey.Control, K('f')),
+        Make("find", ShortcutGroup.Tools, "Find", '\uE721', "Search for words on the page", VirtualKey.Control, K('f')),
         Make("clipboard", ShortcutGroup.Edit, "Clipboard", '\uE81C', "Pick from things copied earlier", VirtualKey.LeftWindows, K('v')),
 
         // A switch, not a shortcut: while on, moving the cursor selects text as it goes
@@ -107,13 +107,16 @@ public static class ShortcutCatalogue
         Make("align-left", ShortcutGroup.Style, "Left", '\uE8E4', "Line the text up on the left", VirtualKey.Control, K('l')),
 
         // Windows' emoji picker, for posters and messages
-        // HIDra's own emoji keys: Windows' emoji panel takes the controller away
-        Make("emoji", ShortcutGroup.Tools, "Emoji", '\uE76E', "Pick an emoji") with { Kind = ShortcutKind.EmojiLayer },
+        // Sound and video: for watching, listening, and hearing words read
+        Make("play-pause", ShortcutGroup.Sound, "Play", '\uE768', "Play or pause a video or music", VirtualKey.MediaPlayPause),
+        Make("quieter", ShortcutGroup.Sound, "Quieter", '\uE993', "Turn the sound down", VirtualKey.VolumeDown),
+        Make("louder", ShortcutGroup.Sound, "Louder", '\uE995', "Turn the sound up", VirtualKey.VolumeUp),
+        Make("mute", ShortcutGroup.Sound, "Mute", '\uE74F', "Sound off, or on again", VirtualKey.VolumeMute),
         // Windows 11 Live Captions: words on screen for any sound - videos, calls
-        Make("captions", ShortcutGroup.Tools, "Captions", '\uE7F0', "Show words for any sound on the PC", VirtualKey.LeftWindows, VirtualKey.Control, K('l')),
+        Make("captions", ShortcutGroup.Sound, "Captions", '\uE7F0', "Show words for any sound on the PC", VirtualKey.LeftWindows, VirtualKey.Control, K('l')),
         // Windows voice typing: speak instead of type, into whatever has the cursor
         Make("voice", ShortcutGroup.Tools, "Voice", '\uE720', "Type by speaking", VirtualKey.LeftWindows, K('h')),
-        Make("read", ShortcutGroup.Tools, "Read", '\uE767', "Hear the selected words") with { Kind = ShortcutKind.ReadAloud },
+        Make("read", ShortcutGroup.Sound, "Read", '\uE767', "Hear the selected words") with { Kind = ShortcutKind.ReadAloud },
         Make("save", ShortcutGroup.Tools, "Save", '\uE74E', "Save the work", VirtualKey.Control, K('s')),
         Make("files", ShortcutGroup.Tools, "Files", '\uE8B7', "Open File Explorer", VirtualKey.LeftWindows, K('e')),
         // Choose an area of the screen (drag with RT), or the whole screen from the bar
@@ -129,15 +132,17 @@ public static class ShortcutCatalogue
     };
 
     /// <summary>
-    /// What a new student starts with. Sound and speech keys other than Voice are left
-    /// for staff to add for the students they help; Captions is on for everyone.
+    /// What a new student starts with: editing, selecting, sound and video, and tools.
+    /// Formatting is on the program row for Word and PowerPoint, where it means
+    /// something, and can be added to Tools. A student who cannot use sound can have
+    /// that row changed.
     /// </summary>
     public static readonly IReadOnlyList<string> Standard = new[]
     {
         "undo", "redo", "cut", "copy", "paste",
         "select", "select-all", "word-left", "word-right", "delete-word",
-        "bold", "italic", "underline", "bigger", "smaller",
-        "emoji", "captions", "voice", "save", "snip",
+        "play-pause", "quieter", "louder", "mute", "captions",
+        "voice", "save", "snip", "find", "print",
     };
 
     private static readonly Dictionary<string, Shortcut> ById = All.ToDictionary(s => s.Id);
@@ -145,6 +150,16 @@ public static class ShortcutCatalogue
     public static ShortcutGroup GroupOfRow(int row) => (ShortcutGroup)row;
 
     public static IEnumerable<Shortcut> InGroup(ShortcutGroup group) => All.Where(s => s.Group == group);
+
+    /// <summary>
+    /// Whether this key can go in this row: its own group's row, or Tools for the
+    /// formatting keys
+    /// </summary>
+    public static bool FitsRow(Shortcut key, int row) =>
+        key.Group == GroupOfRow(row) || (GroupOfRow(row) == ShortcutGroup.Tools && key.Group == ShortcutGroup.Style);
+
+    /// <summary>What can be chosen for a place in this row</summary>
+    public static IEnumerable<Shortcut> ForRow(int row) => All.Where(s => FitsRow(s, row));
 
     public static Shortcut? Find(string? id) => id != null && ById.TryGetValue(id, out var s) ? s : null;
 
@@ -166,7 +181,7 @@ public static class ShortcutCatalogue
             {
                 keys[i] = null;
             }
-            else if (Find(chosen) is { } key && key.Group == GroupOfRow(i / RowLength))
+            else if (Find(chosen) is { } key && FitsRow(key, i / RowLength))
             {
                 keys[i] = key;
             }

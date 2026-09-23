@@ -285,6 +285,12 @@ public partial class VirtualKeyboardWindow : Window
         SymbolsRow1.Visibility = SymbolsRow2.Visibility = SymbolsRow3.Visibility = symbolLayer;
         EmojiRow1.Visibility = EmojiRow2.Visibility = EmojiRow3.Visibility = emojiLayer;
         LayerKey.Content = symbols || emoji ? "abc" : "123 #+";
+        CtrlKey.Content = symbols ? "Emoji" : emoji ? "123 #+" : "Ctrl";
+        if (symbols || emoji)
+        {
+            _ctrlPressed = false;
+            UpdateModifierButtons();
+        }
 
         // Half the keys have just changed, so the highlight's map of them is stale. The
         // highlight itself is on the layer key or off the board, so it is never left on a
@@ -304,8 +310,25 @@ public partial class VirtualKeyboardWindow : Window
         UpdateNumberRowSymbols();
     }
 
+    /// <summary>
+    /// Ctrl on the letters. On the numbers and symbols, where Ctrl is rarely wanted, the
+    /// same key opens the emoji - the way a phone keyboard puts emoji beside its 123 key -
+    /// and on the emoji it goes back to the numbers and symbols.
+    /// </summary>
     private void CtrlButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_showingSymbols)
+        {
+            ShowEmoji();
+            return;
+        }
+
+        if (_showingEmoji)
+        {
+            ShowSymbols(true);
+            return;
+        }
+
         _ctrlPressed = !_ctrlPressed;
         UpdateModifierButtons();
     }
@@ -384,7 +407,7 @@ public partial class VirtualKeyboardWindow : Window
         var onColor = (Brush)FindResource("AccentOnBrush");
         // The resting colour has to be the one FunctionKeyStyle paints, or a modifier key
         // quietly changes shade the first time its state is refreshed.
-        var grayColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(86, 86, 86));
+        Brush grayColor = _highContrast ? Brushes.Black : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(86, 86, 86));
 
         // Visual feedback for Shift key
         var shiftKey = this.FindName("ShiftKey") as Button;
@@ -971,19 +994,19 @@ public partial class VirtualKeyboardWindow : Window
     private static readonly Shortcut[] PowerPointRow =
     {
         new("New slide", '\uE710', VirtualKey.Control, K('m')),
-        new("Copy slide", '\uE8C8', VirtualKey.Control, K('d')),
-        new("Align left", '\uE8E4', VirtualKey.Control, K('l')),
-        new("Centre", '\uE8E3', VirtualKey.Control, K('e')),
+        new("Bold", '\uE8DD', VirtualKey.Control, K('b')),
+        new("Bigger", '\uE8E8', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemPeriod),
+        new("Smaller", '\uE8E7', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemComma),
         new("Slideshow", '\uE786', VirtualKey.F5),
     };
 
     private static readonly Shortcut[] WordRow =
     {
+        new("Bold", '\uE8DD', VirtualKey.Control, K('b')),
+        new("Italic", '\uE8DB', VirtualKey.Control, K('i')),
         new("Heading", '\uE8D2', VirtualKey.Control, VirtualKey.LeftAlt, K('1')),
         new("Bullets", '\uE8FD', VirtualKey.Control, VirtualKey.Shift, K('l')),
         new("Centre", '\uE8E3', VirtualKey.Control, K('e')),
-        new("New page", '\uE7C3', VirtualKey.Control, VirtualKey.Return),
-        new("Print", '\uE749', VirtualKey.Control, K('p')),
     };
 
     private static readonly Shortcut[] BrowserRow =
@@ -1103,12 +1126,6 @@ public partial class VirtualKeyboardWindow : Window
         if (shortcut.Kind == ShortcutKind.SelectSwitch)
         {
             SetSelectMode(!_selectMode);
-            return;
-        }
-
-        if (shortcut.Kind == ShortcutKind.EmojiLayer)
-        {
-            ShowEmoji();
             return;
         }
 
@@ -1324,7 +1341,81 @@ public partial class VirtualKeyboardWindow : Window
     private static readonly Brush HighlightBrush =
         (Brush)Application.Current.FindResource("AccentBrush");
 
-    private const double HighlightBorderThickness = 4;
+    // Thicker in High contrast, where it has to stand out from white-edged keys
+    private double HighlightBorderThickness => _highContrast ? 7 : 4;
+
+    private bool _highContrast;
+
+    /// <summary>
+    /// High contrast: every key black with a white edge and white text. The key colours
+    /// that tell the rows apart are given up for it. Off puts every key back to its style.
+    /// </summary>
+    public void SetHighContrast(bool on)
+    {
+        if (_highContrast == on)
+        {
+            return;
+        }
+
+        var highlighted = _highlightedKey;
+        ClearHighlight();
+        _highContrast = on;
+
+        foreach (var key in AllKeys(this))
+        {
+            if (on)
+            {
+                key.Background = Brushes.Black;
+                key.BorderBrush = Brushes.White;
+                key.BorderThickness = new Thickness(3);
+                key.Foreground = Brushes.White;
+            }
+            else
+            {
+                key.ClearValue(BackgroundProperty);
+                key.ClearValue(BorderBrushProperty);
+                key.ClearValue(ForegroundProperty);
+                key.ClearValue(BorderThicknessProperty);
+            }
+        }
+
+        if (on)
+        {
+            Background = Brushes.Black;
+        }
+        else
+        {
+            ClearValue(BackgroundProperty);
+        }
+
+        UpdateModifierButtons();
+        if (highlighted != null)
+        {
+            SetHighlight(highlighted);
+        }
+    }
+
+    /// <summary>
+    /// Every key, on every layer, shown or not
+    /// </summary>
+    private static IEnumerable<Button> AllKeys(DependencyObject parent)
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(parent))
+        {
+            if (child is Button button)
+            {
+                yield return button;
+            }
+
+            if (child is DependencyObject inner)
+            {
+                foreach (var key in AllKeys(inner))
+                {
+                    yield return key;
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Move the highlight one key in the given direction.

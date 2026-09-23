@@ -111,6 +111,7 @@ public static class ButtonJobCatalogue
         new ButtonJob("page-down", "Page down", "Down a screenful", "Key", "PageDown"),
         new ButtonJob("save", "Save", "Save the work (Ctrl+S)", "KeyCombo", "Ctrl", "S"),
         new ButtonJob("find", "Find", "Search for words on the page (Ctrl+F)", "KeyCombo", "Ctrl", "F"),
+        new ButtonJob("play-pause", "Play or pause", "Play or pause a video or music", "Key", "MediaPlayPause"),
         new ButtonJob("volume-up", "Louder", "Turn the sound up", "Key", "VolumeUp"),
         new ButtonJob("volume-down", "Quieter", "Turn the sound down", "Key", "VolumeDown"),
         new ButtonJob("mute", "Sound on and off", "Mute, or unmute, the sound", "Key", "VolumeMute"),
