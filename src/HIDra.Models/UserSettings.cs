@@ -133,6 +133,13 @@ public class UserSettings
     /// slot. Null for the standard choice.
     /// </summary>
     public List<string>? AppKeys { get; set; }
+
+    /// <summary>
+    /// The jobs this student's buttons have been given, as button name to job id, for
+    /// the buttons changed from standard. Null when every button has its standard job.
+    /// See <see cref="ButtonJobCatalogue"/>.
+    /// </summary>
+    public Dictionary<string, string>? ButtonJobs { get; set; }
 }
 
 /// <summary>

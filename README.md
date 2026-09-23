@@ -16,8 +16,10 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - Read aloud: a Read key (added per student) reads the selected text in any program, with the voices built into Windows
 - For unsteady hands: stick smoothing, ignoring a repeat press that comes too soon after letting go, and a Gentle pointer curve (slower for a small push, faster for a big one)
 - Settings can be exported from one student and imported for another, as a starting point
+- Button jobs chosen per student on the Controller tab, by clicking the button on a drawing of the controller and picking from a fixed list; Back + Start held together, a button that clicks and a button that opens the keyboard can never be lost, and the Guide always names the buttons this student has
+- Practice with progress: a circle that shrinks as accuracy improves, typing a shown word, and opening and closing the keyboard, with each day's counts kept per student and saved as a spreadsheet for reviews
 - An Apps key that opens PowerPoint, Word, Edge and other installed programs in one press
-- One main screen with four tabs. For the student: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks - and **Practice**, with circles to click, a box to type in and a list to scroll. For staff: **Controller** (pointer, buttons, and exporting or importing a student's settings) and **Keyboard** (keyboard, phrases, Windows' own keyboard)
+- One main screen with four tabs. For the student: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks - and **Practice** - a shrinking circle to click, a word to type, the keyboard to open and close, and a record of each day's practice. For staff: **Controller** (button jobs, pointer, and exporting or importing a student's settings) and **Keyboard** (keyboard, phrases, Windows' own keyboard)
 - LT moves the keyboard between the top and bottom of the screen while it is open, so it never has to cover your work. While it is closed, LT does a job chosen per student: zoom in and out with Windows Magnifier (the default), Escape, a slow pointer switched on and off, or nothing
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
@@ -54,6 +56,9 @@ to is used, and the main screen shows which:
 3. `%APPDATA%\HIDra` - which also follows the student where the college uses roaming
    profiles or folder redirection.
 
+The student's practice is kept in `practice.json` in the same folder. It is not part of
+an exported settings file.
+
 Settings found in `%APPDATA%\HIDra` are carried over the first time a better location
 is used, so moving them never loses anything.
 
@@ -63,6 +68,9 @@ is used, so moving them never loses anything.
 3) It autoconnects and you're ready to go
 
 ## Button Mapping
+The standard jobs. Staff can give any button except the sticks and RT a different job
+for a student, on the Controller tab.
+
 - A: Left click
 - B: Right click
 - X: Toggle virtual keyboard

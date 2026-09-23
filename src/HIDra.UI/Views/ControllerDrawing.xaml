@@ -1,0 +1,162 @@
+<UserControl x:Class="HIDra.UI.Views.ControllerDrawing"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        The controller, drawn with a label for each control saying what it does. Used
+        twice: on the Guide, where each control lights up as it is pressed, and on the
+        Controller tab, where clicking a label chooses that button's job. One drawing
+        for both, so staff change the buttons on the same picture the student learns.
+
+        Cards with a Tag can be given a job; the rest (the sticks, RT, the way back)
+        cannot.
+    -->
+    <Viewbox Stretch="Uniform">
+        <Canvas Width="1000" Height="510">
+
+            <!-- The controller. Drawn first so the labels' lines run over it. -->
+            <Canvas Canvas.Left="330" Canvas.Top="150">
+                <Rectangle x:Name="CtlLT" Canvas.Left="45" Canvas.Top="-44" Width="80" Height="20" RadiusX="9" RadiusY="9" Fill="#50575E" Stroke="#6B7278" StrokeThickness="2"/>
+                <Rectangle x:Name="CtlRT" Canvas.Left="215" Canvas.Top="-44" Width="80" Height="20" RadiusX="9" RadiusY="9" Fill="#50575E" Stroke="#6B7278" StrokeThickness="2"/>
+                <Rectangle x:Name="CtlLB" Canvas.Left="38" Canvas.Top="-18" Width="94" Height="16" RadiusX="8" RadiusY="8" Fill="#50575E" Stroke="#6B7278" StrokeThickness="2"/>
+                <Rectangle x:Name="CtlRB" Canvas.Left="208" Canvas.Top="-18" Width="94" Height="16" RadiusX="8" RadiusY="8" Fill="#50575E" Stroke="#6B7278" StrokeThickness="2"/>
+                <TextBlock Canvas.Left="76" Canvas.Top="-42" Text="LT" FontSize="12" FontWeight="Bold" Foreground="White" IsHitTestVisible="False"/>
+                <TextBlock Canvas.Left="246" Canvas.Top="-42" Text="RT" FontSize="12" FontWeight="Bold" Foreground="White" IsHitTestVisible="False"/>
+
+                <Path Fill="#33373B" Stroke="#6B7278" StrokeThickness="2"
+                      Data="M 70,20 C 110,6 230,6 270,20 C 312,32 332,72 338,140 C 344,205 334,246 300,249 C 276,251 262,228 246,203 C 236,190 104,190 94,203 C 78,228 64,251 40,249 C 6,246 -4,205 2,140 C 8,72 28,32 70,20 Z"/>
+
+                <Ellipse x:Name="CtlLeftStick" Canvas.Left="57" Canvas.Top="57" Width="56" Height="56" Fill="#222426" Stroke="#8A9096" StrokeThickness="2"/>
+                <Ellipse Canvas.Left="68" Canvas.Top="68" Width="34" Height="34" Fill="#34383C" IsHitTestVisible="False"/>
+                <Ellipse x:Name="CtlRightStick" Canvas.Left="189" Canvas.Top="124" Width="52" Height="52" Fill="#222426" Stroke="#8A9096" StrokeThickness="2"/>
+                <Ellipse Canvas.Left="199" Canvas.Top="134" Width="32" Height="32" Fill="#34383C" IsHitTestVisible="False"/>
+                <Path x:Name="CtlDPad" Fill="#222426" Stroke="#8A9096" StrokeThickness="2"
+                      Data="M 118,128 H 132 V 143 H 147 V 157 H 132 V 172 H 118 V 157 H 103 V 143 H 118 Z"/>
+
+                <Rectangle x:Name="CtlBack" Canvas.Left="130" Canvas.Top="82" Width="20" Height="13" RadiusX="5" RadiusY="5" Fill="#50575E" Stroke="#9AA0A6" StrokeThickness="1.5"/>
+                <Rectangle x:Name="CtlStart" Canvas.Left="190" Canvas.Top="82" Width="20" Height="13" RadiusX="5" RadiusY="5" Fill="#50575E" Stroke="#9AA0A6" StrokeThickness="1.5"/>
+                <Ellipse Canvas.Left="157" Canvas.Top="42" Width="26" Height="26" Fill="#50575E" Stroke="#9AA0A6"/>
+
+                <Ellipse x:Name="CtlY" Canvas.Left="250" Canvas.Top="50" Width="24" Height="24" Fill="#F2C12E" Stroke="Transparent" StrokeThickness="3"/>
+                <TextBlock Canvas.Left="250" Canvas.Top="53" Width="24" TextAlignment="Center" Text="Y" FontSize="13" FontWeight="Bold" Foreground="#1A1A1A" IsHitTestVisible="False"/>
+                <Ellipse x:Name="CtlX" Canvas.Left="226" Canvas.Top="76" Width="24" Height="24" Fill="#3B82F6" Stroke="Transparent" StrokeThickness="3"/>
+                <TextBlock Canvas.Left="226" Canvas.Top="79" Width="24" TextAlignment="Center" Text="X" FontSize="13" FontWeight="Bold" Foreground="White" IsHitTestVisible="False"/>
+                <Ellipse x:Name="CtlB" Canvas.Left="274" Canvas.Top="76" Width="24" Height="24" Fill="#E5484D" Stroke="Transparent" StrokeThickness="3"/>
+                <TextBlock Canvas.Left="274" Canvas.Top="79" Width="24" TextAlignment="Center" Text="B" FontSize="13" FontWeight="Bold" Foreground="White" IsHitTestVisible="False"/>
+                <Ellipse x:Name="CtlA" Canvas.Left="250" Canvas.Top="102" Width="24" Height="24" Fill="#4CAF50" Stroke="Transparent" StrokeThickness="3"/>
+                <TextBlock Canvas.Left="250" Canvas.Top="105" Width="24" TextAlignment="Center" Text="A" FontSize="13" FontWeight="Bold" Foreground="White" IsHitTestVisible="False"/>
+            </Canvas>
+
+            <!-- Lines from each label to its control. The face buttons have none:
+                 their labels carry the button's own colour, and a line to any
+                 of the four had to cross the others. -->
+            <Line Style="{StaticResource LeaderLine}" X1="300" Y1="39" X2="378" Y2="116"/>
+            <Line Style="{StaticResource LeaderLine}" X1="300" Y1="105" X2="370" Y2="140"/>
+            <Line Style="{StaticResource LeaderLine}" X1="300" Y1="235" X2="387" Y2="235"/>
+            <Line Style="{StaticResource LeaderLine}" X1="300" Y1="319" X2="433" Y2="300"/>
+            <Line Style="{StaticResource LeaderLine}" X1="700" Y1="39" X2="622" Y2="116"/>
+            <Line Style="{StaticResource LeaderLine}" X1="700" Y1="105" X2="630" Y2="140"/>
+            <Line Style="{StaticResource LeaderLine}" X1="700" Y1="435" X2="562" Y2="318"/>
+            <Line Style="{StaticResource LeaderLine}" X1="478" Y1="68" X2="470" Y2="228"/>
+            <Line Style="{StaticResource LeaderLine}" X1="522" Y1="68" X2="530" Y2="228"/>
+
+            <!-- Left side -->
+            <Border x:Name="CardLT" Tag="LeftTrigger" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="10">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="LT"/>
+                    <TextBlock x:Name="ActLT" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardLB" Tag="LeftBumper" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="76">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="LB"/>
+                    <TextBlock x:Name="ActLB" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardLeftStick" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="206">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="Left stick"/>
+                    <TextBlock x:Name="ActLeftStick" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardDPad" Tag="DPad" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="290">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="D-pad"/>
+                    <TextBlock x:Name="ActDPad" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardStickPress" Tag="StickPress" Style="{StaticResource GuideCard}" Canvas.Left="0" Canvas.Top="372">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="Press a stick in"/>
+                    <TextBlock x:Name="ActStickPress" Text="Undo" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Top centre -->
+            <Border x:Name="CardBack" Tag="Back" Style="{StaticResource GuideCard}" Canvas.Left="330" Canvas.Top="10" Width="165">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="Back"/>
+                    <TextBlock x:Name="ActBack" Text="Start menu" Style="{StaticResource CardAction}" FontSize="16"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardStart" Tag="Start" Style="{StaticResource GuideCard}" Canvas.Left="505" Canvas.Top="10" Width="165">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="Start"/>
+                    <TextBlock x:Name="ActStart" Text="All windows" Style="{StaticResource CardAction}" FontSize="16"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Bottom centre: the way back, whatever else has happened -->
+            <Border x:Name="CardRecovery" Style="{StaticResource GuideCard}" Canvas.Left="330" Canvas.Top="420" Width="340" Height="80" Padding="10,6">
+                <TextBlock Style="{StaticResource CardAction}" FontSize="15.5" LineHeight="28">
+                    <Run Text="HIDra window gone? Hold"/>
+                    <InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="Back"/></InlineUIContainer><Run Text="and"/>
+                    <InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource Badge}" Content="Start"/></InlineUIContainer><Run Text="together for one second."/>
+                </TextBlock>
+            </Border>
+
+            <!-- Right side -->
+            <Border x:Name="CardRT" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="10">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="RT"/>
+                    <TextBlock x:Name="ActRT" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardRB" Tag="RightBumper" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="76">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="RB"/>
+                    <TextBlock x:Name="ActRB" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardY" Tag="ButtonY" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="142">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource BadgeY}"/>
+                    <TextBlock x:Name="ActY" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardB" Tag="ButtonB" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="208">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource BadgeB}"/>
+                    <TextBlock x:Name="ActB" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardX" Tag="ButtonX" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="274">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource BadgeX}"/>
+                    <TextBlock x:Name="ActX" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardA" Tag="ButtonA" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="340">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource BadgeA}"/>
+                    <TextBlock x:Name="ActA" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+            <Border x:Name="CardRightStick" Style="{StaticResource GuideCard}" Canvas.Left="700" Canvas.Top="406">
+                <DockPanel VerticalAlignment="Center">
+                    <ContentControl Style="{StaticResource Badge}" Content="Right stick"/>
+                    <TextBlock x:Name="ActRightStick" Style="{StaticResource CardAction}"/>
+                </DockPanel>
+            </Border>
+        </Canvas>
+    </Viewbox>
+</UserControl>

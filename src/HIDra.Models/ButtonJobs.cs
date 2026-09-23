@@ -1,0 +1,207 @@
+using System.Collections.Generic;
+using System.Linq;
+
+namespace HIDra.Models;
+
+/// <summary>
+/// A job a controller button can be given: the word shown for it, a line for staff, and
+/// the action it runs.
+/// </summary>
+public sealed record ButtonJob(string Id, string Label, string Description, string Action, params string[] Keys)
+{
+    public ActionMapping ToMapping() => new()
+    {
+        Action = Action,
+        Keys = Keys.ToList(),
+        Description = Label
+    };
+}
+
+/// <summary>
+/// A button whose job can be chosen per student
+/// </summary>
+/// <param name="Name">The engine's name for it, which is also what is saved</param>
+/// <param name="Label">What it is called on the controller</param>
+/// <param name="StandardJob">The job it has for a new student</param>
+/// <param name="KeepsJobWhileTyping">
+/// Whether it still does its job while the keyboard is open. A, B, Y, LB, RB and the
+/// D-pad type instead, so only these can be what closes the keyboard.
+/// </param>
+public sealed record RemappableButton(string Name, string Label, string StandardJob, bool KeepsJobWhileTyping);
+
+/// <summary>
+/// Every job a button can be given, and which buttons can be given one.
+///
+/// Staff choose from this list rather than typing key combinations, the same as the
+/// shortcut keys: a mistyped combination could do something nobody meant, and the
+/// student would be the one left to cope with it.
+///
+/// Three things can never be taken away, whatever is chosen:
+///   - holding Back and Start together brings HIDra back (the engine checks for it
+///     before any button's job, so no choice here can touch it);
+///   - some button always clicks;
+///   - some button that still works while typing always opens and closes the keyboard,
+///     or there would be no way to close it again.
+/// </summary>
+public static class ButtonJobCatalogue
+{
+    public const string Click = "click";
+    public const string Keyboard = "keyboard";
+    public const string Nothing = "nothing";
+
+    /// <summary>
+    /// Ids are what is saved in a student's settings. Never renamed once released.
+    /// </summary>
+    public static readonly IReadOnlyList<ButtonJob> All = new[]
+    {
+        new ButtonJob(Click, "Click", "A left click", "MouseLeftClick"),
+        new ButtonJob("right-click", "Right click", "Opens a menu for what is under the pointer", "MouseRightClick"),
+        new ButtonJob("double-click", "Double click", "Opens a file or folder", "MouseDoubleClick"),
+        new ButtonJob(Keyboard, "Open the keyboard", "Opens and closes HIDra's keyboard", "ToggleOnScreenKeyboard"),
+        new ButtonJob("swap-sticks", "Swap the two sticks", "Pointer on the other stick, for the other hand", "SwapStickModes"),
+        new ButtonJob("switch-programs", "Show open programs", "Press again to move along; A picks one, B goes back", "TaskSwitcherBackward"),
+        new ButtonJob("start-menu", "Start menu", "The Windows Start menu", "WindowsKey"),
+        new ButtonJob("all-windows", "All windows", "Every open window at once (Task View)", "WindowsTab"),
+        new ButtonJob("maximise", "Maximise window", "Makes the window fill the screen", "MaximizeWindow"),
+        new ButtonJob("minimise", "Minimise window", "Hides the window on the taskbar", "MinimizeWindow"),
+        new ButtonJob("snap-left", "Snap window left", "Puts the window on the left half", "KeyCombo", "LWin", "Left"),
+        new ButtonJob("snap-right", "Snap window right", "Puts the window on the right half", "KeyCombo", "LWin", "Right"),
+        new ButtonJob("undo", "Undo", "Takes back the last change (Ctrl+Z)", "Undo"),
+        new ButtonJob("redo", "Redo", "Puts back what Undo took away (Ctrl+Y)", "Redo"),
+        new ButtonJob("copy", "Copy", "Copies what is selected (Ctrl+C)", "Copy"),
+        new ButtonJob("paste", "Paste", "Pastes what was copied (Ctrl+V)", "Paste"),
+        new ButtonJob("escape", "Escape", "Closes a menu or box, or ends a slideshow", "Key", "Escape"),
+        new ButtonJob("enter", "Enter", "Presses Enter", "Key", "Enter"),
+        new ButtonJob("tab", "Tab", "Moves to the next box or button", "Key", "Tab"),
+        new ButtonJob("close-window", "Close window", "Closes the window in front (Alt+F4)", "CloseWindow"),
+        new ButtonJob(Nothing, "Nothing", "The button does nothing", ""),
+    };
+
+    /// <summary>
+    /// The buttons whose jobs can be chosen, in the order the editor offers them. LT has
+    /// its own list (<see cref="LeftTriggerAction"/>); RT stays click-and-drag and the
+    /// sticks stay pointer and scroll, because each is the only way to do those.
+    /// </summary>
+    public static readonly IReadOnlyList<RemappableButton> Buttons = new[]
+    {
+        new RemappableButton("ButtonA", "A", Click, false),
+        new RemappableButton("ButtonB", "B", "right-click", false),
+        new RemappableButton("ButtonX", "X", Keyboard, true),
+        new RemappableButton("ButtonY", "Y", "swap-sticks", false),
+        new RemappableButton("LeftBumper", "LB", "switch-programs", false),
+        new RemappableButton("RightBumper", "RB", "double-click", false),
+        new RemappableButton("Back", "Back", "start-menu", true),
+        new RemappableButton("Start", "Start", "all-windows", true),
+        new RemappableButton("DpadUp", "D-pad up", "maximise", false),
+        new RemappableButton("DpadDown", "D-pad down", "minimise", false),
+        new RemappableButton("DpadLeft", "D-pad left", "snap-left", false),
+        new RemappableButton("DpadRight", "D-pad right", "snap-right", false),
+        new RemappableButton("LeftStickClick", "Left stick press", "undo", true),
+        new RemappableButton("RightStickClick", "Right stick press", "undo", true),
+    };
+
+    public static ButtonJob? Find(string? id) => All.FirstOrDefault(job => job.Id == id);
+
+    public static RemappableButton? Button(string name) => Buttons.FirstOrDefault(b => b.Name == name);
+
+    /// <summary>
+    /// The job each button has for this student: their own choice where they have one,
+    /// the standard job otherwise
+    /// </summary>
+    public static Dictionary<string, ButtonJob> Resolve(IReadOnlyDictionary<string, string>? chosen)
+    {
+        var jobs = new Dictionary<string, ButtonJob>();
+        foreach (var button in Buttons)
+        {
+            jobs[button.Name] = (chosen != null && chosen.TryGetValue(button.Name, out var id) ? Find(id) : null)
+                ?? Find(button.StandardJob)!;
+        }
+        return jobs;
+    }
+
+    /// <summary>
+    /// The engine's mappings for this student's jobs
+    /// </summary>
+    public static Dictionary<string, ButtonMapping> ToMappings(IReadOnlyDictionary<string, string>? chosen)
+    {
+        var mappings = new Dictionary<string, ButtonMapping>();
+        foreach (var (name, job) in Resolve(chosen))
+        {
+            if (job.Id != Nothing)
+            {
+                mappings[name] = new ButtonMapping { Default = job.ToMapping() };
+            }
+        }
+        return mappings;
+    }
+
+    /// <summary>
+    /// Whether this job can go on this button. The keyboard only goes where it can be
+    /// closed again.
+    /// </summary>
+    public static bool Allowed(RemappableButton button, ButtonJob job) =>
+        job.Id != Keyboard || button.KeepsJobWhileTyping;
+
+    /// <summary>
+    /// Why this button cannot be given a different job right now, or null if it can: it
+    /// holds the last click, or the last way to open the keyboard.
+    /// </summary>
+    public static string? WhyLocked(IReadOnlyDictionary<string, string>? chosen, string buttonName)
+    {
+        var jobs = Resolve(chosen);
+        string current = jobs[buttonName].Id;
+
+        if (current is not (Click or Keyboard))
+        {
+            return null;
+        }
+
+        bool elsewhere = jobs.Any(pair => pair.Key != buttonName && pair.Value.Id == current);
+        if (elsewhere)
+        {
+            return null;
+        }
+
+        return current == Click
+            ? "This is the only button that clicks. Give Click to another button first, then this one can change."
+            : "This is the only button that opens the keyboard. Give it to X, Back, Start or a stick press first, then this one can change.";
+    }
+
+    /// <summary>
+    /// The saved choices with anything unknown or unsafe taken out: unknown buttons and
+    /// jobs are dropped, and if no button would click or open the keyboard, every button
+    /// goes back to standard. Null when every button has its standard job.
+    /// </summary>
+    public static Dictionary<string, string>? Clean(Dictionary<string, string>? chosen)
+    {
+        if (chosen == null)
+        {
+            return null;
+        }
+
+        var clean = new Dictionary<string, string>();
+        foreach (var (name, id) in chosen)
+        {
+            var button = Button(name);
+            var job = Find(id);
+            if (button != null && job != null && Allowed(button, job) && job.Id != button.StandardJob)
+            {
+                clean[name] = id;
+            }
+        }
+
+        return clean.Count == 0 || !IsSafe(clean) ? null : clean;
+    }
+
+    /// <summary>
+    /// Whether some button still clicks, and some button that works while typing still
+    /// opens and closes the keyboard
+    /// </summary>
+    public static bool IsSafe(IReadOnlyDictionary<string, string>? chosen)
+    {
+        var jobs = Resolve(chosen);
+        bool clicks = jobs.Values.Any(job => job.Id == Click);
+        bool opensKeyboard = jobs.Any(pair => pair.Value.Id == Keyboard && Button(pair.Key)!.KeepsJobWhileTyping);
+        return clicks && opensKeyboard;
+    }
+}

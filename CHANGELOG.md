@@ -96,6 +96,40 @@ what is on the keyboard is now chosen per student rather than the same for every
   Excel, OneNote, Outlook, Firefox, Notepad and Calculator can be added to the original
   six; only programs installed on the PC are offered.
 
+### Buttons chosen for each student, and practice that keeps score
+
+- **Button jobs** (Controller tab): the Guide's controller drawing again, where clicking
+  a label - or the button itself - lists the jobs it can have: Click, Right click,
+  Double click, Open the keyboard, Swap the sticks, Show open programs, Start menu, All
+  windows, Maximise, Minimise, Snap left and right, Undo, Redo, Copy, Paste, Escape,
+  Enter, Tab, Close window, or Nothing. A fixed list, never typed-in key combinations.
+  The D-pad and the stick presses can each be set one direction or stick at a time. LT's
+  choice has moved here too. **Back to standard** undoes it all.
+- **What cannot be lost, is not.** Holding Back and Start together always brings HIDra
+  back, whatever they are given. The last button that clicks, and the last that opens
+  the keyboard, cannot be changed until another button has the job - the list says so,
+  in yellow. The keyboard can only go on X, Back, Start or a stick press, the buttons
+  that keep their job while typing, so it can always be closed again. A settings file
+  that breaks these rules, edited by hand or imported, goes back to standard.
+- **The Guide follows the student's buttons**: every label on the drawing, and the "How
+  do I..." cards, name the buttons this student actually has - a card for a job no
+  button has is left out. So does the Keyboard tab's "X opens and closes it".
+- **Practice has three activities, and remembers.**
+  - **Circles**: one circle at a time. Five hits with no more than one miss and it gets
+    smaller, through eight sizes, down to the size of a small button; a run of misses
+    makes it bigger again. Dots show how small it has got, and the student carries on
+    at that size next time. **Biggest again** starts over.
+  - **Type the word**: a word in big letters, its letters turning orange as they are
+    typed right. Three-letter words first, longer ones as more are typed. Wrong letters
+    are counted; capitals and the space a word suggestion adds are not held against it.
+  - **Keyboard on and off**: open the keyboard, then close it, each step lit in turn,
+    with how long it took.
+  - Every change is shown on screen, never only as a sound.
+  - **Progress**: each day's hits, misses, smallest circle, words, wrong letters and
+    keyboard rounds, the last week shown beside the activities, all of it kept in
+    `practice.json` beside the student's settings. **Save for a review...** writes every
+    day as a spreadsheet. Exporting settings does not copy it.
+
 ## v1.6.0
 
 ### Keyboard that gets out of the way, and a slower start
