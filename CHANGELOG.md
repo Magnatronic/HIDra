@@ -46,6 +46,37 @@ changed between them.
   € have keys of their own there. The keyboard always opens on the letters. With the
   number row gone the word suggestions are a step nearer, and the keyboard is shorter.
 
+### Steadier pointer, reading aloud, and trying settings out
+
+- **Smooth out wobbles** (Settings, Pointer): the sticks are averaged over a short time,
+  a little, more or most, so a shaky hand does not make a shaky pointer. Letting go
+  settles three times as fast as pushing builds up, so stopping on a target stays
+  prompt. It steadies the keyboard highlight and scrolling as well.
+- **Ignore quick repeat presses**: a press that starts within 0.2 to 0.75 seconds of
+  letting go of the same button is ignored until it is released - a tremor or a bounce,
+  not a decision. Off by default.
+- **Pointer feel: Steady or Gentle.** Steady is the slow, even speed there has always
+  been. Gentle is slower for a small push and faster for a big one - for creeping onto a
+  target and then crossing the screen quickly. Half a push, and full, are the same speed
+  either way.
+- **Read aloud**: a Read key in the keyboard's Tools row reads the selected text in any
+  program, with the voices built into Windows. Press it again to stop. Whatever was on
+  the clipboard is put back afterwards. It takes the place of Files, which Apps opens.
+- **Four tabs.** Guide and Practice for the student; Controller and Keyboard, set apart
+  under "Settings", for staff. **Practice** has circles of three sizes to click, counting
+  hits and misses, a box to type in and a list to scroll - for the student, and for
+  staff to try a setting straight after changing it.
+- **LT has a job while the keyboard is closed**, chosen per student on the Controller
+  tab: **Zoom** (Windows Magnifier, the default - LT zooms in around the pointer, LT
+  again zooms out), **Escape**, **Slow pointer** (switched on and off, never held, at a
+  chosen share of normal speed), or **Nothing**. Each shows what it did on screen. While
+  the keyboard is open LT still moves it. The Guide's LT label and a "How do I..." card
+  follow the choice.
+- **Export and import settings** on the Controller tab, to give another student the same
+  starting point. Windows' own keyboard setting, which belongs to the PC, is not copied.
+- Slow pointer on the right stick (after Y swaps them) was the slow share instead of a
+  share of the normal speed; it is now the same for both sticks.
+
 ## v1.6.0
 
 ### Keyboard that gets out of the way, and a slower start

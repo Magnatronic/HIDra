@@ -19,6 +19,7 @@ public class HIDraEngine : IDisposable
 {
     private readonly XboxControllerService _controllerService;
     private readonly InputProcessor _inputProcessor;
+    private readonly InputFilter _inputFilter;
     private readonly MouseSimulator _mouseSimulator;
     private readonly KeyboardSimulator _keyboardSimulator;
     private readonly ButtonActionHandler _buttonActionHandler;
@@ -225,6 +226,12 @@ public class HIDraEngine : IDisposable
     /// </summary>
     public bool KeyboardNavigationActive { get; set; }
 
+    /// <summary>
+    /// The pointer moves at <see cref="InputSettings.PrecisionModeSensitivity"/> of its
+    /// normal speed, for small targets
+    /// </summary>
+    public bool SlowPointer { get; set; }
+
     /// <summary>Move the on-screen keyboard highlight one key.</summary>
     public event EventHandler<KeyboardNavigationDirection>? KeyboardNavigateRequested;
 
@@ -314,6 +321,7 @@ public class HIDraEngine : IDisposable
         // Start from a clean slate so buttons held during the pause do not register as
         // fresh presses the instant input comes back.
         _previousState = null;
+        _inputFilter.Reset();
 
         PausedChanged?.Invoke(this, false);
     }
@@ -324,6 +332,7 @@ public class HIDraEngine : IDisposable
         _buttonMappings = buttonMappings ?? new Dictionary<string, ButtonMapping>();
         _controllerService = new XboxControllerService();
         _inputProcessor = new InputProcessor(_settings);
+        _inputFilter = new InputFilter(_settings);
         _mouseSimulator = new MouseSimulator();
         _keyboardSimulator = new KeyboardSimulator();
         _buttonActionHandler = new ButtonActionHandler(_keyboardSimulator, _mouseSimulator);
@@ -471,6 +480,7 @@ public class HIDraEngine : IDisposable
             // fresh press against a stale snapshot would fire phantom button actions
             // the moment the controller comes back.
             _previousState = null;
+            _inputFilter.Reset();
         }
         else
         {
@@ -507,8 +517,11 @@ public class HIDraEngine : IDisposable
 
         try
         {
-            ProcessControllerState(state);
-            _previousState = state.Clone();
+            // Smoothing and ignored repeat presses happen first, so every use of the
+            // controller - pointer, scrolling, keyboard, buttons - gets them alike
+            var filtered = _inputFilter.Apply(state);
+            ProcessControllerState(filtered);
+            _previousState = filtered.Clone();
         }
         catch (Exception ex)
         {
@@ -552,10 +565,10 @@ public class HIDraEngine : IDisposable
 
         float deltaSeconds = (float)elapsed;
 
-        // The Left Trigger used to be precision mode, but it cannot be held while
-        // steering the left stick, which is exactly when precision is wanted. It moves
-        // the keyboard instead, and the default speed is slow enough not to need it.
-        const bool precisionMode = false;
+        // Slow pointer is switched on and off (by LT, if a student has it there) rather
+        // than held: holding a trigger while steering the left stick is hard, and it is
+        // hardest exactly when precision is wanted.
+        bool precisionMode = SlowPointer;
 
         // While the keyboard is open the left stick is steering the highlight, so it
         // must not also drag the cursor or scroll the page underneath. The right stick

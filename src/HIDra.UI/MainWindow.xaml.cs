@@ -25,9 +25,10 @@ namespace HIDra.UI
         private System.Windows.Threading.DispatcherTimer? _startRetryTimer;
 
         /// <summary>
-        /// This student's own settings, kept between sessions
+        /// This student's own settings, kept between sessions. Replaced whole when
+        /// settings exported from another student are imported.
         /// </summary>
-        private readonly UserSettings _userSettings = UserSettingsStore.Load();
+        private UserSettings _userSettings = UserSettingsStore.Load();
 
         /// <summary>
         /// Set only when the user genuinely chooses to exit. Until then, closing the
@@ -54,14 +55,17 @@ namespace HIDra.UI
             {
                 CursorSensitivity = _userSettings.CursorSensitivity, // Saved per student (default 0.15)
                 ScrollSensitivity = _userSettings.ScrollSensitivity, // Saved per student (default 0.5)
-                PrecisionModeSensitivity = 0.3f,    // Very slow for precise work
+                PrecisionModeSensitivity = _userSettings.SlowPointerPercent / 100f, // Slow pointer, as a share of normal
                 Deadzone = 0.05f,                   // Low deadzone (5%) for maximum control
                 PollRateMs = 10,                    // 100Hz polling rate
                 StickCalibrationMax = 0.90f,        // Compensate for worn controllers
                 TriggerThreshold = 0.3f,            // 30% trigger press to activate
                 EnableGrid3AutoSuspend = _userSettings.EnableGrid3AutoSuspend, // Saved per student (default on)
                 EnableDwellClick = _userSettings.DwellClickEnabled,
-                DwellClickSeconds = _userSettings.DwellClickSeconds
+                DwellClickSeconds = _userSettings.DwellClickSeconds,
+                GentleCurve = _userSettings.GentleCurve,
+                StickSmoothingSeconds = SmoothingSeconds[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)],
+                IgnoreRepeatSeconds = _userSettings.IgnoreRepeatSeconds
             };
 
             // Hardcoded button mappings - cannot be accidentally changed
@@ -135,8 +139,9 @@ namespace HIDra.UI
                 }
             };
 
-            // The Left Trigger (keyboard position) is handled by the engine directly,
-            // because it acts on the trigger being pressed rather than on a button.
+            // The Left Trigger is handled apart from these: it moves the keyboard while
+            // that is open, and otherwise does the job chosen for this student
+            // (UseLeftTrigger). The engine reports it as a trigger press, not a button.
 
             return (settings, buttonMappings);
         }
@@ -152,6 +157,7 @@ namespace HIDra.UI
 
             RefreshSettingsDisplay();
             InitializeGuide();
+            InitializeTryItOut();
             InitializeTrayIcon();
             StartEngine();
         }
@@ -507,6 +513,7 @@ namespace HIDra.UI
                 _virtualKeyboard.KeyPressed += OnVirtualKeyboardKeyPressed;
                 _virtualKeyboard.TextEntered += OnVirtualKeyboardTextEntered;
                 _virtualKeyboard.KeyComboPressed += OnVirtualKeyboardKeyCombo;
+                _virtualKeyboard.ReadAloudRequested += OnReadAloudRequested;
 
                 // Tie D-pad routing to whether the keyboard is actually on screen.
                 // Setting the flag only where it is toggled would strand it: the
@@ -541,7 +548,9 @@ namespace HIDra.UI
                 // If a phrase box on this window still has the typing cursor, whatever the
                 // student types would land in it whenever this window is in front - a
                 // Backspace could quietly erase a saved phrase. Keep the edit, lose the cursor.
-                if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox)
+                // The Try it out box is the exception: it is there to be typed into.
+                if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.TextBox box
+                    && box != TryTypingBox)
                 {
                     UserSettingsStore.Save(_userSettings);
                     System.Windows.Input.Keyboard.ClearFocus();
@@ -564,11 +573,64 @@ namespace HIDra.UI
         /// remember the choice for next time. Does nothing when the keyboard is closed,
         /// so a stray press cannot silently change where it next appears.
         /// </summary>
+        /// <summary>
+        /// LT while the keyboard is closed: whatever job staff have given it for this
+        /// student. Each says what it did in the same message as swapping the sticks, so
+        /// nothing changes without the student seeing why.
+        /// </summary>
+        private void UseLeftTrigger()
+        {
+            if (_engine == null)
+            {
+                return;
+            }
+
+            switch (_userSettings.LeftTrigger)
+            {
+                case LeftTriggerAction.Magnifier:
+                    bool zoomed = System.Diagnostics.Process.GetProcessesByName("Magnify") is { Length: > 0 } running
+                        && DisposeAll(running);
+                    _engine.SendKeyCombo(zoomed
+                        ? new[] { VirtualKey.LeftWindows, VirtualKey.Escape }
+                        : new[] { VirtualKey.LeftWindows, VirtualKey.OemPlus });
+                    ShowToast(zoomed ? "Zoom off" : "Zoomed in\nLT again to zoom out");
+                    break;
+
+                case LeftTriggerAction.Escape:
+                    _engine.SendKeyPress(VirtualKey.Escape);
+                    break;
+
+                case LeftTriggerAction.SlowPointer:
+                    _engine.SlowPointer = !_engine.SlowPointer;
+                    ShowToast(_engine.SlowPointer ? "Slow pointer on\nLT again for normal speed" : "Slow pointer off");
+                    break;
+            }
+        }
+
+        private static bool DisposeAll(System.Diagnostics.Process[] processes)
+        {
+            foreach (var process in processes)
+            {
+                process.Dispose();
+            }
+            return true;
+        }
+
+        private void ShowToast(string message)
+        {
+            _modeToast ??= new ModeToast();
+            _modeToast.ShowMessage(message);
+        }
+
         private void OnKeyboardPositionToggleRequested(object? sender, EventArgs e)
         {
             Dispatcher.BeginInvoke(() =>
             {
-                if (_virtualKeyboard?.IsVisible != true) return;
+                if (_virtualKeyboard?.IsVisible != true)
+                {
+                    UseLeftTrigger();
+                    return;
+                }
 
                 _userSettings.KeyboardAtTop = !_userSettings.KeyboardAtTop;
                 UserSettingsStore.Save(_userSettings);
@@ -652,26 +714,40 @@ namespace HIDra.UI
             _liveCards.Add((ControllerControls.LeftStickPress | ControllerControls.RightStickPress, CardStickPress));
 
             SetGuideMode(typing: _virtualKeyboard?.IsVisible == true);
-            ShowSettingsPage(false);
+            ShowPage("Guide");
         }
 
         // ---------------------------------------------------------------------------
         // Pages
         //
-        // The Guide is for the student and is what opens; Settings is for staff. Both on
-        // one page was too much at once.
+        // Guide and Practice are the student's; Controller and Keyboard are settings, for
+        // staff. The Guide is what opens.
         // ---------------------------------------------------------------------------
 
-        private void GuideTab_Click(object sender, RoutedEventArgs e) => ShowSettingsPage(false);
-
-        private void SettingsTab_Click(object sender, RoutedEventArgs e) => ShowSettingsPage(true);
-
-        private void ShowSettingsPage(bool settings)
+        private void Tab_Click(object sender, RoutedEventArgs e)
         {
-            GuidePage.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
-            SettingsPage.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
-            GuideTabButton.Background = settings ? OffBrush : OnBrush;
-            SettingsTabButton.Background = settings ? OnBrush : OffBrush;
+            if (sender is Button { Tag: string page })
+            {
+                ShowPage(page);
+            }
+        }
+
+        private void ShowPage(string page)
+        {
+            (UIElement Page, Button Tab)[] pages =
+            {
+                (GuidePage, GuideTabButton),
+                (PracticePage, PracticeTabButton),
+                (ControllerPage, ControllerTabButton),
+                (KeyboardPage, KeyboardTabButton),
+            };
+
+            foreach (var (element, tab) in pages)
+            {
+                bool showing = (string)tab.Tag == page;
+                element.Visibility = showing ? Visibility.Visible : Visibility.Collapsed;
+                tab.Background = showing ? OnBrush : OffBrush;
+            }
         }
 
         private void ModePointer_Click(object sender, RoutedEventArgs e) => SetGuideMode(typing: false);
@@ -692,7 +768,24 @@ namespace HIDra.UI
             HowToTyping.Visibility = _guideTyping ? Visibility.Visible : Visibility.Collapsed;
             HowToModeText.Text = _guideTyping ? "While the keyboard is open" : "While using the pointer";
 
-            ActLT.Text = "Keyboard to top or bottom";
+            ActLT.Text = _guideTyping ? "Keyboard to top or bottom" : _userSettings.LeftTrigger switch
+            {
+                LeftTriggerAction.Magnifier => "Zoom in and out",
+                LeftTriggerAction.Escape => "Close a menu (Escape)",
+                LeftTriggerAction.SlowPointer => "Slow pointer on and off",
+                _ => "Only used while typing"
+            };
+
+            (string title, string text) = _userSettings.LeftTrigger switch
+            {
+                LeftTriggerAction.Magnifier => ("See small things", "zooms in around the pointer. Press it again to zoom out."),
+                LeftTriggerAction.Escape => ("Close a menu", "closes a menu or box opened by mistake, or ends a slideshow."),
+                LeftTriggerAction.SlowPointer => ("Hit small things", "makes the pointer slow. Press it again for normal speed."),
+                _ => ("", "")
+            };
+            HowToLeftTriggerTitle.Text = title;
+            HowToLeftTriggerText.Text = text;
+            HowToLeftTrigger.Visibility = title.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
             ActRT.Text = "Hold to click and drag";
             ActLB.Text = _guideTyping ? "Backspace" : "Show open programs";
             ActRB.Text = _guideTyping ? "Space" : "Double click";
@@ -745,6 +838,126 @@ namespace HIDra.UI
             // label that says so
             var chord = ControllerControls.Back | ControllerControls.Start;
             CardRecovery.BorderBrush = (active & chord) == chord ? accent : cardBorder;
+        }
+
+        // ---------------------------------------------------------------------------
+        // Try it out
+        //
+        // Beside the settings, so a change can be tried straight away: circles to click,
+        // for pointer speed, feel, smoothing and click by resting; a box to type in, for
+        // the keyboard; a list to scroll, for scroll speed. Nothing here is saved.
+        // ---------------------------------------------------------------------------
+
+        private readonly Random _random = new();
+        private readonly List<Border> _targets = new();
+        private int _hits;
+        private int _misses;
+
+        private void InitializeTryItOut()
+        {
+            // Big, middling and small: the small one is the size of an ordinary button
+            foreach (double size in new[] { 110.0, 72.0, 44.0 })
+            {
+                var target = new Border
+                {
+                    Width = size,
+                    Height = size,
+                    CornerRadius = new CornerRadius(size / 2),
+                    Background = OffBrush,
+                    BorderBrush = (Brush)FindResource("AccentBrush"),
+                    BorderThickness = new Thickness(3),
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+                target.MouseEnter += (_, _) => target.Background = OnBrush;
+                target.MouseLeave += (_, _) => target.Background = OffBrush;
+                target.MouseLeftButtonDown += (_, e) =>
+                {
+                    e.Handled = true;
+                    _hits++;
+                    target.Background = OffBrush;
+                    Place(target);
+                    ShowTargetScore();
+                };
+                _targets.Add(target);
+                TargetCanvas.Children.Add(target);
+            }
+
+            for (int i = 1; i <= 40; i++)
+            {
+                TryScrollList.Children.Add(new TextBlock
+                {
+                    Text = $"Line {i}",
+                    FontSize = 17,
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(0, 3, 0, 3)
+                });
+            }
+
+            ShowTargetScore();
+        }
+
+        private void TargetCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            foreach (var target in _targets)
+            {
+                Place(target);
+            }
+        }
+
+        private void TargetArea_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            _misses++;
+            ShowTargetScore();
+        }
+
+        private void TargetReset_Click(object sender, RoutedEventArgs e)
+        {
+            _hits = _misses = 0;
+            foreach (var target in _targets)
+            {
+                Place(target);
+            }
+            ShowTargetScore();
+        }
+
+        private void ShowTargetScore() =>
+            TargetScore.Text = $"Hits {_hits}    Misses {_misses}";
+
+        /// <summary>
+        /// Somewhere new in the box, clear of the other circles
+        /// </summary>
+        private void Place(Border target)
+        {
+            double width = TargetCanvas.ActualWidth, height = TargetCanvas.ActualHeight;
+            if (width <= 0 || height <= 0)
+            {
+                return;
+            }
+
+            for (int attempt = 0; attempt < 30; attempt++)
+            {
+                double x = _random.NextDouble() * Math.Max(0, width - target.Width);
+                double y = _random.NextDouble() * Math.Max(0, height - target.Height);
+                var spot = new Rect(x, y, target.Width, target.Height);
+                spot.Inflate(12, 12);
+
+                bool clear = true;
+                foreach (var other in _targets)
+                {
+                    if (other != target && spot.IntersectsWith(new Rect(Canvas.GetLeft(other), Canvas.GetTop(other), other.Width, other.Height)))
+                    {
+                        clear = false;
+                        break;
+                    }
+                }
+
+                if (clear || attempt == 29)
+                {
+                    Canvas.SetLeft(target, x);
+                    Canvas.SetTop(target, y);
+                    return;
+                }
+            }
         }
 
         // ---------------------------------------------------------------------------
@@ -876,6 +1089,112 @@ namespace HIDra.UI
         private void Grid3Toggle_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.EnableGrid3AutoSuspend = !s.EnableGrid3AutoSuspend);
 
+        private void LeftTriggerChoice_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: string tag } && Enum.TryParse(tag, out LeftTriggerAction action))
+            {
+                ChangeSettings(s => s.LeftTrigger = action);
+            }
+        }
+
+        private void SlowPointerSlower_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.SlowPointerPercent = Math.Max(10, s.SlowPointerPercent - 10));
+
+        private void SlowPointerFaster_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.SlowPointerPercent = Math.Min(80, s.SlowPointerPercent + 10));
+
+        /// <summary>
+        /// Copy this student's settings to a file, to import as another student
+        /// </summary>
+        private void ExportSettings_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Export this student's HIDra settings",
+                FileName = "HIDra settings.json",
+                Filter = "HIDra settings (*.json)|*.json",
+                DefaultExt = ".json"
+            };
+
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            ExportImportStatus.Text = UserSettingsStore.Export(_userSettings, dialog.FileName)
+                ? $"Exported to {dialog.FileName}"
+                : "Could not write that file. Try another folder.";
+        }
+
+        /// <summary>
+        /// Replace this student's settings with ones exported from another student
+        /// </summary>
+        private void ImportSettings_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Import HIDra settings for this student",
+                Filter = "HIDra settings (*.json)|*.json|All files (*.*)|*.*"
+            };
+
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            var imported = UserSettingsStore.Import(dialog.FileName, _userSettings);
+            if (imported == null)
+            {
+                ExportImportStatus.Text = "That file is not HIDra settings.";
+                return;
+            }
+
+            _userSettings = imported;
+            ChangeSettings(_ => { });
+            UpdateGuideText();
+            ExportImportStatus.Text = $"Imported from {System.IO.Path.GetFileName(dialog.FileName)}, and saved for this student.";
+        }
+
+        private void CurveSteady_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.GentleCurve = false);
+
+        private void CurveGentle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.GentleCurve = true);
+
+        private void SmoothingLess_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.StickSmoothing = Math.Max(0, s.StickSmoothing - 1));
+
+        private void SmoothingMore_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.StickSmoothing = Math.Min(UserSettings.MaxStickSmoothing, s.StickSmoothing + 1));
+
+        private void RepeatShorter_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.IgnoreRepeatSeconds = StepRepeat(s.IgnoreRepeatSeconds, longer: false));
+
+        private void RepeatLonger_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.IgnoreRepeatSeconds = StepRepeat(s.IgnoreRepeatSeconds, longer: true));
+
+        /// <summary>
+        /// How long each smoothing step averages the sticks over, in seconds. A tenth of
+        /// a second is already a noticeable steadying; much past a fifth, the pointer
+        /// feels as if it is being towed.
+        /// </summary>
+        private static readonly float[] SmoothingSeconds = { 0f, 0.06f, 0.12f, 0.2f };
+        private static readonly string[] SmoothingNames = { "Off", "A little", "More", "Most" };
+
+        /// <summary>
+        /// The windows a repeat press can be ignored for. A tremor or bounce comes within
+        /// a few tenths of a second; much longer would swallow presses meant twice.
+        /// </summary>
+        private static readonly float[] RepeatSteps = { 0f, 0.2f, 0.3f, 0.5f, 0.75f };
+
+        private static float StepRepeat(float current, bool longer)
+        {
+            int index = Array.FindIndex(RepeatSteps, v => v >= current - 0.001f);
+            if (index < 0) index = RepeatSteps.Length - 1;
+            index = Math.Clamp(index + (longer ? 1 : -1), 0, RepeatSteps.Length - 1);
+            return RepeatSteps[index];
+        }
+
         private void ChangeSettings(Action<UserSettings> change)
         {
             change(_userSettings);
@@ -897,6 +1216,16 @@ namespace HIDra.UI
                 input.EnableGrid3AutoSuspend = _userSettings.EnableGrid3AutoSuspend;
                 input.EnableDwellClick = _userSettings.DwellClickEnabled;
                 input.DwellClickSeconds = _userSettings.DwellClickSeconds;
+                input.GentleCurve = _userSettings.GentleCurve;
+                input.StickSmoothingSeconds = SmoothingSeconds[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)];
+                input.IgnoreRepeatSeconds = _userSettings.IgnoreRepeatSeconds;
+                input.PrecisionModeSensitivity = _userSettings.SlowPointerPercent / 100f;
+
+                // Slow pointer only stays on while LT is what switches it
+                if (_userSettings.LeftTrigger != LeftTriggerAction.SlowPointer)
+                {
+                    _engine.SlowPointer = false;
+                }
             }
 
             if (_virtualKeyboard != null)
@@ -957,6 +1286,25 @@ namespace HIDra.UI
             DwellClickValue.Text = $"{_userSettings.DwellClickSeconds:0.0#} s";
             KeyboardDwellValue.Text = $"{_userSettings.KeyboardDwellSeconds:0.0#} s";
 
+            LeftTriggerMagnifierButton.Background = _userSettings.LeftTrigger == LeftTriggerAction.Magnifier ? OnBrush : OffBrush;
+            LeftTriggerEscapeButton.Background = _userSettings.LeftTrigger == LeftTriggerAction.Escape ? OnBrush : OffBrush;
+            LeftTriggerSlowButton.Background = _userSettings.LeftTrigger == LeftTriggerAction.SlowPointer ? OnBrush : OffBrush;
+            LeftTriggerNothingButton.Background = _userSettings.LeftTrigger == LeftTriggerAction.Nothing ? OnBrush : OffBrush;
+            LeftTriggerExplanation.Text = _userSettings.LeftTrigger switch
+            {
+                LeftTriggerAction.Magnifier => "Zoom: Windows Magnifier - bigger text and targets around the pointer. LT again to zoom out.",
+                LeftTriggerAction.Escape => "Escape: closes a menu or box opened by mistake, or ends a slideshow.",
+                LeftTriggerAction.SlowPointer => "Slow pointer: LT turns a slower pointer on for small targets, and off again.",
+                _ => "Nothing: LT is only used while the keyboard is open."
+            };
+            SlowPointerValue.Text = $"{_userSettings.SlowPointerPercent}%";
+            UpdateGuideText();
+
+            CurveSteadyButton.Background = _userSettings.GentleCurve ? OffBrush : OnBrush;
+            CurveGentleButton.Background = _userSettings.GentleCurve ? OnBrush : OffBrush;
+            SmoothingValue.Text = SmoothingNames[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)];
+            IgnoreRepeatValue.Text = _userSettings.IgnoreRepeatSeconds <= 0 ? "Off" : $"{_userSettings.IgnoreRepeatSeconds:0.0#} s";
+
             ShowToggle(DwellClickToggle, _userSettings.DwellClickEnabled);
             ShowToggle(KeyboardDwellToggle, _userSettings.KeyboardDwellEnabled);
             ShowToggle(StopWindowsKeyboardToggle, _userSettings.StopWindowsKeyboard);
@@ -1007,6 +1355,14 @@ namespace HIDra.UI
             _engine?.SendKeyCombo(keys);
         }
 
+        private ReadAloud? _readAloud;
+
+        private async void OnReadAloudRequested(object? sender, EventArgs e)
+        {
+            _readAloud ??= new ReadAloud();
+            await _readAloud.ReadSelectionAsync(keys => _engine?.SendKeyCombo(keys));
+        }
+
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             // Closing the window must not end the session. Pressing the X used to shut
@@ -1025,6 +1381,7 @@ namespace HIDra.UI
             _startRetryTimer?.Stop();
             UserSettingsStore.Save(_userSettings);
             _virtualKeyboard?.Close();
+            _readAloud?.Dispose();
             _modeToast?.Close();
             _dwellRing?.Close();
             _engine?.Stop();

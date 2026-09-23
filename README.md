@@ -10,11 +10,14 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - Six word suggestions on the keyboard, from the prediction engine built into Windows - nothing extra to install
 - Dwell: click by resting the cursor (a ring by the cursor fills as the click approaches), and type by resting the keyboard highlight (both optional)
 - Keyboard extras: automatic capitals, the student's own phrases on a Phrases key, and an adjustable size
-- A shortcut panel on the keyboard, with icons, in labelled rows - Edit (Undo, Copy, Paste...), Select (a Select switch for highlighting text, word moves), Style (Bold, Italic, Underline, text size), Tools (voice typing, emoji, Save, File Explorer, Snip) - and a row that follows the program in front (PowerPoint, Word, web browser, File Explorer); it can be switched off
+- A shortcut panel on the keyboard, with icons, in labelled rows - Edit (Undo, Copy, Paste...), Select (a Select switch for highlighting text, word moves), Style (Bold, Italic, Underline, text size), Tools (voice typing, emoji, Save, Read aloud, Snip) - and a row that follows the program in front (PowerPoint, Word, web browser, File Explorer); it can be switched off
 - While the keyboard is open, LB types Backspace, RB Space and Y Enter, from wherever the highlight is
+- Read aloud: a Read key reads the selected text in any program, with the voices built into Windows
+- For unsteady hands: stick smoothing, ignoring a repeat press that comes too soon after letting go, and a Gentle pointer curve (slower for a small push, faster for a big one)
+- Settings can be exported from one student and imported for another, as a starting point
 - An Apps key that opens PowerPoint, Word, Edge and other installed programs in one press
-- One main screen with two tabs. **Guide** (what opens, for the student): a controller drawing labelled with what every button does - switching between "using the pointer" and "typing" as the keyboard opens and closes - with each button lighting up orange as it is pressed, and "How do I..." for everyday tasks. **Settings** (for staff): every setting, grouped into Pointer, Keyboard, Phrases and Windows
-- LT moves the keyboard between the top and bottom of the screen, so it never has to cover your work
+- One main screen with four tabs. For the student: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks - and **Practice**, with circles to click, a box to type in and a list to scroll. For staff: **Controller** (pointer, buttons, and exporting or importing a student's settings) and **Keyboard** (keyboard, phrases, Windows' own keyboard)
+- LT moves the keyboard between the top and bottom of the screen while it is open, so it never has to cover your work. While it is closed, LT does a job chosen per student: zoom in and out with Windows Magnifier (the default), Escape, a slow pointer switched on and off, or nothing
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (A confirms, B cancels)
 - Start opens Task View; Back opens Start menu

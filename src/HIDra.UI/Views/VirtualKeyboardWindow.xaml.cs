@@ -32,6 +32,11 @@ public partial class VirtualKeyboardWindow : Window
     [DllImport("user32.dll")]
     private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
+    /// <summary>
+    /// The Read key: read the selected text aloud, or stop reading
+    /// </summary>
+    public event EventHandler? ReadAloudRequested;
+
     // Event to send key presses back to the main application
     public event EventHandler<VirtualKey>? KeyPressed;
     public event EventHandler<string>? TextEntered;
@@ -896,7 +901,22 @@ public partial class VirtualKeyboardWindow : Window
     /// PowerPoint and Word, so recognising one helps with the other. The student uses
     /// AAC, where a picture with its word is easier to find than a word alone.
     /// </summary>
-    private sealed record Shortcut(string Label, char Icon, params VirtualKey[] Keys);
+    private sealed record Shortcut(string Label, char Icon, params VirtualKey[] Keys)
+    {
+        public ShortcutKind Kind { get; init; } = ShortcutKind.Keys;
+    }
+
+    private enum ShortcutKind
+    {
+        /// <summary>Sends its keys</summary>
+        Keys,
+
+        /// <summary>Turns selecting on and off</summary>
+        SelectSwitch,
+
+        /// <summary>Reads the selected text aloud</summary>
+        ReadAloud
+    }
 
     private static readonly FontFamily IconFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
 
@@ -905,39 +925,41 @@ public partial class VirtualKeyboardWindow : Window
     private static readonly Shortcut[] GeneralShortcuts =
     {
         // Edit
-        new("Undo", '', VirtualKey.Control, K('z')),
-        new("Redo", '', VirtualKey.Control, K('y')),
-        new("Cut", '', VirtualKey.Control, K('x')),
-        new("Copy", '', VirtualKey.Control, K('c')),
-        new("Paste", '', VirtualKey.Control, K('v')),
+        new("Undo", '\uE7A7', VirtualKey.Control, K('z')),
+        new("Redo", '\uE7A6', VirtualKey.Control, K('y')),
+        new("Cut", '\uE8C6', VirtualKey.Control, K('x')),
+        new("Copy", '\uE8C8', VirtualKey.Control, K('c')),
+        new("Paste", '\uE77F', VirtualKey.Control, K('v')),
 
         // Select
         // A switch, not a shortcut: while on, moving the cursor selects text as it goes
-        new("Select", ''),
-        new("Select all", '', VirtualKey.Control, K('a')),
-        new("Word left", '', VirtualKey.Control, VirtualKey.Left),
-        new("Word right", '', VirtualKey.Control, VirtualKey.Right),
-        new("Delete word", '', VirtualKey.Control, VirtualKey.Back),
+        new("Select", '\uE7E6') { Kind = ShortcutKind.SelectSwitch },
+        new("Select all", '\uE8B3', VirtualKey.Control, K('a')),
+        new("Word left", '\uE72B', VirtualKey.Control, VirtualKey.Left),
+        new("Word right", '\uE72A', VirtualKey.Control, VirtualKey.Right),
+        new("Delete word", '\uE750', VirtualKey.Control, VirtualKey.Back),
 
         // Style
-        new("Bold", '', VirtualKey.Control, K('b')),
-        new("Italic", '', VirtualKey.Control, K('i')),
-        new("Underline", '', VirtualKey.Control, K('u')),
+        new("Bold", '\uE8DD', VirtualKey.Control, K('b')),
+        new("Italic", '\uE8DB', VirtualKey.Control, K('i')),
+        new("Underline", '\uE8DC', VirtualKey.Control, K('u')),
         // Bigger and smaller text work alike in PowerPoint, Word and Publisher
-        new("Bigger", '', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemPeriod),
-        new("Smaller", '', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemComma),
+        new("Bigger", '\uE8E8', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemPeriod),
+        new("Smaller", '\uE8E7', VirtualKey.Control, VirtualKey.Shift, VirtualKey.OemComma),
 
         // Tools
         // Windows voice typing: speak instead of type, into whatever has the cursor
-        new("Voice", '', VirtualKey.LeftWindows, K('h')),
+        new("Voice", '\uE720', VirtualKey.LeftWindows, K('h')),
         // Windows' emoji picker, for posters and messages
-        new("Emoji", '', VirtualKey.LeftWindows, VirtualKey.OemPeriod),
-        new("Save", '', VirtualKey.Control, K('s')),
-        new("Files", '', VirtualKey.LeftWindows, K('e')),
+        new("Emoji", '\uE76E', VirtualKey.LeftWindows, VirtualKey.OemPeriod),
+        new("Save", '\uE74E', VirtualKey.Control, K('s')),
+        // Reads the selected words aloud: for checking her own writing, and for reading
+        // what others wrote. It took the place of Files, which Apps also opens.
+        new("Read", '\uE767') { Kind = ShortcutKind.ReadAloud },
         // Choose an area of the screen (drag with RT), or the whole screen from the
         // bar along the top; it is copied, ready to paste. This took over from a
         // separate whole-screen key, which saved to a folder she then had to find.
-        new("Snip", '', VirtualKey.LeftWindows, VirtualKey.Shift, K('s')),
+        new("Snip", '\uE7A8', VirtualKey.LeftWindows, VirtualKey.Shift, K('s')),
     };
 
     private static readonly Shortcut[] PowerPointRow =
@@ -1063,10 +1085,16 @@ public partial class VirtualKeyboardWindow : Window
             return;
         }
 
-        if (shortcut.Keys.Length == 0)
+        if (shortcut.Kind == ShortcutKind.SelectSwitch)
         {
-            // The Select switch
             SetSelectMode(!_selectMode);
+            return;
+        }
+
+        if (shortcut.Kind == ShortcutKind.ReadAloud)
+        {
+            // The selection stays as it is, so it can be read again or acted on
+            ReadAloudRequested?.Invoke(this, EventArgs.Empty);
             return;
         }
 
@@ -1136,7 +1164,7 @@ public partial class VirtualKeyboardWindow : Window
 
         for (int i = 0; i < _shortcuts.Length; i++)
         {
-            if (_shortcuts[i] is { Keys.Length: 0 } && FindName($"Shortcut{i}") is Button button)
+            if (_shortcuts[i] is { Kind: ShortcutKind.SelectSwitch } && FindName($"Shortcut{i}") is Button button)
             {
                 // Orange while on, the same as Caps Lock, so it is plain that moving will
                 // select. Off hands the key back to its row's colour.
