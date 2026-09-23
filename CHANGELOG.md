@@ -130,6 +130,43 @@ what is on the keyboard is now chosen per student rather than the same for every
     `practice.json` beside the student's settings. **Save for a review...** writes every
     day as a spreadsheet. Exporting settings does not copy it.
 
+### One consistent design, and a keyboard with its own emoji
+
+After testing on a real controller: layouts that shifted with the screen, choices that
+looked like buttons, cramped settings, and language written for staff.
+
+- **One fixed layout, scaled to fill the screen.** Every page is designed once, 720
+  high, and scaled as a whole; its width follows the screen's shape a little, so there
+  are no dark bands. It looks the same on a laptop and a big monitor, just bigger.
+- **Three tabs: Guide, Practice, Settings.** Settings has a list down the left - Buttons,
+  Pointer, Keyboard, Shortcut keys, Apps, Phrases, General - and each section gets the
+  whole page. Shortcut keys and Apps are separate sections now.
+- **One set of controls everywhere**: a segmented control (one pill, the chosen part
+  orange) for every "choose one of a few" - Using the pointer / Typing, Pointer test /
+  Typing test, Words / Phrases / Sentences, Everyday / Windows tools, Steady / Gentle,
+  Top / Bottom; real On/Off switches that also say On or Off; and steppers that keep
+  their big - and + but show a level bar, so where a setting sits is seen at a glance.
+  Sliders were considered and left out: they need a precise drag. One type scale and
+  8px spacing throughout, and every settings row has one control in the same column.
+- **Choosing opens a panel over the page**: a button's job, a shortcut key or a program.
+  The Buttons drawing has the whole page; buttons changed from their default are listed
+  under it. Pointing at a job no longer makes the list flicker and jump (the hint line
+  under it changed height).
+- **Plain words**: no "staff" or "student" in the app; Reset and Reset all instead of
+  "Back to standard"; Default instead of standard.
+- **Emoji on HIDra's keyboard.** Windows' emoji panel took the controller away, leaving
+  the pointer and keyboard stuck. The Emoji key (and an Emoji button job) now shows
+  thirty everyday emoji on HIDra's own keyboard, in place of the letters; abc brings the
+  letters back.
+- **Magnifier on and off, and Slow pointer, on any button**: one Magnifier job instead
+  of a Magnify and Magnify off pair that only worked together. Anyone with either keeps
+  a working button.
+- **The right stick goes to the edge first**: while typing, a push goes to the far end
+  of the row (or the top or bottom of the column) in the part of the keyboard the
+  highlight is in; the next push jumps to the next part.
+- **Phrases can be typed with HIDra's keyboard**: opening it no longer takes the cursor
+  out of the phrase boxes.
+
 ### Tabs that look like tabs, pages that fit, and tests that measure progress
 
 From trying the last round: the tabs looked like buttons, the drawing blew up on a big

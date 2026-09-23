@@ -28,6 +28,12 @@ public class ButtonActionHandler
     /// </summary>
     public event EventHandler? ToggleOnScreenKeyboardRequested;
 
+    /// <summary>
+    /// A job HIDra does itself - the Magnifier, Slow pointer, the emoji keyboard - named
+    /// by the job's id
+    /// </summary>
+    public event EventHandler<string>? HidraJobRequested;
+
     public ButtonActionHandler(KeyboardSimulator keyboardSimulator, MouseSimulator mouseSimulator)
     {
         _keyboardSimulator = keyboardSimulator ?? throw new ArgumentNullException(nameof(keyboardSimulator));
@@ -147,6 +153,11 @@ public class ButtonActionHandler
                 StickModeSwapRequested?.Invoke(this, EventArgs.Empty);
                 break;
             
+            case "hidrajob":
+                if (actionMapping.Keys.Count > 0)
+                    HidraJobRequested?.Invoke(this, actionMapping.Keys[0]);
+                break;
+
             case "toggleonscreenkeyboard":
                 ToggleOnScreenKeyboardRequested?.Invoke(this, EventArgs.Empty);
                 break;

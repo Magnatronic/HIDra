@@ -103,6 +103,13 @@
 
         <!-- Digits and symbols: two glyphs stacked, sized by the runs inside them -->
         <Style x:Key="PairedKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}"/>
+        <!-- Emoji keys. Windows' own emoji panel takes the controller away from HIDra, so
+             the everyday emoji are keys here instead. -->
+        <Style x:Key="EmojiKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
+            <Setter Property="FontFamily" Value="Segoe UI Emoji"/>
+            <Setter Property="FontSize" Value="26"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
 
         <!-- Function keys: they act rather than type, and say so by being lighter -->
         <Style x:Key="FunctionKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
@@ -285,6 +292,19 @@
                     <TextBlock TextAlignment="Center"><Run FontSize="13" Foreground="#CCCCCC">)</Run><LineBreak/><Run FontSize="18" FontWeight="Bold">0</Run></TextBlock>
                 </Button>
             </UniformGrid>
+            <!-- Emoji, reached from the Emoji shortcut key or button job -->
+            <UniformGrid x:Name="EmojiRow1" Grid.Column="1" Rows="1" Columns="10" Visibility="Collapsed">
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F600;" Content="&#x1F600;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F602;" Content="&#x1F602;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F60A;" Content="&#x1F60A;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F60D;" Content="&#x1F60D;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F970;" Content="&#x1F970;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F622;" Content="&#x1F622;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F62D;" Content="&#x1F62D;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F621;" Content="&#x1F621;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F62E;" Content="&#x1F62E;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F634;" Content="&#x1F634;"/>
+            </UniformGrid>
             <!-- LB, RB and Y type these from anywhere on the board, and say so on the key, so
                  the shortcut is learned by seeing it -->
             <Button Grid.Column="2" Style="{StaticResource FunctionGlyphKeyStyle}" Click="BackspaceButton_Click">
@@ -348,6 +368,18 @@
                 <Button x:Name="CapsLockKey" Style="{StaticResource FunctionKeyStyle}" Content="Caps" Click="CapsLockButton_Click"/>
                 <Button Style="{StaticResource FunctionKeyStyle}" Content="Win" Click="WindowsKeyButton_Click"/>
             </UniformGrid>
+            <UniformGrid x:Name="EmojiRow2" Grid.Column="1" Rows="1" Columns="10" Visibility="Collapsed">
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F914;" Content="&#x1F914;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44D;" Content="&#x1F44D;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44E;" Content="&#x1F44E;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44F;" Content="&#x1F44F;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F64F;" Content="&#x1F64F;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F4AA;" Content="&#x1F4AA;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F44B;" Content="&#x1F44B;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F64C;" Content="&#x1F64C;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x2764;&#xFE0F;" Content="&#x2764;&#xFE0F;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x2B50;" Content="&#x2B50;"/>
+            </UniformGrid>
             <Button Grid.Column="2" Style="{StaticResource FunctionGlyphKeyStyle}" Click="EnterButton_Click">
                 <StackPanel>
                     <TextBlock Text="↵" HorizontalAlignment="Center"/>
@@ -395,6 +427,18 @@
                 <Button Style="{StaticResource LetterKeyStyle}" Content="&quot;" Click="KeyButton_Click" Tag="&quot;"/>
                 <Button Style="{StaticResource FunctionKeyStyle}" Content="PgUp" Click="PageUpButton_Click"/>
                 <Button Style="{StaticResource FunctionKeyStyle}" Content="PgDn" Click="PageDownButton_Click"/>
+            </UniformGrid>
+            <UniformGrid x:Name="EmojiRow3" Grid.Column="1" Rows="1" Columns="10" Visibility="Collapsed">
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F389;" Content="&#x1F389;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F525;" Content="&#x1F525;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x2705;" Content="&#x2705;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x274C;" Content="&#x274C;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x2753;" Content="&#x2753;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F4AF;" Content="&#x1F4AF;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F382;" Content="&#x1F382;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F3B5;" Content="&#x1F3B5;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x26BD;" Content="&#x26BD;"/>
+                <Button Style="{StaticResource EmojiKeyStyle}" Click="EmojiKey_Click" Tag="&#x1F31E;" Content="&#x1F31E;"/>
             </UniformGrid>
             <!-- Landing on Esc by mistake sends one Escape, the cheapest mistake there is,
                  so it can sit at an edge -->

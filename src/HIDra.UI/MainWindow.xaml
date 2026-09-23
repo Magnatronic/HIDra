@@ -605,7 +605,7 @@
                                 <Border Style="{StaticResource HowToCard}">
                                     <StackPanel>
                                         <TextBlock Text="Type a saved phrase" Style="{StaticResource HowToTitle}"/>
-                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Go up to Phrases, at the start of the green row, and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="- then pick the phrase. Staff set them on the Keyboard tab."/></TextBlock>
+                                        <TextBlock Style="{StaticResource HowToText}"><Run Text="Go up to Phrases, at the start of the green row, and press "/><InlineUIContainer BaselineAlignment="Center"><ContentControl Style="{StaticResource BadgeA}"/></InlineUIContainer><Run Text="- then pick the phrase. Phrases are set in Settings."/></TextBlock>
                                     </StackPanel>
                                 </Border>
                                 <!-- Only for a student whose keyboard has the Read key -->
@@ -1376,6 +1376,7 @@
                                     <Button Style="{StaticResource ActionButton}" HorizontalAlignment="Right" Content="Close" Click="SheetClose_Click"/>
                                 </Grid>
 
+                                <Grid>
                                 <!-- A button's job -->
                                 <DockPanel x:Name="JobSheet">
                                     <!-- What the job under the pointer does. A fixed height, so pointing at
@@ -1425,6 +1426,7 @@
                                         <WrapPanel x:Name="KeyChoices"/>
                                     </ScrollViewer>
                                 </DockPanel>
+                                </Grid>
                             </DockPanel>
                         </Border>
                     </Grid>

@@ -243,21 +243,48 @@ public partial class VirtualKeyboardWindow : Window
     // ---------------------------------------------------------------------------
 
     private bool _showingSymbols;
+    private bool _showingEmoji;
 
     private void LayerKey_Click(object sender, RoutedEventArgs e)
     {
-        ShowSymbols(!_showingSymbols);
+        // From numbers and symbols, or from emoji, the key goes back to the letters
+        ShowSymbols(!_showingSymbols && !_showingEmoji);
     }
 
-    private void ShowSymbols(bool symbols)
+    /// <summary>
+    /// Show the emoji in place of the letters, with the highlight on the first. The
+    /// layer key, now abc, brings the letters back.
+    /// </summary>
+    public void ShowEmoji()
+    {
+        ShowSymbols(false, emoji: true);
+        EnsureKeysCollected();
+        if (EmojiRow1.Children.Count > 0 && EmojiRow1.Children[0] is Button first)
+        {
+            SetHighlight(first);
+        }
+    }
+
+    private void EmojiKey_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string emoji })
+        {
+            RaiseTextEntered(emoji);
+        }
+    }
+
+    private void ShowSymbols(bool symbols, bool emoji = false)
     {
         _showingSymbols = symbols;
+        _showingEmoji = emoji;
 
-        var letters = symbols ? Visibility.Collapsed : Visibility.Visible;
+        var letters = symbols || emoji ? Visibility.Collapsed : Visibility.Visible;
         var symbolLayer = symbols ? Visibility.Visible : Visibility.Collapsed;
+        var emojiLayer = emoji ? Visibility.Visible : Visibility.Collapsed;
         LettersRow1.Visibility = LettersRow2.Visibility = LettersRow3.Visibility = letters;
         SymbolsRow1.Visibility = SymbolsRow2.Visibility = SymbolsRow3.Visibility = symbolLayer;
-        LayerKey.Content = symbols ? "abc" : "123 #+";
+        EmojiRow1.Visibility = EmojiRow2.Visibility = EmojiRow3.Visibility = emojiLayer;
+        LayerKey.Content = symbols || emoji ? "abc" : "123 #+";
 
         // Half the keys have just changed, so the highlight's map of them is stale. The
         // highlight itself is on the layer key or off the board, so it is never left on a
@@ -1079,6 +1106,12 @@ public partial class VirtualKeyboardWindow : Window
             return;
         }
 
+        if (shortcut.Kind == ShortcutKind.EmojiLayer)
+        {
+            ShowEmoji();
+            return;
+        }
+
         if (shortcut.Kind == ShortcutKind.ReadAloud)
         {
             // The selection stays as it is, so it can be read again or acted on
@@ -1430,6 +1463,18 @@ public partial class VirtualKeyboardWindow : Window
         }
 
         var from = SectionOf(_highlightedKey);
+
+        // First push: to the far edge of this part, along the row or up the column. Only
+        // once already at the edge does a push cross to the next part - so anywhere is two
+        // pushes away, and the first never leaves the part the student is in.
+        var edge = EdgeKey(from, direction);
+        if (edge != null)
+        {
+            SetHighlight(edge);
+            StartDwell();
+            return;
+        }
+
         var to = (from, direction) switch
         {
             (KeyboardSection.Letters or KeyboardSection.Shortcuts, KeyboardNavigationDirection.Up) => KeyboardSection.Top,
@@ -1472,6 +1517,55 @@ public partial class VirtualKeyboardWindow : Window
             SetHighlight(best);
             StartDwell();
         }
+    }
+
+    /// <summary>
+    /// The key at the far edge of this part in that direction - the end of the row going
+    /// sideways, the top or bottom of the column going up or down - or null when the
+    /// highlight is already there
+    /// </summary>
+    private Button? EdgeKey(KeyboardSection section, KeyboardNavigationDirection direction)
+    {
+        var fromBounds = BoundsOf(_highlightedKey!);
+        var here = CentreOf(_highlightedKey!);
+        bool sideways = direction is KeyboardNavigationDirection.Left or KeyboardNavigationDirection.Right;
+
+        Button? edge = null;
+        double furthest = 1;
+        foreach (var key in _navigableKeys)
+        {
+            if (ReferenceEquals(key, _highlightedKey) || SectionOf(key) != section)
+            {
+                continue;
+            }
+
+            // In line with the highlight: sharing its row, or its column
+            var bounds = BoundsOf(key);
+            bool aligned = sideways
+                ? bounds.Bottom > fromBounds.Top + 1 && bounds.Top < fromBounds.Bottom - 1
+                : bounds.Right > fromBounds.Left + 1 && bounds.Left < fromBounds.Right - 1;
+            if (!aligned)
+            {
+                continue;
+            }
+
+            var there = CentreOf(key);
+            double distance = direction switch
+            {
+                KeyboardNavigationDirection.Left => here.X - there.X,
+                KeyboardNavigationDirection.Right => there.X - here.X,
+                KeyboardNavigationDirection.Up => here.Y - there.Y,
+                _ => there.Y - here.Y
+            };
+
+            if (distance > furthest)
+            {
+                furthest = distance;
+                edge = key;
+            }
+        }
+
+        return edge;
     }
 
     private enum KeyboardSection { Top, Letters, Shortcuts }

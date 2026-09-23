@@ -149,6 +149,7 @@ namespace HIDra.UI
                 _engine.KeyboardSelectRequested += OnKeyboardSelect;
                 _engine.KeyboardSelectShiftedRequested += OnKeyboardSelectShifted;
                 _engine.KeyboardQuickKeyRequested += OnKeyboardQuickKey;
+                _engine.HidraJobRequested += (_, id) => Dispatcher.BeginInvoke(() => RunHidraJob(id));
                 _engine.KeyboardDragRequested += (_, move) =>
                     Dispatcher.BeginInvoke(() => _virtualKeyboard?.MoveBy(move.X, move.Y));
                 _engine.KeyboardSectionJumpRequested += (_, direction) =>
@@ -520,7 +521,28 @@ namespace HIDra.UI
             }
 
             var job = Jobs[ButtonJobCatalogue.LeftTrigger];
-            switch (job.Id)
+            if (job.Action == ButtonJob.HidraJob)
+            {
+                RunHidraJob(job.Keys[0]);
+            }
+            else
+            {
+                _engine.RunAction(job.ToMapping());
+            }
+        }
+
+        /// <summary>
+        /// The jobs HIDra does itself, from whichever button has them. Each says what it did
+        /// on screen, so nothing changes without the student seeing why.
+        /// </summary>
+        private void RunHidraJob(string id)
+        {
+            if (_engine == null)
+            {
+                return;
+            }
+
+            switch (id)
             {
                 case "zoom":
                     bool zoomed = System.Diagnostics.Process.GetProcessesByName("Magnify") is { Length: > 0 } running
@@ -528,18 +550,31 @@ namespace HIDra.UI
                     _engine.SendKeyCombo(zoomed
                         ? new[] { VirtualKey.LeftWindows, VirtualKey.Escape }
                         : new[] { VirtualKey.LeftWindows, VirtualKey.OemPlus });
-                    ShowToast(zoomed ? "Zoom off" : "Zoomed in\nLT again to zoom out");
+                    ShowToast(zoomed ? "Magnifier off" : "Magnifier on\nPress again to turn it off");
                     break;
 
                 case "slow-pointer":
                     _engine.SlowPointer = !_engine.SlowPointer;
-                    ShowToast(_engine.SlowPointer ? "Slow pointer on\nLT again for normal speed" : "Slow pointer off");
+                    ShowToast(_engine.SlowPointer ? "Slow pointer on\nPress again for normal speed" : "Slow pointer off");
                     break;
 
-                default:
-                    _engine.RunAction(job.ToMapping());
+                case "emoji":
+                    OpenKeyboardAtEmoji();
                     break;
             }
+        }
+
+        /// <summary>
+        /// Open the keyboard, if it is closed, showing its emoji
+        /// </summary>
+        private void OpenKeyboardAtEmoji()
+        {
+            InitializeVirtualKeyboard();
+            if (_virtualKeyboard!.IsVisible != true)
+            {
+                OnVirtualKeyboardToggleRequested(this, EventArgs.Empty);
+            }
+            Dispatcher.BeginInvoke(() => _virtualKeyboard?.ShowEmoji());
         }
 
         private static bool DisposeAll(System.Diagnostics.Process[] processes)
@@ -1381,8 +1416,6 @@ namespace HIDra.UI
             "tab" => '\uE7FD',
             "voice" => '\uE720',
             "captions" => '\uE7F0',
-            "magnify" => '\uE8A3',
-            "magnify-off" => '\uE71F',
             "emoji" => '\uE76E',
             "snip" => '\uE7A8',
             "clipboard" => '\uE81C',
@@ -1477,8 +1510,8 @@ namespace HIDra.UI
                 "maximise", "minimise", "snap-left", "snap-right" }),
             (0, "Editing", new[] { "undo", "redo", "copy", "paste" }),
             (0, "Keys", new[] { "escape", "enter", "tab", "nothing" }),
-            (1, "Talk and see", new[] { "voice", "captions", "magnify", "magnify-off" }),
-            (1, "Tools", new[] { "emoji", "snip", "clipboard", "find", "save", "file-explorer", "desktop", "notifications" }),
+            (1, "Talk and see", new[] { "voice", "captions", "emoji" }),
+            (1, "Tools", new[] { "snip", "clipboard", "find", "save", "file-explorer", "desktop", "notifications" }),
             (1, "Pages", new[] { "web-back", "page-up", "page-down" }),
             (1, "Sound", new[] { "volume-up", "volume-down", "mute" }),
         };
@@ -2684,8 +2717,8 @@ namespace HIDra.UI
                 input.PrecisionModeSensitivity = _userSettings.SlowPointerPercent / 100f;
                 _engine.SetButtonMappings(ButtonJobCatalogue.ToMappings(_userSettings.ButtonJobs));
 
-                // Slow pointer only stays on while LT is what switches it
-                if (Jobs[ButtonJobCatalogue.LeftTrigger].Id != "slow-pointer")
+                // Slow pointer only stays on while some button can switch it off again
+                if (!Jobs.Values.Any(job => job.Id == "slow-pointer"))
                 {
                     _engine.SlowPointer = false;
                 }

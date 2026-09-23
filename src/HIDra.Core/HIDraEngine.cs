@@ -372,6 +372,7 @@ public class HIDraEngine : IDisposable
         _buttonActionHandler.TaskSwitcherRequested += OnTaskSwitcherRequested;
         _buttonActionHandler.StickModeSwapRequested += OnStickModeSwapRequested;
         _buttonActionHandler.ToggleOnScreenKeyboardRequested += OnToggleOnScreenKeyboardRequested;
+        _buttonActionHandler.HidraJobRequested += (_, id) => HidraJobRequested?.Invoke(this, id);
     }
 
     /// <summary>
@@ -481,6 +482,12 @@ public class HIDraEngine : IDisposable
     {
         _buttonMappings = buttonMappings ?? new Dictionary<string, ButtonMapping>();
     }
+
+    /// <summary>
+    /// A button's job is one HIDra does itself - the Magnifier, Slow pointer, the emoji
+    /// keyboard - named by the job's id, for the main window to do
+    /// </summary>
+    public event EventHandler<string>? HidraJobRequested;
 
     /// <summary>
     /// Run a button's job straight away - for LT, whose job the main window runs

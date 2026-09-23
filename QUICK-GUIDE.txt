@@ -121,8 +121,8 @@ See All Open Programs:
 FULL BUTTON REFERENCE
 ----------------------
 
-These are the standard jobs. Staff can give a button a different job for
-you, on the Buttons tab. The Guide tab of the HIDra screen always shows
+These are the default jobs. Any button can be given a different job in
+Settings, Buttons. The Guide tab of the HIDra screen always shows
 what YOUR buttons do - press one and it lights up.
 
 Left Stick:
@@ -137,8 +137,8 @@ Right Stick:
 Triggers:
   Left Trigger (LT) = While the keyboard is open: tap to move it between
                       the top and bottom of the screen, or hold LT and
-                      push the left stick to drag it anywhere. While it is closed, whatever staff
-                      chose on the Buttons tab - normally Escape (closes
+                      push the left stick to drag it anywhere. While it is closed, whatever it
+                      is set to in Settings, Buttons - normally Escape (closes
                       a menu or box)
   Right Trigger (RT) = Click and hold (hold to drag things)
 
@@ -172,7 +172,7 @@ every time, so you can see yourself getting better:
   Typing test   Type each word, phrase or sentence. The box moves
                 between the top and bottom - if the keyboard covers
                 it, press LT to move the keyboard.
-Every run is kept, for looking back on. Staff can save them all as a
+Every run is kept, for looking back on, and can be saved as a
 spreadsheet with "Save for a review...".
 
 VIRTUAL KEYBOARD TIPS
@@ -195,8 +195,8 @@ VIRTUAL KEYBOARD TIPS
 - Sentences, and I, start with a capital automatically. Press B
   (or Shift) first for a small letter instead
 - The PHRASES key at the start of the green row swaps the
-  suggestions for your saved phrases (name, email...). Staff set
-  them on the Keyboard tab of the HIDra screen
+  suggestions for your saved phrases (name, email...). They are set
+  in Settings, Phrases, on the HIDra screen
 - Keyboard covering your text? Press Left Trigger to move it, or
   switch on "Fade when resting" so it goes see-through when you pause
 - The keys on the right are SHORTCUTS - one press each - in rows:
@@ -204,14 +204,16 @@ VIRTUAL KEYBOARD TIPS
     Select  Select, Select all, word left/right, Delete word
     Style   Bold, Italic, Underline, Bigger, Smaller
     Tools   Emoji, Captions, Voice (speak instead of typing), Save, Snip
-  Staff can change which keys are in each row for each student, on the
-  Keyboard tab - e.g. Read, Print, Magnify, Clipboard, Find - or leave
+  EMOJI shows the keyboard's own emoji in place of the letters; abc
+  brings the letters back.
+  The keys in each row can be changed in Settings, Shortcut keys -
+  e.g. Read, Print, Magnify, Clipboard, Find - or leave
   a place empty. The bottom row changes to suit the program in front,
   and says which:
   Slides (PowerPoint), Word, Web, Folders (File Explorer) or Page
 - CAPTIONS turns on Windows Live Captions: words on screen for any
   sound on the PC - videos, calls. Press it again to turn them off
-- READ (if staff have added it) says the selected words out loud -
+- READ (if it has been added) says the selected words out loud -
   select them first (Select, then move). Press READ again to stop.
   Whatever you had copied is kept
 - SNIP takes a picture of part of the screen (drag with RT), or pick
@@ -239,7 +241,7 @@ Battery warning appeared?
 
 Window disappeared?
   HIDra is still running. Hold BACK and START together for one second
-  and the window comes back. Staff can also click the HIDra icon in
+  and the window comes back. You can also click the HIDra icon in
   the notification area, next to the clock.
 
 Closing the window does NOT stop HIDra.
@@ -247,13 +249,13 @@ Closing the window does NOT stop HIDra.
   right-click the HIDra icon near the clock and choose "Exit HIDra".
 
 A button does something unexpected?
-  Staff may have given it a different job. The Guide tab shows what
-  each button does now. "All back to standard" on the Buttons tab puts
+  It may have been given a different job. The Guide tab shows what
+  each button does now. "Reset all" in Settings, Buttons puts
   every button back. Holding BACK and START together always brings
   HIDra back, whatever they have been given.
 
 Cursor moving too fast/slow?
-  - Use the - and + buttons beside Pointer speed, on the Pointer tab
+  - Use the - and + buttons beside Pointer speed, in Settings, Pointer
     of the HIDra screen
   - Your speed is remembered for next time
 

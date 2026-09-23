@@ -18,7 +18,10 @@ public enum ShortcutKind
     SelectSwitch,
 
     /// <summary>Reads the selected text aloud</summary>
-    ReadAloud
+    ReadAloud,
+
+    /// <summary>Shows the keyboard's own emoji in place of the letters</summary>
+    EmojiLayer
 }
 
 /// <summary>
@@ -104,7 +107,8 @@ public static class ShortcutCatalogue
         Make("align-left", ShortcutGroup.Style, "Left", '\uE8E4', "Line the text up on the left", VirtualKey.Control, K('l')),
 
         // Windows' emoji picker, for posters and messages
-        Make("emoji", ShortcutGroup.Tools, "Emoji", '\uE76E', "Pick an emoji", VirtualKey.LeftWindows, VirtualKey.OemPeriod),
+        // HIDra's own emoji keys: Windows' emoji panel takes the controller away
+        Make("emoji", ShortcutGroup.Tools, "Emoji", '\uE76E', "Pick an emoji") with { Kind = ShortcutKind.EmojiLayer },
         // Windows 11 Live Captions: words on screen for any sound - videos, calls
         Make("captions", ShortcutGroup.Tools, "Captions", '\uE7F0', "Show words for any sound on the PC", VirtualKey.LeftWindows, VirtualKey.Control, K('l')),
         // Windows voice typing: speak instead of type, into whatever has the cursor
