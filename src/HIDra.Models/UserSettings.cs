@@ -121,6 +121,18 @@ public class UserSettings
     /// The pointer's speed while Slow pointer is on, as a percentage of its normal speed
     /// </summary>
     public int SlowPointerPercent { get; set; } = 30;
+
+    /// <summary>
+    /// This student's shortcut keys, row by row, as the ids of the keys chosen: "" for a
+    /// slot left empty. Null for the standard set.
+    /// </summary>
+    public List<string>? ShortcutKeys { get; set; }
+
+    /// <summary>
+    /// The programs the Apps key offers this student, as program ids: "" for an empty
+    /// slot. Null for the standard choice.
+    /// </summary>
+    public List<string>? AppKeys { get; set; }
 }
 
 /// <summary>

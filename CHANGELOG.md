@@ -77,6 +77,25 @@ changed between them.
 - Slow pointer on the right stick (after Y swaps them) was the slow share instead of a
   share of the normal speed; it is now the same for both sticks.
 
+### Shortcut keys and apps chosen for each student
+
+HIDra is used by students with different needs - one is deaf, others rely on voice - so
+what is on the keyboard is now chosen per student rather than the same for everyone.
+
+- **Shortcut keys** (Keyboard tab): click a key in a copy of the four rows and pick
+  from that row's list, each with its icon and a line saying what it does - or leave the
+  place empty. Choices come from a fixed list of safe keys, never typed-in combinations.
+  Choosing a key already in the row swaps the two. **Back to standard** undoes it all.
+  New to the list: Captions (Windows Live Captions - words on screen for any sound),
+  Find, Clipboard history, Top and Bottom, Centre and Left, Print, Screen shot, Magnify
+  and Magnify off (Windows Magnifier), Desktop.
+- **The standard set** now has Captions in Tools, and Voice; Read aloud and Files are
+  there to add for the students who want them. The Typing guide only shows the Read
+  aloud card for a student who has the key.
+- **Apps key** (Keyboard tab): choose the six programs it offers, or leave places empty.
+  Excel, OneNote, Outlook, Firefox, Notepad and Calculator can be added to the original
+  six; only programs installed on the PC are offered.
+
 ## v1.6.0
 
 ### Keyboard that gets out of the way, and a slower start
