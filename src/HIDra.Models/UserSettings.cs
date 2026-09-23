@@ -92,4 +92,23 @@ public class UserSettings
     /// student who finds the extra keys too much.
     /// </summary>
     public bool ShowShortcuts { get; set; } = true;
+
+    /// <summary>
+    /// How much the sticks are smoothed to even out a wobble: 0 off, 1 a little, 2 more,
+    /// 3 most. More smoothing is steadier but lags a little behind the hand.
+    /// </summary>
+    public int StickSmoothing { get; set; } = 0;
+
+    public const int MaxStickSmoothing = 3;
+
+    /// <summary>
+    /// Seconds after letting go of a button during which pressing it again is ignored.
+    /// 0 is off.
+    /// </summary>
+    public float IgnoreRepeatSeconds { get; set; } = 0f;
+
+    /// <summary>
+    /// The Gentle pointer curve: slower for a small push, faster for a big one
+    /// </summary>
+    public bool GentleCurve { get; set; } = false;
 }

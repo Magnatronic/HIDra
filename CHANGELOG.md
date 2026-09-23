@@ -46,6 +46,26 @@ changed between them.
   € have keys of their own there. The keyboard always opens on the letters. With the
   number row gone the word suggestions are a step nearer, and the keyboard is shorter.
 
+### Steadier pointer, reading aloud, and trying settings out
+
+- **Smooth out wobbles** (Settings, Pointer): the sticks are averaged over a short time,
+  a little, more or most, so a shaky hand does not make a shaky pointer. Letting go
+  settles three times as fast as pushing builds up, so stopping on a target stays
+  prompt. It steadies the keyboard highlight and scrolling as well.
+- **Ignore quick repeat presses**: a press that starts within 0.2 to 0.75 seconds of
+  letting go of the same button is ignored until it is released - a tremor or a bounce,
+  not a decision. Off by default.
+- **Pointer feel: Steady or Gentle.** Steady is the slow, even speed there has always
+  been. Gentle is slower for a small push and faster for a big one - for creeping onto a
+  target and then crossing the screen quickly. Half a push, and full, are the same speed
+  either way.
+- **Read aloud**: a Read key in the keyboard's Tools row reads the selected text in any
+  program, with the voices built into Windows. Press it again to stop. Whatever was on
+  the clipboard is put back afterwards. It takes the place of Files, which Apps opens.
+- **Try it out**, beside the settings: circles of three sizes to click, counting hits and
+  misses; a box to type in; a list to scroll. On a narrower screen it moves below the
+  other settings.
+
 ## v1.6.0
 
 ### Keyboard that gets out of the way, and a slower start

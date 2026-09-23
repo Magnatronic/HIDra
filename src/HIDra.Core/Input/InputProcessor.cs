@@ -49,6 +49,14 @@ public class InputProcessor
         // 95% of stick range is slow and predictable, only the very edge accelerates
         float absValue = Math.Abs(value);
         float curved;
+
+        // Gentle: speed grows with the square of the push. Half a push is the same speed
+        // as Steady; less is slower, for creeping onto a target, and more is faster, for
+        // crossing the screen. Full stick is the same top speed either way.
+        if (_settings.GentleCurve)
+        {
+            return Math.Sign(value) * absValue * absValue * sensitivity;
+        }
         
         // First 95% of stick range uses linear movement at 0.5x speed
         if (absValue <= 0.95f)

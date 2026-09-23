@@ -67,4 +67,22 @@ public class InputSettings
     public bool EnableDwellClick { get; set; } = false;
 
     public float DwellClickSeconds { get; set; } = 1.0f;
+
+    /// <summary>
+    /// How long the sticks are averaged over to even out a wobble, in seconds. 0 is off.
+    /// </summary>
+    public float StickSmoothingSeconds { get; set; } = 0f;
+
+    /// <summary>
+    /// A press starting this soon after the same button was let go is ignored, in
+    /// seconds. 0 is off.
+    /// </summary>
+    public float IgnoreRepeatSeconds { get; set; } = 0f;
+
+    /// <summary>
+    /// The pointer's response to the stick. Off (Steady) keeps one slow, even speed for
+    /// almost all of the stick's travel; on (Gentle) is slower still for a small push and
+    /// faster for a big one, for precision near a target and speed across the screen.
+    /// </summary>
+    public bool GentleCurve { get; set; } = false;
 }

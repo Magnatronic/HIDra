@@ -61,7 +61,10 @@ namespace HIDra.UI
                 TriggerThreshold = 0.3f,            // 30% trigger press to activate
                 EnableGrid3AutoSuspend = _userSettings.EnableGrid3AutoSuspend, // Saved per student (default on)
                 EnableDwellClick = _userSettings.DwellClickEnabled,
-                DwellClickSeconds = _userSettings.DwellClickSeconds
+                DwellClickSeconds = _userSettings.DwellClickSeconds,
+                GentleCurve = _userSettings.GentleCurve,
+                StickSmoothingSeconds = SmoothingSeconds[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)],
+                IgnoreRepeatSeconds = _userSettings.IgnoreRepeatSeconds
             };
 
             // Hardcoded button mappings - cannot be accidentally changed
@@ -152,6 +155,7 @@ namespace HIDra.UI
 
             RefreshSettingsDisplay();
             InitializeGuide();
+            InitializeTryItOut();
             InitializeTrayIcon();
             StartEngine();
         }
@@ -507,6 +511,7 @@ namespace HIDra.UI
                 _virtualKeyboard.KeyPressed += OnVirtualKeyboardKeyPressed;
                 _virtualKeyboard.TextEntered += OnVirtualKeyboardTextEntered;
                 _virtualKeyboard.KeyComboPressed += OnVirtualKeyboardKeyCombo;
+                _virtualKeyboard.ReadAloudRequested += OnReadAloudRequested;
 
                 // Tie D-pad routing to whether the keyboard is actually on screen.
                 // Setting the flag only where it is toggled would strand it: the
@@ -748,6 +753,141 @@ namespace HIDra.UI
         }
 
         // ---------------------------------------------------------------------------
+        // Try it out
+        //
+        // Beside the settings, so a change can be tried straight away: circles to click,
+        // for pointer speed, feel, smoothing and click by resting; a box to type in, for
+        // the keyboard; a list to scroll, for scroll speed. Nothing here is saved.
+        // ---------------------------------------------------------------------------
+
+        private readonly Random _random = new();
+        private readonly List<Border> _targets = new();
+        private int _hits;
+        private int _misses;
+
+        private void InitializeTryItOut()
+        {
+            // Big, middling and small: the small one is the size of an ordinary button
+            foreach (double size in new[] { 110.0, 72.0, 44.0 })
+            {
+                var target = new Border
+                {
+                    Width = size,
+                    Height = size,
+                    CornerRadius = new CornerRadius(size / 2),
+                    Background = OffBrush,
+                    BorderBrush = (Brush)FindResource("AccentBrush"),
+                    BorderThickness = new Thickness(3),
+                    Cursor = System.Windows.Input.Cursors.Hand
+                };
+                target.MouseEnter += (_, _) => target.Background = OnBrush;
+                target.MouseLeave += (_, _) => target.Background = OffBrush;
+                target.MouseLeftButtonDown += (_, e) =>
+                {
+                    e.Handled = true;
+                    _hits++;
+                    target.Background = OffBrush;
+                    Place(target);
+                    ShowTargetScore();
+                };
+                _targets.Add(target);
+                TargetCanvas.Children.Add(target);
+            }
+
+            for (int i = 1; i <= 40; i++)
+            {
+                TryScrollList.Children.Add(new TextBlock
+                {
+                    Text = $"Line {i}",
+                    FontSize = 17,
+                    Foreground = Brushes.White,
+                    Margin = new Thickness(0, 3, 0, 3)
+                });
+            }
+
+            ShowTargetScore();
+        }
+
+        // Below this width three columns of settings get cramped enough that their hints
+        // wrap into columns of single words
+        private const double ThreeColumnSettingsWidth = 1500;
+
+        private void SettingsPage_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            bool narrow = e.NewSize.Width < ThreeColumnSettingsWidth;
+
+            Grid.SetRow(TryItPanel, narrow ? 1 : 0);
+            Grid.SetColumn(TryItPanel, narrow ? 0 : 4);
+            Grid.SetColumnSpan(TryItPanel, narrow ? 3 : 1);
+            TryItGap.Width = new GridLength(narrow ? 0 : 16);
+            TryItColumn.Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        }
+
+        private void TargetCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            foreach (var target in _targets)
+            {
+                Place(target);
+            }
+        }
+
+        private void TargetArea_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            _misses++;
+            ShowTargetScore();
+        }
+
+        private void TargetReset_Click(object sender, RoutedEventArgs e)
+        {
+            _hits = _misses = 0;
+            foreach (var target in _targets)
+            {
+                Place(target);
+            }
+            ShowTargetScore();
+        }
+
+        private void ShowTargetScore() =>
+            TargetScore.Text = $"Hits {_hits}    Misses {_misses}";
+
+        /// <summary>
+        /// Somewhere new in the box, clear of the other circles
+        /// </summary>
+        private void Place(Border target)
+        {
+            double width = TargetCanvas.ActualWidth, height = TargetCanvas.ActualHeight;
+            if (width <= 0 || height <= 0)
+            {
+                return;
+            }
+
+            for (int attempt = 0; attempt < 30; attempt++)
+            {
+                double x = _random.NextDouble() * Math.Max(0, width - target.Width);
+                double y = _random.NextDouble() * Math.Max(0, height - target.Height);
+                var spot = new Rect(x, y, target.Width, target.Height);
+                spot.Inflate(12, 12);
+
+                bool clear = true;
+                foreach (var other in _targets)
+                {
+                    if (other != target && spot.IntersectsWith(new Rect(Canvas.GetLeft(other), Canvas.GetTop(other), other.Width, other.Height)))
+                    {
+                        clear = false;
+                        break;
+                    }
+                }
+
+                if (clear || attempt == 29)
+                {
+                    Canvas.SetLeft(target, x);
+                    Canvas.SetTop(target, y);
+                    return;
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------------
         // Settings on the main screen
         //
         // Every change takes effect at once, is saved for this student straight away,
@@ -876,6 +1016,46 @@ namespace HIDra.UI
         private void Grid3Toggle_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.EnableGrid3AutoSuspend = !s.EnableGrid3AutoSuspend);
 
+        private void CurveSteady_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.GentleCurve = false);
+
+        private void CurveGentle_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.GentleCurve = true);
+
+        private void SmoothingLess_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.StickSmoothing = Math.Max(0, s.StickSmoothing - 1));
+
+        private void SmoothingMore_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.StickSmoothing = Math.Min(UserSettings.MaxStickSmoothing, s.StickSmoothing + 1));
+
+        private void RepeatShorter_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.IgnoreRepeatSeconds = StepRepeat(s.IgnoreRepeatSeconds, longer: false));
+
+        private void RepeatLonger_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.IgnoreRepeatSeconds = StepRepeat(s.IgnoreRepeatSeconds, longer: true));
+
+        /// <summary>
+        /// How long each smoothing step averages the sticks over, in seconds. A tenth of
+        /// a second is already a noticeable steadying; much past a fifth, the pointer
+        /// feels as if it is being towed.
+        /// </summary>
+        private static readonly float[] SmoothingSeconds = { 0f, 0.06f, 0.12f, 0.2f };
+        private static readonly string[] SmoothingNames = { "Off", "A little", "More", "Most" };
+
+        /// <summary>
+        /// The windows a repeat press can be ignored for. A tremor or bounce comes within
+        /// a few tenths of a second; much longer would swallow presses meant twice.
+        /// </summary>
+        private static readonly float[] RepeatSteps = { 0f, 0.2f, 0.3f, 0.5f, 0.75f };
+
+        private static float StepRepeat(float current, bool longer)
+        {
+            int index = Array.FindIndex(RepeatSteps, v => v >= current - 0.001f);
+            if (index < 0) index = RepeatSteps.Length - 1;
+            index = Math.Clamp(index + (longer ? 1 : -1), 0, RepeatSteps.Length - 1);
+            return RepeatSteps[index];
+        }
+
         private void ChangeSettings(Action<UserSettings> change)
         {
             change(_userSettings);
@@ -897,6 +1077,9 @@ namespace HIDra.UI
                 input.EnableGrid3AutoSuspend = _userSettings.EnableGrid3AutoSuspend;
                 input.EnableDwellClick = _userSettings.DwellClickEnabled;
                 input.DwellClickSeconds = _userSettings.DwellClickSeconds;
+                input.GentleCurve = _userSettings.GentleCurve;
+                input.StickSmoothingSeconds = SmoothingSeconds[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)];
+                input.IgnoreRepeatSeconds = _userSettings.IgnoreRepeatSeconds;
             }
 
             if (_virtualKeyboard != null)
@@ -957,6 +1140,11 @@ namespace HIDra.UI
             DwellClickValue.Text = $"{_userSettings.DwellClickSeconds:0.0#} s";
             KeyboardDwellValue.Text = $"{_userSettings.KeyboardDwellSeconds:0.0#} s";
 
+            CurveSteadyButton.Background = _userSettings.GentleCurve ? OffBrush : OnBrush;
+            CurveGentleButton.Background = _userSettings.GentleCurve ? OnBrush : OffBrush;
+            SmoothingValue.Text = SmoothingNames[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)];
+            IgnoreRepeatValue.Text = _userSettings.IgnoreRepeatSeconds <= 0 ? "Off" : $"{_userSettings.IgnoreRepeatSeconds:0.0#} s";
+
             ShowToggle(DwellClickToggle, _userSettings.DwellClickEnabled);
             ShowToggle(KeyboardDwellToggle, _userSettings.KeyboardDwellEnabled);
             ShowToggle(StopWindowsKeyboardToggle, _userSettings.StopWindowsKeyboard);
@@ -1007,6 +1195,14 @@ namespace HIDra.UI
             _engine?.SendKeyCombo(keys);
         }
 
+        private ReadAloud? _readAloud;
+
+        private async void OnReadAloudRequested(object? sender, EventArgs e)
+        {
+            _readAloud ??= new ReadAloud();
+            await _readAloud.ReadSelectionAsync(keys => _engine?.SendKeyCombo(keys));
+        }
+
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             // Closing the window must not end the session. Pressing the X used to shut
@@ -1025,6 +1221,7 @@ namespace HIDra.UI
             _startRetryTimer?.Stop();
             UserSettingsStore.Save(_userSettings);
             _virtualKeyboard?.Close();
+            _readAloud?.Dispose();
             _modeToast?.Close();
             _dwellRing?.Close();
             _engine?.Stop();
