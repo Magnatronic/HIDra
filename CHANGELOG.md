@@ -4,7 +4,10 @@ HIDra is distributed as a folder that gets copied onto machines and USB sticks, 
 version number is often the only way to tell two copies apart. This file says what
 changed between them.
 
-## Unreleased
+## v1.7.1
+
+For the PCs HIDra runs on: settings that cannot be half-saved, and ways to see why HIDra
+is not starting.
 
 ### Safer settings, and a record when something goes wrong
 

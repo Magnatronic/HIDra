@@ -268,5 +268,5 @@ Need help?
 
 VERSION INFORMATION
 -------------------
-HIDra v1.7.0
+HIDra v1.7.1
 
