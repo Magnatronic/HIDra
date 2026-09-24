@@ -41,7 +41,7 @@ REM of a minute, and with nothing on screen that looked exactly like a hang.
 set "COMMON=-c Release -p:DebugType=None -p:DebugSymbols=false -v m --nologo"
 
 REM ---------------------------------------------------------------------------
-REM 1. Network share - the one for college PCs.
+REM 1. Network share - the one for shared or managed PCs.
 REM
 REM Self-contained, so nothing needs installing. All managed code is bundled into
 REM HIDra.UI.exe (one network read instead of ~480), while WPF's five native DLLs sit
@@ -78,7 +78,7 @@ echo [3/3] Needs .NET 10...
     -o "%OUT%\Needs-dotNET-10"
 if errorlevel 1 goto :failed
 
-REM The guide travels with every build. Whoever copies HIDra onto a college machine is
+REM The guide travels with every build. Whoever copies HIDra onto a shared machine is
 REM usually not the person using the controller, and each folder often goes on its own.
 for %%F in (Network-share USB-portable Needs-dotNET-10) do copy /y "%~dp0QUICK-GUIDE.txt" "%OUT%\%%F\QUICK-GUIDE.txt" >nul
 copy /y "%~dp0build\README-FIRST.txt" "%OUT%\README-FIRST.txt" >nul
@@ -86,7 +86,7 @@ copy /y "%~dp0build\README-FIRST.txt" "%OUT%\README-FIRST.txt" >nul
 echo.
 echo Done: release\HIDra-v%VERSION%
 echo   README-FIRST.txt   which one to use
-echo   Network-share\     for college PCs running HIDra from the network
+echo   Network-share\     for shared or managed PCs running HIDra from the network
 echo   USB-portable\      for a USB stick or a PC where nothing can be installed
 echo   Needs-dotNET-10\   smallest, for PCs with the .NET 10 Desktop Runtime
 call :pause_if_double_clicked

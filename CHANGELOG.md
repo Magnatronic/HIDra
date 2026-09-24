@@ -138,13 +138,13 @@ Included in v1.7.0 above.
 
 ### Keyboard that gets out of the way, and a slower start
 
-From watching a student type into PowerPoint: the cursor was far too fast at first, and
-the keyboard sat over the very text she was typing, with no way to move it.
+From watching someone type into PowerPoint: the cursor was far too fast at first, and
+the keyboard sat over the very text being typed, with no way to move it.
 
 - **The cursor starts slow (15%) and remembers its speed.** It previously started at
   50% and forgot any change on restart. Speeds are shown as percentages, from 5% to
   100%, in 1% steps below 20% where a small change matters most, then 5% and 10%.
-- **Settings are remembered per student** in `%APPDATA%\HIDra\settings.json`: cursor
+- **Settings are remembered per person** in `%APPDATA%\HIDra\settings.json`: cursor
   speed, keyboard position and the Grid 3 option. A missing or damaged file falls back
   to the defaults.
 - **The Left Trigger moves the keyboard** between the top and bottom of the screen, and
@@ -154,7 +154,7 @@ the keyboard sat over the very text she was typing, with no way to move it.
   completions of the word being typed, or the likely next word after a space. A types
   the rest of the word and a space; B does the same with a capital. They come from the
   prediction engine built into Windows, so there is nothing to install - which matters
-  on college machines. The keyboard cannot see the document, so suggestions start
+  on managed machines. The keyboard cannot see the document, so suggestions start
   fresh after arrows, Home, End, Tab or a Ctrl shortcut rather than guessing.
 - **Dwell, for anyone who finds pressing a button hard.** *Click by resting* clicks once
   when the cursor stops moving, and not again until it moves. *Type by resting* types the
@@ -169,7 +169,7 @@ the keyboard sat over the very text she was typing, with no way to move it.
 - **Automatic capitals.** The first letter of a sentence, and "I" (including I'm, I'll),
   get a capital without Shift or B. The letter keys show capitals when one is due.
   Pressing B first gives a small letter instead. On by default.
-- **Phrases.** Staff type up to six of the student's own phrases on the main screen -
+- **Phrases.** Up to six of the person's own phrases can be typed on the main screen -
   a name, an email address, sentences used often. The Phrases key at the start of the
   suggestion row swaps the suggestions for them, and one press types the whole phrase.
 - **Keyboard size**, from 80% to 150%, never wider than the screen.
@@ -181,8 +181,8 @@ the keyboard sat over the very text she was typing, with no way to move it.
   PowerPoint (new slide, slideshow...), Word (heading, bullets...), a web browser
   (back, new tab, find...), File Explorer (up a folder, new folder, rename...).
   Each key shows an icon above its word - the same icons as PowerPoint's and Word's
-  own buttons - since the student uses AAC and finds pictures quicker than words.
-  The panel can be switched off on the main screen for a student who finds it too
+  own buttons - for anyone who uses AAC and finds pictures quicker than words.
+  The panel can be switched off on the main screen for anyone who finds it too
   much. The suggestion row now runs the full width.
 - **Selecting text.** A Select key works as a switch: while it is on (green), the
   arrows, Home, End and the word keys highlight text as they move, instead of needing
@@ -198,8 +198,8 @@ the keyboard sat over the very text she was typing, with no way to move it.
   minimum or during a dwell countdown, and while faded clicks pass through it to the text
   underneath. Off by default; the delay and how faint it goes are on the main screen.
   The keyboard no longer has a Windows title bar, which is what allows it to fade.
-- **Settings follow the student across PCs.** HIDra is usually run from a network share
-  at logon, so settings go to the student's home drive when there is one, or wherever
+- **Settings follow the person across PCs.** HIDra is usually run from a network share
+  at logon, so settings go to their home drive when there is one, or wherever
   IT points them with `HIDra-settings-folder.txt`, falling back to AppData. The main
   screen shows where they are saved.
 - **One main screen.** The Help and Settings windows are gone. The main screen shows a
@@ -208,7 +208,7 @@ the keyboard sat over the very text she was typing, with no way to move it.
 - **Windows' own keyboard is kept out of the way.** With a controller connected, Windows
   opens its gamepad keyboard whenever a text box gets focus - in the Start menu search,
   for example - and it takes over the controller. HIDra switches that off for the
-  student (an option, on by default) and puts their own setting back if it is turned off.
+  person (an option, on by default) and puts their own setting back if it is turned off.
 - **HIDra has its own icon** - a controller on its side, forming a B - for the program,
   the window and the notification area.
 

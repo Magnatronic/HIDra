@@ -3,34 +3,34 @@
 Control Windows with an Xbox controller. Simple, reliable, zero-config.
 
 ## Features
-- Mouse with Left Stick (slow by default; speed is set in Settings, Pointer and remembered per student)
+- Mouse with Left Stick (slow by default; speed is set in Settings, Pointer and remembered per person)
 - Scroll with Right Stick
 - DPad window management: Up = Maximize, Down = Minimize, Left/Right = Snap
 - X toggles onscreen keyboard (UK layout, large keys in straight columns, numbers and symbols on a second layer behind 123 #+); left stick moves the highlight, A types, B gives the shifted symbol or capital - no aiming needed
 - Six word suggestions on the keyboard, from the prediction engine built into Windows - nothing extra to install
 - Dwell: click by resting the cursor (a ring by the cursor fills as the click approaches), and type by resting the keyboard highlight (both optional)
-- Keyboard extras: automatic capitals, the student's own phrases on a Phrases key, and an adjustable size
+- Keyboard extras: automatic capitals, your own phrases on a Phrases key, and an adjustable size
 - A shortcut panel on the keyboard, with icons, in labelled rows - Edit (Undo, Copy, Paste...), Select (a Select switch for highlighting text, word moves), Sound (Play, Quieter, Louder, Mute, Captions), Tools (voice typing, Save, Snip, Find, Print) - and a row that follows the program in front (PowerPoint and Word with Bold and other formatting, web browser, File Explorer); it can be switched off
 - The keyboard is laid out like controller keyboards: equal-size keys with the letters in QWERTY order in straight columns (so up and down always go straight), the arrows as an inverted T, each symbol once on the 123 #+ layer, and an emoji key beside 123
 - The most used emoji, in colour (Microsoft Fluent Emoji, MIT licence), from the emoji key
 - A High contrast option: black and white, with thicker borders and highlight, on the keyboard and the main screen
 - The Apps key starts with Edge, Word, PowerPoint, Outlook (classic or new), File Explorer and Teams, whichever are installed
-- Shortcut keys and the Apps key's programs are chosen per student in Settings, from a fixed list of safe keys (Read aloud, Print, Magnify, Clipboard history, Find...) and any program on the Start menu, Store apps such as the new Outlook included, with a Find box; a place can be left empty
+- Shortcut keys and the Apps key's programs are chosen per person in Settings, from a fixed list of safe keys (Read aloud, Print, Magnify, Clipboard history, Find...) and any program on the Start menu, Store apps such as the new Outlook included, with a Find box; a place can be left empty
 - While the keyboard is open, LB types Backspace, RB Space and Y Enter, from wherever the highlight is; D-pad left and right move the text cursor, pressing the left stick in swaps to numbers and symbols, Start is Caps Lock and Back is Escape
-- Read aloud: a Read key (added per student) reads the selected text in any program, with the voices built into Windows
+- Read aloud: a Read key (added per person) reads the selected text in any program, with the voices built into Windows
 - For unsteady hands: stick smoothing, ignoring a repeat press that comes too soon after letting go, and a Gentle pointer curve (slower for a small push, faster for a big one)
-- Settings can be exported from one student and imported for another, as a starting point
+- Settings can be exported from one person and imported for another, as a starting point
 - Windows' own tools can go on a button: voice typing, live captions, the Magnifier (on and off), HIDra's emoji keys, snip, clipboard history, find, save, File Explorer, show desktop, back a page, page up and down, and the volume
-- Button jobs chosen per student in Settings, Buttons, by clicking the button on a drawing of the controller and picking from a fixed list; Back + Start held together, a button that clicks and a button that opens the keyboard can never be lost, and the Guide always names the buttons this student has
-- Practice tests that measure progress: a pointer test (twelve circles in fixed places, some needing a scroll to reach, shrinking as accuracy improves; time, misses, overshoots and a Fitts's-law speed score) and a typing test (words, phrases or sentences, the box sometimes where the keyboard covers it; letters a minute, wrong letters and corrections). Every run is kept per student and can be saved as a spreadsheet for reviews
+- Button jobs chosen per person in Settings, Buttons, by clicking the button on a drawing of the controller and picking from a fixed list; Back + Start held together, a button that clicks and a button that opens the keyboard can never be lost, and the Guide always names the buttons this person has
+- Practice tests that measure progress: a pointer test (twelve circles in fixed places, some needing a scroll to reach, shrinking as accuracy improves; time, misses, overshoots and a Fitts's-law speed score) and a typing test (words, phrases or sentences, the box sometimes where the keyboard covers it; letters a minute, wrong letters and corrections). Every run is kept per person and can be saved as a spreadsheet for reviews
 - While the keyboard is open, the right stick jumps between its parts: up to the word row, right to the shortcuts, back to the letters
 - One main screen with three tabs: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks; **Practice** - the pointer and typing tests and a record of every run; and **Settings**, with a list down the left: Buttons, Pointer, Keyboard, Shortcut keys, Apps, Phrases and General. The screen is one fixed layout scaled to fill any screen, so it looks the same on every PC
-- LT moves the keyboard while it is open, so it never has to cover your work: a tap flips it between the top and bottom of the screen, and holding LT while pushing the left stick drags it anywhere. While it is closed, LT does a job chosen per student, from the same list as the other buttons: Escape by default
+- LT moves the keyboard while it is open, so it never has to cover your work: a tap flips it between the top and bottom of the screen, and holding LT while pushing the left stick drags it anywhere. While it is closed, LT does a job chosen per person, from the same list as the other buttons: Escape by default
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (LB again moves along, A switches, B cancels)
 - Start opens Task View; Back opens Start menu
-- No configuration files - sensible defaults are baked in; every setting on the main screen is remembered per student (see *Where settings are saved*)
-- Stops Windows' own gamepad keyboard popping up and taking over the controller (optional, on by default; puts the student's own Windows setting back if turned off)
+- No configuration files - sensible defaults are baked in; every setting on the main screen is remembered per person (see *Where settings are saved*)
+- Stops Windows' own gamepad keyboard popping up and taking over the controller (optional, on by default; puts the person's own Windows setting back if turned off)
 
 ## Reliability
 HIDra is intended to be the only way its user can operate the computer, so it is built
@@ -50,18 +50,18 @@ not to leave them stranded:
   or mouse buttons are released, so a stuck Alt key cannot lock up the machine.
 
 ## Where settings are saved
-HIDra is often run from a network share at logon, so each student's settings are kept
-somewhere that follows the student, not the PC. The first of these that can be written
+HIDra is often run from a network share at logon, so each person's settings are kept
+somewhere that follows them, not the PC. The first of these that can be written
 to is used, and the main screen shows which:
 
 1. The folder named in `HIDra-settings-folder.txt`, if that file sits beside `HIDra.UI.exe`.
    One line, environment variables allowed - for example `H:\HIDra` or
    `\\server\hidra-settings\%USERNAME%`. Lines starting with `#` are ignored.
-2. The student's network home drive, if Windows reports one: `%HOMESHARE%\HIDra`.
-3. `%APPDATA%\HIDra` - which also follows the student where the college uses roaming
+2. The person's network home drive, if Windows reports one: `%HOMESHARE%\HIDra`.
+3. `%APPDATA%\HIDra` - which also follows the person where the network uses roaming
    profiles or folder redirection.
 
-The student's practice is kept in `practice.json` in the same folder. It is not part of
+Their practice is kept in `practice.json` in the same folder. It is not part of
 an exported settings file.
 
 Settings found in `%APPDATA%\HIDra` are carried over the first time a better location
@@ -74,7 +74,7 @@ is used, so moving them never loses anything.
 
 ## Button Mapping
 The default jobs. Any button except the sticks and RT can be given a different job
-for a student, in Settings, Buttons.
+for each person, in Settings, Buttons.
 
 - A: Left click
 - B: Right click
@@ -104,7 +104,7 @@ Everything lands in one folder, named with the version from `HIDra.UI.csproj`:
 ```
 release\HIDra-v1.7.0\
   README-FIRST.txt     which one to use, for whoever installs it
-  Network-share\       the exe and 5 DLLs - for college PCs running HIDra from a share (recommended)
+  Network-share\       the exe and 5 DLLs - for shared or managed PCs running HIDra from a share (recommended)
   USB-portable\        ~480 files - for a USB stick or a PC where nothing can be installed
   Needs-dotNET-10\     the exe only - smallest; only where the .NET 10 Desktop Runtime is installed
 ```
@@ -115,7 +115,7 @@ All three are the same program; they differ only in how it is put onto a machine
 **Why no single self-contained exe.** A normal single-file build unpacks WPF's native
 libraries to `%TEMP%\.net` on every launch, and managed environments routinely block
 running anything from user-writable paths - so it would fail on exactly the locked-down
-college machines HIDra is for. *Network-share* bundles all the managed code into the exe
+machines HIDra is often used on. *Network-share* bundles all the managed code into the exe
 but leaves those five native DLLs beside it, so nothing is unpacked: one network read
 instead of ~480, and `%TEMP%\.net` is never touched (checked, not assumed). Keep the six
 files together. *Needs-dotNET-10* is a true single file safely, because everything it

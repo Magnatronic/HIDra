@@ -4,8 +4,8 @@ HIDra - which folder do I use?
 There are three copies of HIDra here. They all do exactly the same thing - they
 only differ in how they are put onto a computer. Pick ONE.
 
-  Network-share\      For college PCs, run from a network share when a student
-                      logs on. RECOMMENDED for college.
+  Network-share\      For shared or managed PCs, run from a network share when
+                      someone logs on. RECOMMENDED for most networks.
                       Copy the whole folder to the share and run HIDra.UI.exe
                       from there. Nothing needs installing on the PCs.
 
@@ -20,14 +20,14 @@ only differ in how they are put onto a computer. Pick ONE.
 Each folder has its own QUICK-GUIDE.txt explaining the controller buttons.
 
 
-Where each student's settings are saved
----------------------------------------
-Settings follow the student, not the PC. HIDra uses the first of these it can
+Where each person's settings are saved
+--------------------------------------
+Settings follow the person, not the PC. HIDra uses the first of these it can
 write to, and shows which at the bottom of its main screen:
 
   1. A folder named in a file called HIDra-settings-folder.txt, placed next to
      HIDra.UI.exe. One line, for example:   H:\HIDra
      or, on a shared folder:                \\server\hidra-settings\%USERNAME%
-  2. The student's network home drive, if they have one (%HOMESHARE%\HIDra).
-  3. %APPDATA%\HIDra on the PC - which also follows the student if the college
+  2. Their network home drive, if they have one (%HOMESHARE%\HIDra).
+  3. %APPDATA%\HIDra on the PC - which also follows the person if the network
      uses roaming profiles.
