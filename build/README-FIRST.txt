@@ -6,7 +6,7 @@ only differ in how they are put onto a computer. Pick ONE.
 
   Network-share\      For college PCs, run from a network share when a student
                       logs on. RECOMMENDED for college.
-                      Copy all 6 files together to the share and run HIDra.UI.exe
+                      Copy the whole folder to the share and run HIDra.UI.exe
                       from there. Nothing needs installing on the PCs.
 
   USB-portable\       For a USB stick, or a single PC where nothing can be

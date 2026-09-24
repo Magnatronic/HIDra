@@ -3,7 +3,7 @@
 Control Windows with an Xbox controller. Simple, reliable, zero-config.
 
 ## Features
-- Mouse with Left Stick (slow by default; speed is set on the main screen and remembered per student)
+- Mouse with Left Stick (slow by default; speed is set in Settings, Pointer and remembered per student)
 - Scroll with Right Stick
 - DPad window management: Up = Maximize, Down = Minimize, Left/Right = Snap
 - X toggles onscreen keyboard (UK layout, large keys in straight columns, numbers and symbols on a second layer behind 123 #+); left stick moves the highlight, A types, B gives the shifted symbol or capital - no aiming needed
@@ -24,12 +24,10 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - Button jobs chosen per student in Settings, Buttons, by clicking the button on a drawing of the controller and picking from a fixed list; Back + Start held together, a button that clicks and a button that opens the keyboard can never be lost, and the Guide always names the buttons this student has
 - Practice tests that measure progress: a pointer test (twelve circles in fixed places, some needing a scroll to reach, shrinking as accuracy improves; time, misses, overshoots and a Fitts's-law speed score) and a typing test (words, phrases or sentences, the box sometimes where the keyboard covers it; letters a minute, wrong letters and corrections). Every run is kept per student and can be saved as a spreadsheet for reviews
 - While the keyboard is open, the right stick jumps between its parts: up to the word row, right to the shortcuts, back to the letters
-- An Apps key that opens PowerPoint, Word, Edge and other installed programs in one press
 - One main screen with three tabs: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks; **Practice** - the pointer and typing tests and a record of every run; and **Settings**, with a list down the left: Buttons, Pointer, Keyboard, Shortcut keys, Apps, Phrases and General. The screen is one fixed layout scaled to fill any screen, so it looks the same on every PC
-- HIDra's keyboard has its own emoji keys, reached from the Emoji shortcut key or an Emoji button job
-- LT moves the keyboard while it is open, so it never has to cover your work: a tap flips it between the top and bottom of the screen, and holding LT while pushing the left stick drags it anywhere. While it is closed, LT does a job chosen per student: Escape (the default), any other button job, zoom in and out with Windows Magnifier, or a slow pointer switched on and off
+- LT moves the keyboard while it is open, so it never has to cover your work: a tap flips it between the top and bottom of the screen, and holding LT while pushing the left stick drags it anywhere. While it is closed, LT does a job chosen per student, from the same list as the other buttons: Escape by default
 - Y swaps cursor/scroll sticks
-- RB double-click; LB opens the window switcher (A confirms, B cancels)
+- RB double-click; LB opens the window switcher (LB again moves along, A switches, B cancels)
 - Start opens Task View; Back opens Start menu
 - No configuration files - sensible defaults are baked in; every setting on the main screen is remembered per student (see *Where settings are saved*)
 - Stops Windows' own gamepad keyboard popping up and taking over the controller (optional, on by default; puts the student's own Windows setting back if turned off)
@@ -106,13 +104,13 @@ Everything lands in one folder, named with the version from `HIDra.UI.csproj`:
 ```
 release\HIDra-v1.7.0\
   README-FIRST.txt     which one to use, for whoever installs it
-  Network-share\       6 files  - for college PCs running HIDra from a share (recommended)
+  Network-share\       the exe and 5 DLLs - for college PCs running HIDra from a share (recommended)
   USB-portable\        ~480 files - for a USB stick or a PC where nothing can be installed
-  Needs-dotNET-10\     1 file   - smallest; only where the .NET 10 Desktop Runtime is installed
+  Needs-dotNET-10\     the exe only - smallest; only where the .NET 10 Desktop Runtime is installed
 ```
 
-Each has its own `QUICK-GUIDE.txt`. All three are the same program; they differ only in
-how it is put onto a machine.
+Each also has its own `QUICK-GUIDE.txt`, and the emoji images' licence in `Emoji\`.
+All three are the same program; they differ only in how it is put onto a machine.
 
 **Why no single self-contained exe.** A normal single-file build unpacks WPF's native
 libraries to `%TEMP%\.net` on every launch, and managed environments routinely block
@@ -130,7 +128,7 @@ For day-to-day development, `dotnet run --project src/HIDra.UI` runs it straight
 2) Confirm the window title reads: "HIDra - Controller to Mouse/Keyboard"
 3) Move the cursor with the Left Stick; scroll with the Right Stick
 4) Press X to open the keyboard; push up to the green row and check word suggestions appear
-5) Change the cursor speed on the main screen, restart HIDra, and check it was remembered
+5) Change the pointer speed in Settings, Pointer, restart HIDra, and check it was remembered
 
 ## License
 MIT - see `LICENSE`.

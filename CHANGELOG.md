@@ -6,264 +6,131 @@ changed between them.
 
 ## v1.7.0
 
-The 1.6.0 in the source was never tagged or published, so this release carries that
-work as well as the redesign that followed it.
+A redesign from top to bottom, shaped by watching HIDra used and testing it on a real
+controller. The 1.6.0 in the source was never tagged or published, so this release
+carries that work too (below).
 
-### Orange, and fewer trips across the keyboard
+### The main screen
 
-- **Orange is the one accent colour** - the student's favourite. An orange border shows
-  where you are (the keyboard highlight, which was yellow, and the setting under the
-  pointer); an orange fill shows something is on (toggles, Shift, Ctrl, Caps, Select,
-  which were a mix of green and blue). Warnings such as a low battery are now yellow,
-  so they cannot be mistaken for it.
-- **LB, RB and Y type Backspace, Space and Enter** while the keyboard is open, from
-  wherever the highlight is. After letters these are the keys used most, and each sat
-  at the edge of the board. The keys show LB, RB and Y on them. Their usual jobs come
-  back when the keyboard closes.
-- **The shortcut panel is in labelled rows**: Edit, Select, Style and Tools, each its
-  own colour, and a bottom row named for the program in front (Slides, Word, Web,
-  Folders). The keys used to run in no particular order. Underline is new; the
-  whole-screen screenshot key is gone, as Snip does the same job and puts the picture
-  where it can be pasted.
-- **The keyboard is laid out like a keyboard.** Each row starts further in than the
-  one above, as on any real keyboard, instead of fourteen equal keys stacked in a grid.
-  Space, Enter and Backspace are the biggest keys, since after letters they are typed
-  most.
-- **The main screen has two tabs: Guide and Settings.** It opens maximised, on the Guide.
-  - **Guide**, for the student: a controller drawing labelled with what every button
-    does. A switch shows the buttons "using the pointer" or "typing"; it follows the
-    keyboard opening and closing, and staff can flip it to look ahead. Y swapping the
-    sticks swaps their labels too. Every control lights up orange, with its label,
-    while it is pressed - so the student can press a button to find out what it does,
-    and staff can see at once that the controller is working. Beside it, "How do I...":
-    click, type, type faster, numbers and symbols, open a program, switch programs,
-    copy and paste, move the keyboard - a line or two each, with the buttons drawn in
-    their controller colours.
-  - **Settings**, for staff: every setting, grouped into Pointer, Keyboard, Phrases and
-    Windows, each saying which button it goes with.
-  - Whether the controller is connected, the battery, and Pause stay above both.
-- **Numbers and symbols are on a second layer**, behind a 123 #+ key, as on a phone.
-  The number row and the symbols typed least ([ ] \ ; # = and Caps, Win, PgUp, PgDn)
-  took a full key each on the way to the letters. They now share the letters' places,
-  and every key round the edge stays where it is on both layers. ! @ £ & ( ) : " and
-  € have keys of their own there. The keyboard always opens on the letters. With the
-  number row gone the word suggestions are a step nearer, and the keyboard is shorter.
-
-### Steadier pointer, reading aloud, and trying settings out
-
-- **Smooth out wobbles** (Settings, Pointer): the sticks are averaged over a short time,
-  a little, more or most, so a shaky hand does not make a shaky pointer. Letting go
-  settles three times as fast as pushing builds up, so stopping on a target stays
-  prompt. It steadies the keyboard highlight and scrolling as well.
-- **Ignore quick repeat presses**: a press that starts within 0.2 to 0.75 seconds of
-  letting go of the same button is ignored until it is released - a tremor or a bounce,
-  not a decision. Off by default.
-- **Pointer feel: Steady or Gentle.** Steady is the slow, even speed there has always
-  been. Gentle is slower for a small push and faster for a big one - for creeping onto a
-  target and then crossing the screen quickly. Half a push, and full, are the same speed
-  either way.
-- **Read aloud**: a Read key in the keyboard's Tools row reads the selected text in any
-  program, with the voices built into Windows. Press it again to stop. Whatever was on
-  the clipboard is put back afterwards. It takes the place of Files, which Apps opens.
-- **Four tabs.** Guide and Practice for the student; Controller and Keyboard, set apart
-  under "Settings", for staff. **Practice** has circles of three sizes to click, counting
-  hits and misses, a box to type in and a list to scroll - for the student, and for
-  staff to try a setting straight after changing it.
-- **LT has a job while the keyboard is closed**, chosen per student on the Controller
-  tab: **Zoom** (Windows Magnifier, the default - LT zooms in around the pointer, LT
-  again zooms out), **Escape**, **Slow pointer** (switched on and off, never held, at a
-  chosen share of normal speed), or **Nothing**. Each shows what it did on screen. While
-  the keyboard is open LT still moves it. The Guide's LT label and a "How do I..." card
-  follow the choice.
-- **Export and import settings** on the Controller tab, to give another student the same
-  starting point. Windows' own keyboard setting, which belongs to the PC, is not copied.
-- Slow pointer on the right stick (after Y swaps them) was the slow share instead of a
-  share of the normal speed; it is now the same for both sticks.
-
-### Shortcut keys and apps chosen for each student
-
-HIDra is used by students with different needs - one is deaf, others rely on voice - so
-what is on the keyboard is now chosen per student rather than the same for everyone.
-
-- **Shortcut keys** (Keyboard tab): click a key in a copy of the four rows and pick
-  from that row's list, each with its icon and a line saying what it does - or leave the
-  place empty. Choices come from a fixed list of safe keys, never typed-in combinations.
-  Choosing a key already in the row swaps the two. **Back to standard** undoes it all.
-  New to the list: Captions (Windows Live Captions - words on screen for any sound),
-  Find, Clipboard history, Top and Bottom, Centre and Left, Print, Screen shot, Magnify
-  and Magnify off (Windows Magnifier), Desktop.
-- **The standard set** now has Captions in Tools, and Voice; Read aloud and Files are
-  there to add for the students who want them. The Typing guide only shows the Read
-  aloud card for a student who has the key.
-- **Apps key** (Keyboard tab): choose the six programs it offers, or leave places empty.
-  Excel, OneNote, Outlook, Firefox, Notepad and Calculator can be added to the original
-  six; only programs installed on the PC are offered.
-
-### Buttons chosen for each student, and practice that keeps score
-
-- **Button jobs** (Controller tab): the Guide's controller drawing again, where clicking
-  a label - or the button itself - lists the jobs it can have: Click, Right click,
-  Double click, Open the keyboard, Swap the sticks, Show open programs, Start menu, All
-  windows, Maximise, Minimise, Snap left and right, Undo, Redo, Copy, Paste, Escape,
-  Enter, Tab, Close window, or Nothing. A fixed list, never typed-in key combinations.
-  The D-pad and the stick presses can each be set one direction or stick at a time. LT's
-  choice has moved here too. **Back to standard** undoes it all.
-- **What cannot be lost, is not.** Holding Back and Start together always brings HIDra
-  back, whatever they are given. The last button that clicks, and the last that opens
-  the keyboard, cannot be changed until another button has the job - the list says so,
-  in yellow. The keyboard can only go on X, Back, Start or a stick press, the buttons
-  that keep their job while typing, so it can always be closed again. A settings file
-  that breaks these rules, edited by hand or imported, goes back to standard.
-- **The Guide follows the student's buttons**: every label on the drawing, and the "How
-  do I..." cards, name the buttons this student actually has - a card for a job no
-  button has is left out. So does the Keyboard tab's "X opens and closes it".
-- **Practice has three activities, and remembers.**
-  - **Circles**: one circle at a time. Five hits with no more than one miss and it gets
-    smaller, through eight sizes, down to the size of a small button; a run of misses
-    makes it bigger again. Dots show how small it has got, and the student carries on
-    at that size next time. **Biggest again** starts over.
-  - **Type the word**: a word in big letters, its letters turning orange as they are
-    typed right. Three-letter words first, longer ones as more are typed. Wrong letters
-    are counted; capitals and the space a word suggestion adds are not held against it.
-  - **Keyboard on and off**: open the keyboard, then close it, each step lit in turn,
-    with how long it took.
-  - Every change is shown on screen, never only as a sound.
-  - **Progress**: each day's hits, misses, smallest circle, words, wrong letters and
-    keyboard rounds, the last week shown beside the activities, all of it kept in
-    `practice.json` beside the student's settings. **Save for a review...** writes every
-    day as a spreadsheet. Exporting settings does not copy it.
-
-### One consistent design, and a keyboard with its own emoji
-
-After testing on a real controller: layouts that shifted with the screen, choices that
-looked like buttons, cramped settings, and language written for staff.
-
+- **Three tabs: Guide, Practice and Settings**, each a word with an orange bar under
+  the page showing. It opens on the Guide.
 - **One fixed layout, scaled to fill the screen.** Every page is designed once, 720
   high, and scaled as a whole; its width follows the screen's shape a little, so there
-  are no dark bands. It looks the same on a laptop and a big monitor, just bigger.
-- **Three tabs: Guide, Practice, Settings.** Settings has a list down the left - Buttons,
-  Pointer, Keyboard, Shortcut keys, Apps, Phrases, General - and each section gets the
-  whole page. Shortcut keys and Apps are separate sections now.
+  are no dark bands. It looks the same on a laptop and a big monitor, just bigger, and
+  nothing needs scrolling.
+- **Guide**: a controller drawing labelled with what every button does, switching
+  between "using the pointer" and "typing" as the keyboard opens and closes (or by
+  hand, to look ahead). Y swapping the sticks swaps their labels too. Every control
+  lights up orange while it is pressed, so pressing a button shows what it does and
+  that the controller is working. Beside it, "How do I..." cards for everyday jobs,
+  with the buttons drawn in their controller colours. The labels and cards always name
+  the buttons this person actually has; a card for a job no button has is left out.
+- **Settings** has a list down the left - Buttons, Pointer, Keyboard, Shortcut keys,
+  Apps, Phrases, General - and each section gets the whole page.
 - **One set of controls everywhere**: a segmented control (one pill, the chosen part
-  orange) for every "choose one of a few" - Using the pointer / Typing, Pointer test /
-  Typing test, Words / Phrases / Sentences, Everyday / Windows tools, Steady / Gentle,
-  Top / Bottom; real On/Off switches that also say On or Off; and steppers that keep
-  their big - and + but show a level bar, so where a setting sits is seen at a glance.
-  Sliders were considered and left out: they need a precise drag. One type scale and
-  8px spacing throughout, and every settings row has one control in the same column.
+  orange) for every "choose one of a few"; On/Off switches that also say On or Off; and
+  steppers with big - and + and a level bar showing where the setting sits. Sliders
+  were left out: they need a precise drag. One type scale and 8px spacing throughout,
+  and every settings row has one control in the same column.
 - **Choosing opens a panel over the page**: a button's job, a shortcut key or a program.
-  The Buttons drawing has the whole page; buttons changed from their default are listed
-  under it. Pointing at a job no longer makes the list flicker and jump (the hint line
-  under it changed height).
-- **Plain words**: no "staff" or "student" in the app; Reset and Reset all instead of
-  "Back to standard"; Default instead of standard.
-- **Emoji on HIDra's keyboard.** Windows' emoji panel took the controller away, leaving
-  the pointer and keyboard stuck. The Emoji key (and an Emoji button job) now shows
-  thirty everyday emoji on HIDra's own keyboard, in place of the letters; abc brings the
-  letters back.
-- **Magnifier on and off, and Slow pointer, on any button**: one Magnifier job instead
-  of a Magnify and Magnify off pair that only worked together. Anyone with either keeps
-  a working button.
-- **The right stick goes to the edge first**: while typing, a push goes to the far end
-  of the row (or the top or bottom of the column) in the part of the keyboard the
-  highlight is in; the next push jumps to the next part.
+- **Orange is the one accent colour**: an orange border shows where you are, an orange
+  fill shows something is on. Warnings such as a low battery are yellow, so they cannot
+  be mistaken for it.
+- **High contrast** (Settings, General): black and white with thicker borders on the
+  main screen, and white-edged black keys with a thicker highlight on the keyboard.
+- **Plain words**: Reset and Reset all, and Default, instead of "Back to standard".
+- **Scroll bars are wide, with a bright thumb** that turns orange under the pointer.
+- **No "HIDra is still running" pop-up** every time the window is closed. The Guide
+  says how to bring the window back (hold Back and Start).
+- **The icon's controller has a dark outline**, and the logo is sharp at any size.
+
+### Buttons chosen for each person
+
+- **Any button's job can be changed** (Settings, Buttons): click a button on the
+  controller drawing and pick from a fixed list, never typed-in key combinations. The
+  D-pad directions and the stick presses can each be set on their own. Everyday jobs -
+  clicks, the keyboard, Start menu, windows, Undo, Copy, Paste, Escape, Enter and more -
+  and **Windows tools**: Voice typing, Live captions, the Magnifier on and off, Slow
+  pointer, Emoji, Snip, Clipboard history, Find, Save, File Explorer, Show desktop,
+  Back a page, Page up and down, and the volume.
+- **LT can have any job too.** New settings start on Escape. While the keyboard is open
+  LT always moves it.
+- **What cannot be lost, is not.** Holding Back and Start together always brings HIDra
+  back, whatever they are given. The last button that clicks, and the last that opens
+  the keyboard, cannot be changed until another button has the job. A settings file that
+  breaks these rules, edited by hand or imported, goes back to the defaults.
+- Buttons changed from their default are listed under the drawing; Reset puts one back,
+  Reset all puts them all back.
+- **Export and import settings** (Settings, General), to give someone else the same
+  starting point. Windows' own keyboard setting, which belongs to the PC, is not copied.
+
+### The keyboard
+
+- **Laid out like the keyboards made for controllers** (Xbox and Windows gamepad
+  keyboards, and phone keyboards for symbols and emoji): every key the same size except
+  Space, Backspace and Enter, the letters in QWERTY order in straight columns so up and
+  down always go straight, and the arrows as an inverted T with Home and End beside
+  them.
+- **Numbers and symbols are on a second layer**, behind 123 #+, as on a phone. Each
+  symbol appears once, the most used first; the rarer ones sit small above a key and
+  come from B. The keyboard always opens on the letters.
+- **Emoji in colour**: an emoji key beside 123 shows the 30 most used emoji (by
+  Unicode's frequency figures), drawn from Microsoft's Fluent Emoji (MIT licence).
+  Windows' own emoji panel took the controller away, so HIDra has its own.
+- **More buttons type while the keyboard is open**, as on Windows' gamepad keyboard:
+  LB, RB and Y type Backspace, Space and Enter from anywhere on the board (the keys say
+  so); D-pad left and right move the text cursor; pressing the left stick in swaps to
+  numbers and symbols; Start is Caps Lock and Back is Escape. Their usual jobs come back
+  when the keyboard closes. Whichever button opens the keyboard keeps closing it.
+- **The right stick jumps around the keyboard**: the first push goes to the edge of the
+  part the highlight is in, the next jumps to the next part - up to the word row, right
+  to the shortcuts, back to the letters.
+- **Move the keyboard out of the way**: tap LT to flip it between the top and bottom of
+  the screen, or hold LT and push the left stick to drag it anywhere.
+- **No close key.** The button that opens the keyboard closes it; the old red key was
+  one overshoot from ending typing by mistake.
+- **Shortcut panel in labelled rows**, each its own colour: Edit, Select, Sound and
+  video (Play, Quieter, Louder, Mute, Captions) and Tools (Voice, Save, Snip, Find,
+  Print), and a bottom row for the program in front - Slides, Word, Web, Folders or
+  Page - with Bold, Italic and text size in Word and PowerPoint.
+- **Shortcut keys chosen per person** (Settings, Shortcut keys): click a place in the
+  rows and pick from that row's list, or leave it empty. Read aloud, Clipboard history,
+  Top and Bottom, Centre and Left, Magnify, Desktop and more can be added.
+- **Read aloud**: a Read key reads the selected text in any program with the voices
+  built into Windows. Press it again to stop. Whatever was copied is kept.
+- **The Apps key opens any program on the Start menu**, Store apps such as the new
+  Outlook included, with a Find box. It starts with Edge, Word, PowerPoint, Outlook,
+  File Explorer and Teams, whichever are installed.
 - **Phrases can be typed with HIDra's keyboard**: opening it no longer takes the cursor
   out of the phrase boxes.
-- **A keyboard laid out like the ones made for controllers** (Xbox and Windows gamepad
-  keyboards, and phone keyboards for symbols and emoji):
-  - Every key the same size, the letters in QWERTY order in straight columns, so up
-    and down always go straight. Only Space, Backspace and Enter - the keys used most -
-    are bigger. Tab, Esc and Shift down the left, Backspace and Enter on the right.
-  - The arrows are a laptop's inverted T, up above down, with Home and End beside them.
-  - 123 #+ has each symbol once, the most used first - ! @ £ & ( ) and the rest were
-    on it twice. The rarer ones sit small above a key and come from B.
-  - An emoji key at the front, beside 123, instead of inside it.
-  - Caps (now on Start while typing), Win, PgUp and PgDn are gone from the symbols.
-- **A Sound and video row** in place of Style: Play, Quieter, Louder, Mute, Captions.
-  Tools is now Voice, Save, Snip, Find, Print. Bold, Italic and the text size are on the
-  program row when Word or PowerPoint is in front - where they mean something - and can
-  still be put in Tools. A saved set that had Style keys in that row gets the Sound keys.
-- **Emoji in colour**: the 30 most used (by Unicode's emoji frequency figures), drawn
-  from Microsoft's Fluent Emoji (MIT licence), from the emoji key beside 123. They are
-  no longer a shortcut key.
-- **High contrast** (Settings, General): black and white with thicker borders on the
-  main screen, and on the keyboard white-edged black keys with a thicker highlight.
-- **The Apps key starts with Edge, Word, PowerPoint, Outlook, File Explorer and Teams**,
-  whichever are on the PC - the new Store Outlook and Teams included.
-- **The job panel is simpler**: the button's card is its header, with Close; its
-  default and Reset appear only once it has been changed; Everyday / Windows tools
-  sits at the top left; one-word group names.
 
-### Tabs that look like tabs, pages that fit, and tests that measure progress
+### The pointer
 
-From trying the last round: the tabs looked like buttons, the drawing blew up on a big
-screen, pages needed scrolling on a laptop, and Practice was more play than practice.
+- **Smooth out wobbles** (Settings, Pointer): the sticks are averaged a little, more or
+  most, so a shaky hand does not make a shaky pointer. Letting go settles faster than
+  pushing builds up, so stopping on a target stays prompt.
+- **Ignore quick repeat presses**: a press soon after letting go of the same button is
+  ignored - a tremor or a bounce, not a decision. Off by default.
+- **Pointer feel: Steady or Gentle.** Gentle is slower for a small push and faster for
+  a big one, for creeping onto a target and then crossing the screen quickly.
+- **Slow pointer**, on any button, switched on and off at a chosen share of normal
+  speed - the same for both sticks.
 
-- **Real tabs**: a word with an orange bar under the page showing. **Guide, Practice**,
-  then under Settings **Buttons, Pointer, Keyboard** - the Controller tab is split in
-  two, so nothing is below the fold.
-- **Every page fits** a 1366x768 laptop without scrolling, and the window cannot be made
-  smaller than that. On a big screen the Guide's drawing stops growing instead of
-  blowing its words up. **How do I...** opens one answer at a time - click a question.
-- **Settings rows line up**: every row has the same columns - its On/Off switch, then
-  its value between - and + (or its two choices) - so the controls form straight lines
-  down the page.
-- **Windows' own tools as button jobs**, on a second page of the Buttons tab: **Voice
-  typing** (one press to start talking instead of typing - powerful for a student who
-  can speak), Live captions, Magnify and Magnify off, Emoji, Snip, Clipboard history,
-  Find, Save, File Explorer, Show desktop, Alerts, Back a page, Page up and down, and
-  Louder, Quieter and Sound on and off.
-- **Scroll bars are wide, with a bright thumb** that turns orange under the pointer -
-  the Windows ones were thin and pale on the dark page, hard to see and to aim at.
-- **LT can have any job**, the same list as the other buttons, plus Zoom and Slow
-  pointer. New students start on **Escape**; a student's earlier choice is kept.
-- **Buttons tab**: beside the drawing, a card for the chosen button - what it **does**,
-  what it does **while typing**, and its **standard** job with **Reset this button** -
-  then its possible jobs, grouped (Clicks, Keyboard and pointer, Windows, Editing,
-  Keys), each with an icon, growing to fill a bigger screen. A dot marks the standard
-  job; a job that cannot go on the button shows a lock, and pointing at any job says
-  what it does, or why not, in the line at the bottom. With no button chosen, the panel
-  lists every button changed for this student, each one click from its jobs.
-- **Keyboard tab**: the shortcut rows and the Apps row together, with the choices
-  opening over the page, where there is room for them all.
-- **The Apps key can open any program on the Start menu** - Store apps too, such as the
-  new Outlook, which HIDra could not see before - with a Find box to pick it out.
-- **Practice is two repeatable tests**, the same every time, so each run compares with
-  the last:
-  - **Pointer test**: twelve circles, one at a time, in the same places every run. Four
-    are further down or up the page, so reaching them means scrolling as well as
-    pointing; an orange "Scroll down" or "Scroll up" says which way. Time, misses,
-    overshoots (scrolling past a circle) and a speed score are kept. The speed score is
-    Fitts's law, as in ISO 9241-9: how hard each move was for its distance and size,
-    over how long it took - so it stays comparable as the circles shrink. At most one
-    miss makes the circles smaller next time; a bad run makes them bigger.
-  - **Typing test**: words, phrases or sentences, a fixed set for each. The box is at
-    the top of the page for one and the bottom for the next, so the keyboard is
-    sometimes in the way and has to be moved with LT. Letters a minute, wrong letters,
-    corrections and keyboard moves are kept; a clean run suggests the next level.
-  - The scroll list and "Keyboard on and off" are gone. The right of the page shows the
-    latest runs of each test and the best so far. **Save for a review...** writes every
-    run as a spreadsheet.
-- **The right stick jumps around the keyboard** while it is open: up to the word row,
-  right to the shortcuts, back to the letters - landing on the nearest key - instead of
-  a long walk across it. (With the sticks swapped it stays the pointer.)
-- **More buttons type while the keyboard is open**, as on Windows' own gamepad
-  keyboard: **D-pad left and right move the text cursor** (repeating when held), so a
-  mistake a few letters back is reached without leaving the keys; **pressing the left
-  stick in** swaps to the numbers and symbols; **Start** is Caps Lock and **Back** is
-  Escape. D-pad up and down still move the orange box. Whichever button opens a
-  student's keyboard keeps closing it, even if it is Back, Start or the left stick. The
-  Guide's Typing view, a new "Fix a mistake" card and the Buttons tab say so.
-- **Drag the keyboard anywhere**: hold LT and push the left stick, and the keyboard
-  follows - slowly for a small push, quickly for a big one - never off the screen. A tap
-  of LT still flips it between top and bottom; that now happens when LT is let go, once
-  it is clear it was a tap. With the keyboard closed, LT acts on the press as before.
-- **The icon's controller has a dark outline**, so it stands out from the orange, and
-  the logo at the top left of the main screen is sharp instead of blocky.
-- **No "HIDra is still running" pop-up** every time the window is closed - it got in
-  the way. The Guide says how to bring the window back.
-- **No close key on the keyboard.** The button that opens it closes it; the red key was
-  one overshoot from ending typing by mistake.
+### Practice
+
+- **Two repeatable tests**, the same every time, so each run compares with the last:
+  - **Pointer test**: twelve circles in fixed places, some further down or up the page
+    so reaching them means scrolling too. Time, misses, overshoots and a speed score
+    (Fitts's law, as in ISO 9241-9) are kept. A good run makes the circles smaller next
+    time; a bad one makes them bigger.
+  - **Typing test**: words, phrases or sentences. The box moves between the top and
+    bottom of the page, so the keyboard is sometimes in the way and has to be moved.
+    Letters a minute, wrong letters and corrections are kept; a clean run suggests the
+    next level.
+- Every run is kept in `practice.json` beside the person's settings, with the latest
+  runs and the best so far shown beside the tests. **Save as a spreadsheet...** writes
+  them all out for a review. Exporting settings does not copy them.
+- Every change is shown on screen, never only as a sound.
 
 ## v1.6.0 (never released)
 
