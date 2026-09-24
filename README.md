@@ -104,7 +104,7 @@ build.bat
 Everything lands in one folder, named with the version from `HIDra.UI.csproj`:
 
 ```
-release\HIDra-v1.6.0\
+release\HIDra-v1.7.0\
   README-FIRST.txt     which one to use, for whoever installs it
   Network-share\       6 files  - for college PCs running HIDra from a share (recommended)
   USB-portable\        ~480 files - for a USB stick or a PC where nothing can be installed

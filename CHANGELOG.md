@@ -4,7 +4,10 @@ HIDra is distributed as a folder that gets copied onto machines and USB sticks, 
 version number is often the only way to tell two copies apart. This file says what
 changed between them.
 
-## Unreleased
+## v1.7.0
+
+The 1.6.0 in the source was never tagged or published, so this release carries that
+work as well as the redesign that followed it.
 
 ### Orange, and fewer trips across the keyboard
 
@@ -262,7 +265,9 @@ screen, pages needed scrolling on a laptop, and Practice was more play than prac
 - **No close key on the keyboard.** The button that opens it closes it; the red key was
   one overshoot from ending typing by mistake.
 
-## v1.6.0
+## v1.6.0 (never released)
+
+Included in v1.7.0 above.
 
 ### Keyboard that gets out of the way, and a slower start
 
