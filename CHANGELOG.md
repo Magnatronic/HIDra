@@ -4,6 +4,24 @@ HIDra is distributed as a folder that gets copied onto machines and USB sticks, 
 version number is often the only way to tell two copies apart. This file says what
 changed between them.
 
+## Unreleased
+
+### Safer settings, and a record when something goes wrong
+
+- **A save cut off part way no longer loses settings.** Settings and practice are
+  written in full to a temporary file, then swapped in, with the previous save kept as
+  `.bak`. If the main file cannot be read - after a logoff or a network drop mid-save -
+  the backup is used instead of starting again from the defaults.
+- **A home drive that does not answer is passed over after 5 seconds.** At logon the
+  network can be slow to connect, and Windows could keep HIDra's window waiting for tens
+  of seconds while it tried.
+- **Unexpected errors are written to `HIDra-errors.log`** beside the settings, with the
+  time, the version and the PC. HIDra carries on where it can; before it has a window,
+  or when an error keeps repeating, it closes rather than running on unseen.
+- **Clearer instructions for `HIDra-settings-folder.txt`** in the README and
+  README-FIRST: where it goes, what to write, and how to check it worked (Settings,
+  General). They said the saved location was shown at the bottom of the main screen.
+
 ## v1.7.0
 
 A redesign from top to bottom, shaped by watching HIDra used and testing it on a real

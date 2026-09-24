@@ -48,18 +48,16 @@ public static class UserSettingsStore
     {
         // The first time a new location is used, carry over anything saved in AppData
         // before, so moving the settings somewhere better never loses them.
+        // Each file falls back to its backup, so a save cut off part way loses nothing.
         foreach (var path in new[] { Location, Path.Combine(AppDataFolder, FileName) })
         {
             try
             {
-                if (File.Exists(path))
+                var settings = SafeFile.Read(path, JsonConvert.DeserializeObject<UserSettings>);
+                if (settings != null)
                 {
-                    var settings = JsonConvert.DeserializeObject<UserSettings>(File.ReadAllText(path));
-                    if (settings != null)
-                    {
-                        Normalise(settings);
-                        return settings;
-                    }
+                    Normalise(settings);
+                    return settings;
                 }
             }
             catch
@@ -81,7 +79,7 @@ public static class UserSettingsStore
         try
         {
             Directory.CreateDirectory(ChosenFolder.Value);
-            File.WriteAllText(Location, JsonConvert.SerializeObject(settings, Formatting.Indented));
+            SafeFile.WriteAllText(Location, JsonConvert.SerializeObject(settings, Formatting.Indented));
         }
         catch
         {
@@ -168,17 +166,50 @@ public static class UserSettingsStore
         }
     }
 
+    /// <summary>
+    /// How long to wait for a folder on the network to answer. A home drive whose server
+    /// is slow or not yet connected - common in the first moments after logon - can keep
+    /// Windows trying for tens of seconds, and HIDra's window waits on this choice.
+    /// </summary>
+    private static readonly TimeSpan NetworkWait = TimeSpan.FromSeconds(5);
+
     private static string ChooseFolder()
     {
-        foreach (var candidate in Candidates())
+        // Nothing here may throw: this runs before the window exists, and the choice is
+        // remembered for the session, so a failure would stop HIDra starting at all.
+        try
         {
-            if (IsWritable(candidate))
+            foreach (var candidate in Candidates())
             {
-                return candidate;
+                if (IsWritableInTime(candidate))
+                {
+                    return candidate;
+                }
             }
+        }
+        catch
+        {
+            // Fall through to AppData
         }
 
         return AppDataFolder;
+    }
+
+    /// <summary>
+    /// Whether a folder can be written to, giving up on one that does not answer in time.
+    /// The check itself is left to finish in the background.
+    /// </summary>
+    private static bool IsWritableInTime(string folder)
+    {
+        try
+        {
+            var check = Task.Run(() => IsWritable(folder));
+            return check.Wait(NetworkWait) && check.Result;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static IEnumerable<string> Candidates()

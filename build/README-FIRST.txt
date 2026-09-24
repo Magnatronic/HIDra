@@ -22,12 +22,40 @@ Each folder has its own QUICK-GUIDE.txt explaining the controller buttons.
 
 Where each person's settings are saved
 --------------------------------------
-Settings follow the person, not the PC. HIDra uses the first of these it can
-write to, and shows which at the bottom of its main screen:
+Settings follow the person, not the PC. When HIDra starts it uses the first of
+these it can write to:
 
-  1. A folder named in a file called HIDra-settings-folder.txt, placed next to
-     HIDra.UI.exe. One line, for example:   H:\HIDra
-     or, on a shared folder:                \\server\hidra-settings\%USERNAME%
-  2. Their network home drive, if they have one (%HOMESHARE%\HIDra).
-  3. %APPDATA%\HIDra on the PC - which also follows the person if the network
+  1. The folder named in HIDra-settings-folder.txt (see below), if there is one.
+  2. Their network home drive, if their account has one (%HOMESHARE%\HIDra -
+     the same place as their home drive letter).
+  3. %APPDATA%\HIDra on the PC - which only follows the person if the network
      uses roaming profiles.
+
+A place that cannot be written to, or does not answer within 5 seconds, is
+skipped without a message. To see which was used: Settings, General, Settings
+file - it says "Saved in ...".
+
+
+Choosing the folder with HIDra-settings-folder.txt
+--------------------------------------------------
+Only needed if the home drive is not the right place.
+
+  1. Make a plain text file named exactly HIDra-settings-folder.txt
+     (check Windows has not made it HIDra-settings-folder.txt.txt).
+  2. Put it next to the HIDra program file (HIDra.UI.exe, or whatever it has
+     been renamed to).
+  3. On its first line, the folder. %USERNAME% becomes each person's login
+     name, so everyone gets their own:
+
+         \\server\hidra-settings\%USERNAME%
+
+     Lines starting with # are ignored.
+  4. Everyone must be able to create and change files there.
+  5. Log on as one of them, start HIDra, and check Settings, General.
+
+Always include %USERNAME% in a shared location, or everyone would share one
+settings file.
+
+Alongside settings.json are practice.json, a .bak of each (the previous save,
+used if a save was cut off), and HIDra-errors.log if anything unexpected went
+wrong - worth sending with any report of a problem.

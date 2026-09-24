@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
+using HIDra.Core.Configuration;
 
 namespace HIDra.UI
 {
@@ -35,6 +38,8 @@ namespace HIDra.UI
         /// </summary>
         protected override void OnStartup(StartupEventArgs e)
         {
+            CatchUnexpectedErrors();
+
             _instanceMutex = new Mutex(initiallyOwned: true, InstanceMutexName, out bool isFirstInstance);
 
             if (!isFirstInstance)
@@ -49,6 +54,52 @@ namespace HIDra.UI
             StartShowWindowListener();
 
             base.OnStartup(e);
+        }
+
+        /// <summary>At most this many errors a minute are carried on from</summary>
+        private const int MaxErrorsPerMinute = 30;
+
+        private readonly Queue<DateTime> _recentErrors = new();
+
+        /// <summary>
+        /// HIDra may be the only way its user can work the computer, so an error nobody
+        /// foresaw should not close it without a trace. Errors on the window's thread are
+        /// logged and HIDra carries on, unless they keep coming - something repeating
+        /// without end is better stopped. Errors elsewhere cannot be stopped from closing
+        /// it, but are logged first, so there is something to look at afterwards.
+        /// </summary>
+        private void CatchUnexpectedErrors()
+        {
+            DispatcherUnhandledException += (_, args) =>
+            {
+                var now = DateTime.UtcNow;
+                _recentErrors.Enqueue(now);
+                while (_recentErrors.Count > 0 && now - _recentErrors.Peek() > TimeSpan.FromMinutes(1))
+                {
+                    _recentErrors.Dequeue();
+                }
+
+                // Before the window exists there is nothing to carry on with: running on
+                // unseen would hold the one-copy lock, so every later launch would seem
+                // to do nothing
+                bool started = MainWindow is HIDra.UI.MainWindow { IsLoaded: true };
+                bool carryOn = started && _recentErrors.Count <= MaxErrorsPerMinute;
+                ErrorLog.Write(
+                    !started ? "Error while starting (HIDra closed)"
+                    : carryOn ? "Error (carried on)"
+                    : "Error (repeating, so HIDra closed)",
+                    args.Exception);
+                args.Handled = carryOn;
+            };
+
+            AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+                ErrorLog.Write("Error (HIDra closed)", args.ExceptionObject as Exception);
+
+            TaskScheduler.UnobservedTaskException += (_, args) =>
+            {
+                ErrorLog.Write("Error in the background (carried on)", args.Exception);
+                args.SetObserved();
+            };
         }
 
         /// <summary>
