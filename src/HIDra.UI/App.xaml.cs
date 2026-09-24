@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
+using HIDra.Core.Configuration;
 
 namespace HIDra.UI
 {
@@ -11,7 +15,7 @@ namespace HIDra.UI
     {
         // Named per-user rather than globally, so separate signed-in users on a shared
         // machine each get their own HIDra instead of blocking one another.
-        private const string InstanceMutexName = @"Local\HIDra.SingleInstance";
+        internal const string InstanceMutexName = @"Local\HIDra.SingleInstance";
         private const string ShowWindowEventName = @"Local\HIDra.ShowWindow";
 
         private Mutex? _instanceMutex;
@@ -35,7 +39,20 @@ namespace HIDra.UI
         /// </summary>
         protected override void OnStartup(StartupEventArgs e)
         {
+            CatchUnexpectedErrors();
+
+            // --check: only the "Check this PC" report. No controller and no claim to be
+            // the one copy, so it works beside a running HIDra and on a PC where HIDra
+            // itself will not start properly.
+            if (e.Args.Any(arg => arg.TrimStart('-', '/').Equals("check", StringComparison.OrdinalIgnoreCase)))
+            {
+                base.OnStartup(e);
+                new Views.CheckWindow(PcCheck.Run()).Show();
+                return;
+            }
+
             _instanceMutex = new Mutex(initiallyOwned: true, InstanceMutexName, out bool isFirstInstance);
+            StartupLog.Begin(isFirstInstance, e.Args);
 
             if (!isFirstInstance)
             {
@@ -49,6 +66,53 @@ namespace HIDra.UI
             StartShowWindowListener();
 
             base.OnStartup(e);
+            new MainWindow().Show();
+        }
+
+        /// <summary>At most this many errors a minute are carried on from</summary>
+        private const int MaxErrorsPerMinute = 30;
+
+        private readonly Queue<DateTime> _recentErrors = new();
+
+        /// <summary>
+        /// HIDra may be the only way its user can work the computer, so an error nobody
+        /// foresaw should not close it without a trace. Errors on the window's thread are
+        /// logged and HIDra carries on, unless they keep coming - something repeating
+        /// without end is better stopped. Errors elsewhere cannot be stopped from closing
+        /// it, but are logged first, so there is something to look at afterwards.
+        /// </summary>
+        private void CatchUnexpectedErrors()
+        {
+            DispatcherUnhandledException += (_, args) =>
+            {
+                var now = DateTime.UtcNow;
+                _recentErrors.Enqueue(now);
+                while (_recentErrors.Count > 0 && now - _recentErrors.Peek() > TimeSpan.FromMinutes(1))
+                {
+                    _recentErrors.Dequeue();
+                }
+
+                // Before the window exists there is nothing to carry on with: running on
+                // unseen would hold the one-copy lock, so every later launch would seem
+                // to do nothing
+                bool started = MainWindow is HIDra.UI.MainWindow { IsLoaded: true };
+                bool carryOn = started && _recentErrors.Count <= MaxErrorsPerMinute;
+                ErrorLog.Write(
+                    !started ? "Error while starting (HIDra closed)"
+                    : carryOn ? "Error (carried on)"
+                    : "Error (repeating, so HIDra closed)",
+                    args.Exception);
+                args.Handled = carryOn;
+            };
+
+            AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+                ErrorLog.Write("Error (HIDra closed)", args.ExceptionObject as Exception);
+
+            TaskScheduler.UnobservedTaskException += (_, args) =>
+            {
+                ErrorLog.Write("Error in the background (carried on)", args.Exception);
+                args.SetObserved();
+            };
         }
 
         /// <summary>
@@ -179,6 +243,11 @@ namespace HIDra.UI
 
         protected override void OnExit(ExitEventArgs e)
         {
+            if (_ownsMutex)
+            {
+                StartupLog.Step("HIDra closed");
+            }
+
             _pendingShowTimer?.Stop();
             _pendingShowTimer = null;
 

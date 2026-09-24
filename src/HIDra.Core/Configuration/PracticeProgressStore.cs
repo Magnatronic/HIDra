@@ -26,15 +26,13 @@ public static class PracticeProgressStore
     {
         try
         {
-            if (File.Exists(Location))
+            // Falls back to the backup, so a save cut off part way loses nothing
+            var progress = SafeFile.Read(Location, JsonConvert.DeserializeObject<PracticeProgress>);
+            if (progress != null)
             {
-                var progress = JsonConvert.DeserializeObject<PracticeProgress>(File.ReadAllText(Location));
-                if (progress != null)
-                {
-                    progress.PointerRuns ??= new List<PointerRun>();
-                    progress.TypingRuns ??= new List<TypingRun>();
-                    return progress;
-                }
+                progress.PointerRuns ??= new List<PointerRun>();
+                progress.TypingRuns ??= new List<TypingRun>();
+                return progress;
             }
         }
         catch
@@ -55,7 +53,7 @@ public static class PracticeProgressStore
             Trim(progress.PointerRuns);
             Trim(progress.TypingRuns);
             Directory.CreateDirectory(UserSettingsStore.Folder);
-            File.WriteAllText(Location, JsonConvert.SerializeObject(progress, Formatting.Indented));
+            SafeFile.WriteAllText(Location, JsonConvert.SerializeObject(progress, Formatting.Indented));
         }
         catch
         {

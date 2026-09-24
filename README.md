@@ -48,24 +48,118 @@ not to leave them stranded:
   the window back, or use the notification-area icon. Exit properly from that icon.
 - **Nothing is left held down.** If the controller vanishes mid-action, any held keys
   or mouse buttons are released, so a stuck Alt key cannot lock up the machine.
+- **Settings cannot be half-saved.** Each save is written in full before it replaces
+  the last one, which is kept as a backup - so logging off or losing the network mid-save
+  never leaves someone with their settings gone.
+- **A slow network does not hold it up.** A home drive that does not answer within 5
+  seconds is passed over for the next place to save.
+- **Unexpected errors are logged, not fatal.** HIDra carries on where it can, and writes
+  what happened to `HIDra-errors.log` beside the settings, so there is something to look
+  at afterwards.
 
 ## Where settings are saved
 HIDra is often run from a network share at logon, so each person's settings are kept
-somewhere that follows them, not the PC. The first of these that can be written
-to is used, and the main screen shows which:
+somewhere that follows them, not the PC. When HIDra starts it uses the first of these
+it can write to:
 
-1. The folder named in `HIDra-settings-folder.txt`, if that file sits beside `HIDra.UI.exe`.
-   One line, environment variables allowed - for example `H:\HIDra` or
-   `\\server\hidra-settings\%USERNAME%`. Lines starting with `#` are ignored.
-2. The person's network home drive, if Windows reports one: `%HOMESHARE%\HIDra`.
-3. `%APPDATA%\HIDra` - which also follows the person where the network uses roaming
-   profiles or folder redirection.
+1. **A folder you choose**, named in `HIDra-settings-folder.txt` (see below).
+2. **Their network home drive**, if their account has one: `%HOMESHARE%\HIDra`.
+   `%HOMESHARE%` is set by Windows at logon to the full network path of the home
+   folder - the same place as the home drive letter (such as `H:`), reached without
+   depending on the letter being connected yet.
+3. **`%APPDATA%\HIDra` on the PC**, which only follows the person where the network
+   uses roaming profiles or folder redirection.
 
-Their practice is kept in `practice.json` in the same folder. It is not part of
-an exported settings file.
+A place that cannot be written to, or does not answer within 5 seconds, is skipped
+without any message, so a settings problem never stops HIDra starting. To see which was
+used, open **Settings, General**: the Settings file card says "Saved in ...".
+
+### Choosing the folder: HIDra-settings-folder.txt
+Only needed if the home drive is not the right place, or people have no home drive.
+
+1. Create a plain text file named exactly `HIDra-settings-folder.txt`. Windows hides
+   file extensions by default, so check it has not become
+   `HIDra-settings-folder.txt.txt` (turn on View, File name extensions to see).
+2. Put it in the same folder as the HIDra program file (`HIDra.UI.exe`, or whatever
+   it has been renamed to).
+3. Write the folder on the first line. Environment variables are filled in, so
+   `%USERNAME%` gives each person a folder of their own:
+
+   ```
+   # Where HIDra keeps each person's settings
+   \\server\hidra-settings\%USERNAME%
+   ```
+
+   Lines starting with `#` and blank lines are ignored; the first other line is used.
+   A drive letter works too (`H:\HIDra`), if every account has it.
+4. Make sure every person can **create and change files** there. HIDra creates their
+   folder the first time, if they are allowed to create folders in the one above it.
+5. Log on as one of them, start HIDra, and check Settings, General shows the folder.
+
+Always include `%USERNAME%` (or another per-person part) in a shared location.
+Without it, everyone would share one settings file.
+
+### What is in the folder
+- `settings.json` - their settings, saved as each one changes
+- `practice.json` - their Practice runs; not part of an exported settings file
+- `settings.json.bak`, `practice.json.bak` - the previous save of each. A save is
+  written in full before it replaces the old file, so one cut off part way (at
+  logoff, or a network drop) never leaves a broken file; if the main file cannot be
+  read, the backup is used
+- `HIDra-startup.log` - how HIDra's last start went, step by step (see below)
+- `HIDra-errors.log` - only if something went wrong that HIDra did not expect; worth
+  sending with any report of a problem
+- `HIDra-check.txt` - the last report from `--check` (see below)
 
 Settings found in `%APPDATA%\HIDra` are carried over the first time a better location
 is used, so moving them never loses anything.
+
+## When HIDra does not start
+**1. Did it run at all?** Look at `HIDra-startup.log` in the person's settings folder
+(see above). HIDra rewrites it every time it starts, one line per step:
+
+```
+2026-01-12 09:01:14  +  1695 ms  HIDra 1.7.0.0 starting
+2026-01-12 09:01:14  +  1697 ms  Program: \\server\apps\HIDra\HIDra.UI.exe
+2026-01-12 09:01:14  +  1707 ms  Settings folder: \\server\home\someone\HIDra (Home drive (%HOMESHARE%), 40 ms)
+2026-01-12 09:01:15  +  2753 ms  Window created
+2026-01-12 09:01:15  +  3059 ms  Waiting for a controller
+2026-01-12 09:01:15  +  3093 ms  Window shown
+```
+
+- **Its time has not changed since they logged on:** HIDra never ran. Either nothing
+  started it, or Windows refused to. Double-click the program file itself. If Windows
+  says it "cannot access the specified device, path, or file", it is blocking the file:
+  - Files downloaded from the internet carry a mark that unzipping and copying keep,
+    and managed PCs often refuse to run them. Someone who can change the program folder
+    clears it, in PowerShell:
+    `Get-ChildItem "<program folder>" -Recurse | Unblock-File`
+  - Or the person's account cannot read and run the file (check with `icacls`), or the
+    PC only runs approved programs (Event Viewer, Applications and Services Logs,
+    Microsoft, Windows, AppLocker).
+- **It stops part way:** the last line shows how far HIDra got, and
+  `HIDra-errors.log` beside it says what went wrong.
+
+**2. Run the check.** Start the program with `--check`, from Command Prompt:
+
+```
+"\\server\apps\HIDra\HIDra.UI.exe" --check
+```
+
+or from a copy of the shortcut with ` --check` added after the path in Target. Instead
+of HIDra it opens a report of what it can see:
+- the program file, and whether it carries the internet mark;
+- `%HOMESHARE%`, `HIDra-settings-folder.txt`, and each place settings could go, tried
+  now;
+- the files in the settings folder;
+- the controller;
+- the last start-up and any errors.
+
+**Copy** puts it on the clipboard to send on; it is also saved as `HIDra-check.txt` in
+the settings folder. It does not use the controller or stop a running HIDra, and it is
+not on HIDra's own screens. Starting a program from Command Prompt skips the
+internet-mark check that double-clicking goes through, so `--check` often runs even
+when double-clicking does not - which itself points at the mark.
 
 ## Getting Started
 1) Plug in an Xbox controller (USB or Bluetooth)
