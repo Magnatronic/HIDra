@@ -106,11 +106,60 @@ Without it, everyone would share one settings file.
   written in full before it replaces the old file, so one cut off part way (at
   logoff, or a network drop) never leaves a broken file; if the main file cannot be
   read, the backup is used
+- `HIDra-startup.log` - how HIDra's last start went, step by step (see below)
 - `HIDra-errors.log` - only if something went wrong that HIDra did not expect; worth
   sending with any report of a problem
+- `HIDra-check.txt` - the last report from `--check` (see below)
 
 Settings found in `%APPDATA%\HIDra` are carried over the first time a better location
 is used, so moving them never loses anything.
+
+## When HIDra does not start
+**1. Did it run at all?** Look at `HIDra-startup.log` in the person's settings folder
+(see above). HIDra rewrites it every time it starts, one line per step:
+
+```
+2026-01-12 09:01:14  +  1695 ms  HIDra 1.7.0.0 starting
+2026-01-12 09:01:14  +  1697 ms  Program: \\server\apps\HIDra\HIDra.UI.exe
+2026-01-12 09:01:14  +  1707 ms  Settings folder: \\server\home\someone\HIDra (Home drive (%HOMESHARE%), 40 ms)
+2026-01-12 09:01:15  +  2753 ms  Window created
+2026-01-12 09:01:15  +  3059 ms  Waiting for a controller
+2026-01-12 09:01:15  +  3093 ms  Window shown
+```
+
+- **Its time has not changed since they logged on:** HIDra never ran. Either nothing
+  started it, or Windows refused to. Double-click the program file itself. If Windows
+  says it "cannot access the specified device, path, or file", it is blocking the file:
+  - Files downloaded from the internet carry a mark that unzipping and copying keep,
+    and managed PCs often refuse to run them. Someone who can change the program folder
+    clears it, in PowerShell:
+    `Get-ChildItem "<program folder>" -Recurse | Unblock-File`
+  - Or the person's account cannot read and run the file (check with `icacls`), or the
+    PC only runs approved programs (Event Viewer, Applications and Services Logs,
+    Microsoft, Windows, AppLocker).
+- **It stops part way:** the last line shows how far HIDra got, and
+  `HIDra-errors.log` beside it says what went wrong.
+
+**2. Run the check.** Start the program with `--check`, from Command Prompt:
+
+```
+"\\server\apps\HIDra\HIDra.UI.exe" --check
+```
+
+or from a copy of the shortcut with ` --check` added after the path in Target. Instead
+of HIDra it opens a report of what it can see:
+- the program file, and whether it carries the internet mark;
+- `%HOMESHARE%`, `HIDra-settings-folder.txt`, and each place settings could go, tried
+  now;
+- the files in the settings folder;
+- the controller;
+- the last start-up and any errors.
+
+**Copy** puts it on the clipboard to send on; it is also saved as `HIDra-check.txt` in
+the settings folder. It does not use the controller or stop a running HIDra, and it is
+not on HIDra's own screens. Starting a program from Command Prompt skips the
+internet-mark check that double-clicking goes through, so `--check` often runs even
+when double-clicking does not - which itself points at the mark.
 
 ## Getting Started
 1) Plug in an Xbox controller (USB or Bluetooth)

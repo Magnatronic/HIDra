@@ -173,17 +173,78 @@ public static class UserSettingsStore
     /// </summary>
     private static readonly TimeSpan NetworkWait = TimeSpan.FromSeconds(5);
 
+    /// <summary>One place settings could be kept, and how trying it went</summary>
+    public sealed record FolderAttempt(string Source, string Folder, bool Writable, long Milliseconds, string? Problem);
+
+    private static readonly List<FolderAttempt> ChoiceAttempts = new();
+
+    /// <summary>
+    /// The places tried, in order, when the folder was chosen this session - for the
+    /// startup log and the check report
+    /// </summary>
+    public static IReadOnlyList<FolderAttempt> Attempts
+    {
+        get
+        {
+            _ = ChosenFolder.Value;
+            lock (ChoiceAttempts)
+            {
+                return ChoiceAttempts.ToList();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Try every place again now, not stopping at the first that works, to show which
+    /// would and would not do
+    /// </summary>
+    public static IReadOnlyList<FolderAttempt> CheckAll() =>
+        Candidates().Select(candidate => Try(candidate.Source, candidate.Folder)).ToList();
+
+    /// <summary>Where HIDra-settings-folder.txt would be, beside the program</summary>
+    public static string OverrideFilePath => Path.Combine(AppContext.BaseDirectory, OverrideFileName);
+
+    /// <summary>
+    /// The line HIDra-settings-folder.txt names a folder with, before environment
+    /// variables are filled in; null if there is no such file or no such line
+    /// </summary>
+    public static string? OverrideLine
+    {
+        get
+        {
+            try
+            {
+                return File.Exists(OverrideFilePath)
+                    ? File.ReadLines(OverrideFilePath)
+                        .Select(line => line.Trim())
+                        .FirstOrDefault(line => line.Length > 0 && !line.StartsWith('#'))
+                    : null;
+            }
+            catch
+            {
+                // An unreadable override file is treated as absent
+                return null;
+            }
+        }
+    }
+
     private static string ChooseFolder()
     {
         // Nothing here may throw: this runs before the window exists, and the choice is
         // remembered for the session, so a failure would stop HIDra starting at all.
         try
         {
-            foreach (var candidate in Candidates())
+            foreach (var (source, folder) in Candidates())
             {
-                if (IsWritableInTime(candidate))
+                var attempt = Try(source, folder);
+                lock (ChoiceAttempts)
                 {
-                    return candidate;
+                    ChoiceAttempts.Add(attempt);
+                }
+
+                if (attempt.Writable)
+                {
+                    return folder;
                 }
             }
         }
@@ -199,52 +260,45 @@ public static class UserSettingsStore
     /// Whether a folder can be written to, giving up on one that does not answer in time.
     /// The check itself is left to finish in the background.
     /// </summary>
-    private static bool IsWritableInTime(string folder)
+    private static FolderAttempt Try(string source, string folder)
     {
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            var check = Task.Run(() => IsWritable(folder));
-            return check.Wait(NetworkWait) && check.Result;
+            var check = Task.Run(() => WriteProblem(folder));
+            if (!check.Wait(NetworkWait))
+            {
+                return new FolderAttempt(source, folder, false, clock.ElapsedMilliseconds,
+                    $"no answer within {NetworkWait.TotalSeconds:0} seconds");
+            }
+
+            return new FolderAttempt(source, folder, check.Result == null, clock.ElapsedMilliseconds, check.Result);
         }
-        catch
+        catch (Exception error)
         {
-            return false;
+            return new FolderAttempt(source, folder, false, clock.ElapsedMilliseconds, error.Message);
         }
     }
 
-    private static IEnumerable<string> Candidates()
+    private static IEnumerable<(string Source, string Folder)> Candidates()
     {
-        string? overridden = null;
-        try
-        {
-            string overrideFile = Path.Combine(AppContext.BaseDirectory, OverrideFileName);
-            if (File.Exists(overrideFile))
-            {
-                overridden = File.ReadLines(overrideFile)
-                    .Select(line => line.Trim())
-                    .FirstOrDefault(line => line.Length > 0 && !line.StartsWith('#'));
-            }
-        }
-        catch
-        {
-            // An unreadable override file is treated as absent
-        }
-
+        string? overridden = OverrideLine;
         if (overridden != null)
         {
-            yield return Environment.ExpandEnvironmentVariables(overridden);
+            yield return (OverrideFileName, Environment.ExpandEnvironmentVariables(overridden));
         }
 
         string? homeShare = Environment.GetEnvironmentVariable("HOMESHARE");
         if (!string.IsNullOrWhiteSpace(homeShare))
         {
-            yield return Path.Combine(homeShare, "HIDra");
+            yield return ("Home drive (%HOMESHARE%)", Path.Combine(homeShare, "HIDra"));
         }
 
-        yield return AppDataFolder;
+        yield return ("This PC (%APPDATA%)", AppDataFolder);
     }
 
-    private static bool IsWritable(string folder)
+    /// <summary>Null if a file can be made in the folder, otherwise why not</summary>
+    private static string? WriteProblem(string folder)
     {
         try
         {
@@ -252,11 +306,11 @@ public static class UserSettingsStore
             string probe = Path.Combine(folder, $".write-test-{Environment.ProcessId}");
             File.WriteAllText(probe, "");
             File.Delete(probe);
-            return true;
+            return null;
         }
-        catch
+        catch (Exception error)
         {
-            return false;
+            return error.Message;
         }
     }
 }

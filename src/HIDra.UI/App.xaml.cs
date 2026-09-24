@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -14,7 +15,7 @@ namespace HIDra.UI
     {
         // Named per-user rather than globally, so separate signed-in users on a shared
         // machine each get their own HIDra instead of blocking one another.
-        private const string InstanceMutexName = @"Local\HIDra.SingleInstance";
+        internal const string InstanceMutexName = @"Local\HIDra.SingleInstance";
         private const string ShowWindowEventName = @"Local\HIDra.ShowWindow";
 
         private Mutex? _instanceMutex;
@@ -40,7 +41,18 @@ namespace HIDra.UI
         {
             CatchUnexpectedErrors();
 
+            // --check: only the "Check this PC" report. No controller and no claim to be
+            // the one copy, so it works beside a running HIDra and on a PC where HIDra
+            // itself will not start properly.
+            if (e.Args.Any(arg => arg.TrimStart('-', '/').Equals("check", StringComparison.OrdinalIgnoreCase)))
+            {
+                base.OnStartup(e);
+                new Views.CheckWindow(PcCheck.Run()).Show();
+                return;
+            }
+
             _instanceMutex = new Mutex(initiallyOwned: true, InstanceMutexName, out bool isFirstInstance);
+            StartupLog.Begin(isFirstInstance, e.Args);
 
             if (!isFirstInstance)
             {
@@ -54,6 +66,7 @@ namespace HIDra.UI
             StartShowWindowListener();
 
             base.OnStartup(e);
+            new MainWindow().Show();
         }
 
         /// <summary>At most this many errors a minute are carried on from</summary>
@@ -230,6 +243,11 @@ namespace HIDra.UI
 
         protected override void OnExit(ExitEventArgs e)
         {
+            if (_ownsMutex)
+            {
+                StartupLog.Step("HIDra closed");
+            }
+
             _pendingShowTimer?.Stop();
             _pendingShowTimer = null;
 

@@ -45,7 +45,11 @@ namespace HIDra.UI
             InitializeComponent();
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
+            ContentRendered += (_, _) => StartupLog.Step("Window shown");
         }
+
+        /// <summary>The first connection goes in the startup log; later ones do not</summary>
+        private bool _controllerLogged;
 
         /// <summary>
         /// Create hardcoded settings optimized for accessibility
@@ -84,6 +88,7 @@ namespace HIDra.UI
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            StartupLog.Step("Window created");
             FitToScreen();
             ApplyContrast();
 
@@ -165,10 +170,13 @@ namespace HIDra.UI
 
                 if (_engine.DetectController())
                 {
+                    StartupLog.Step("Controller connected");
+                    _controllerLogged = true;
                     UpdateStatus(ConnectionStatus.Connected, "Controller connected and active - ready to use");
                 }
                 else
                 {
+                    StartupLog.Step("Waiting for a controller");
                     UpdateStatus(ConnectionStatus.Connecting,
                         "Waiting for a controller - plug one in and it will connect on its own");
                 }
@@ -178,6 +186,9 @@ namespace HIDra.UI
             }
             catch (Exception ex)
             {
+                StartupLog.Step($"Could not start watching the controller ({ex.Message}) - trying again");
+                ErrorLog.Write("Controller watch could not start (trying again)", ex);
+
                 // Retry rather than offering a button. Whoever needs HIDra to start is,
                 // by definition, the person who cannot click anything to make it happen.
                 UpdateStatus(ConnectionStatus.Error,
@@ -255,6 +266,11 @@ namespace HIDra.UI
 
                 if (info.IsConnected)
                 {
+                    if (!_controllerLogged)
+                    {
+                        _controllerLogged = true;
+                        StartupLog.Step($"Controller connected: {info.Name}");
+                    }
                     UpdateStatus(ConnectionStatus.Connected, $"{info.Name} connected and active");
                 }
                 else

@@ -57,5 +57,28 @@ Always include %USERNAME% in a shared location, or everyone would share one
 settings file.
 
 Alongside settings.json are practice.json, a .bak of each (the previous save,
-used if a save was cut off), and HIDra-errors.log if anything unexpected went
-wrong - worth sending with any report of a problem.
+used if a save was cut off), HIDra-startup.log (how the last start went), and
+HIDra-errors.log if anything unexpected went wrong - worth sending with any
+report of a problem.
+
+
+When HIDra does not start
+-------------------------
+  1. Look at HIDra-startup.log in the person's settings folder. HIDra rewrites
+     it every time it starts.
+       - Its time has not changed since they logged on: HIDra never ran.
+         Double-click the program file itself. If Windows says it "cannot
+         access the specified device, path, or file", it is blocking the file -
+         usually the mark files downloaded from the internet carry. Someone who
+         can change the program folder clears it, in PowerShell:
+           Get-ChildItem "<program folder>" -Recurse | Unblock-File
+         Otherwise check the person can read and run the file, and that the PC
+         allows the program to run.
+       - It stops part way: the last line shows how far it got, and
+         HIDra-errors.log beside it says what went wrong.
+  2. Run the check, from Command Prompt:
+       "<program folder>\HIDra.UI.exe" --check
+     It opens a report of what HIDra can see - the program file, where
+     settings can and cannot go, the controller, the last start-up and any
+     errors - with a Copy button. It is also saved as HIDra-check.txt in the
+     settings folder. It does not use the controller or stop a running HIDra.
