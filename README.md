@@ -109,7 +109,8 @@ release\HIDra-v1.7.0\
   Needs-dotNET-10\     the exe only - smallest; only where the .NET 10 Desktop Runtime is installed
 ```
 
-Each also has its own `QUICK-GUIDE.txt`, and the emoji images' licence in `Emoji\`.
+Each also has its own `QUICK-GUIDE.txt`, and `THIRD-PARTY-NOTICES.txt` crediting the emoji
+and libraries HIDra includes.
 All three are the same program; they differ only in how it is put onto a machine.
 
 **Why no single self-contained exe.** A normal single-file build unpacks WPF's native

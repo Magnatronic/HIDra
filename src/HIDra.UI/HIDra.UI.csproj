@@ -39,9 +39,10 @@
          rather than shrinking the 32px copy Windows extracts from the exe. -->
     <Resource Include="HIDra.ico" />
     <Resource Include="HIDra-logo.png" />
-    <!-- Colour emoji for the keyboard: Microsoft Fluent Emoji, MIT licence (Emoji/LICENSE.txt) -->
+    <!-- Colour emoji for the keyboard: Microsoft Fluent Emoji, MIT licence -->
     <Resource Include="Emoji\*.png" />
-    <None Include="Emoji\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Credits and licences for the emoji and the libraries HIDra carries, beside the exe -->
+    <None Include="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Conditional publishing settings for self-contained builds -->
