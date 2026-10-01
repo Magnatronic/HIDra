@@ -136,6 +136,7 @@ public static class UserSettingsStore
         settings.KeyboardFadeOpacity = Math.Clamp(settings.KeyboardFadeOpacity, 0.2f, 0.6f);
         settings.KeyboardFadeSeconds = Math.Clamp(settings.KeyboardFadeSeconds, 1.0f, 10.0f);
         settings.StickSmoothing = Math.Clamp(settings.StickSmoothing, 0, UserSettings.MaxStickSmoothing);
+        settings.HighlightRepeat = Math.Clamp(settings.HighlightRepeat, 0, UserSettings.MaxHighlightRepeat);
         settings.IgnoreRepeatSeconds = Math.Clamp(settings.IgnoreRepeatSeconds, 0f, 1f);
         settings.SlowPointerPercent = Math.Clamp(settings.SlowPointerPercent, 10, 80);
         // LT used to have its own setting. Carry a student's choice over, so nobody's LT

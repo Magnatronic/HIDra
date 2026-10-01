@@ -72,7 +72,9 @@ namespace HIDra.UI
                 DwellClickSeconds = _userSettings.DwellClickSeconds,
                 GentleCurve = _userSettings.GentleCurve,
                 StickSmoothingSeconds = SmoothingSeconds[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)],
-                IgnoreRepeatSeconds = _userSettings.IgnoreRepeatSeconds
+                IgnoreRepeatSeconds = _userSettings.IgnoreRepeatSeconds,
+                HighlightRepeatDelayMs = HighlightRepeatTimes[HighlightRepeatLevel].DelayMs,
+                HighlightRepeatIntervalMs = HighlightRepeatTimes[HighlightRepeatLevel].IntervalMs
             };
 
             // Each button's job, from a fixed list: this student's own choice where staff
@@ -2754,6 +2756,12 @@ namespace HIDra.UI
         private void SmoothingMore_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.StickSmoothing = Math.Min(UserSettings.MaxStickSmoothing, s.StickSmoothing + 1));
 
+        private void HighlightRepeatLess_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.HighlightRepeat = Math.Max(0, s.HighlightRepeat - 1));
+
+        private void HighlightRepeatMore_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.HighlightRepeat = Math.Min(UserSettings.MaxHighlightRepeat, s.HighlightRepeat + 1));
+
         private void RepeatShorter_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.IgnoreRepeatSeconds = StepRepeat(s.IgnoreRepeatSeconds, longer: false));
 
@@ -2767,6 +2775,17 @@ namespace HIDra.UI
         /// </summary>
         private static readonly float[] SmoothingSeconds = { 0f, 0.06f, 0.12f, 0.2f };
         private static readonly string[] SmoothingNames = { "Off", "A little", "More", "Most" };
+
+        /// <summary>
+        /// How a held stick moves the keyboard's orange box on, for each step: the wait
+        /// before it starts, then the time between keys. Off never starts, so one push is
+        /// one key. Slow waits about twice as long and then moves at about a third of the
+        /// speed, for a student who lets go a little late and lands past the key.
+        /// </summary>
+        private static readonly (int DelayMs, int IntervalMs)[] HighlightRepeatTimes = { (0, 0), (900, 350), (450, 130) };
+        private static readonly string[] HighlightRepeatNames = { "Off", "Slow", "Normal" };
+
+        private int HighlightRepeatLevel => Math.Clamp(_userSettings.HighlightRepeat, 0, UserSettings.MaxHighlightRepeat);
 
         /// <summary>
         /// The windows a repeat press can be ignored for. A tremor or bounce comes within
@@ -2806,6 +2825,8 @@ namespace HIDra.UI
                 input.GentleCurve = _userSettings.GentleCurve;
                 input.StickSmoothingSeconds = SmoothingSeconds[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)];
                 input.IgnoreRepeatSeconds = _userSettings.IgnoreRepeatSeconds;
+                input.HighlightRepeatDelayMs = HighlightRepeatTimes[HighlightRepeatLevel].DelayMs;
+                input.HighlightRepeatIntervalMs = HighlightRepeatTimes[HighlightRepeatLevel].IntervalMs;
                 input.PrecisionModeSensitivity = _userSettings.SlowPointerPercent / 100f;
                 _engine.SetButtonMappings(ButtonJobCatalogue.ToMappings(_userSettings.ButtonJobs));
 
@@ -2887,6 +2908,7 @@ namespace HIDra.UI
             SetSegment(CurveSteadyButton, !_userSettings.GentleCurve);
             SetSegment(CurveGentleButton, _userSettings.GentleCurve);
             SmoothingValue.Text = SmoothingNames[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)];
+            HighlightRepeatValue.Text = HighlightRepeatNames[HighlightRepeatLevel];
             IgnoreRepeatValue.Text = _userSettings.IgnoreRepeatSeconds <= 0 ? "Off" : $"{_userSettings.IgnoreRepeatSeconds:0.0#} s";
 
             ShowToggle(DwellClickToggle, _userSettings.DwellClickEnabled);
@@ -2905,6 +2927,7 @@ namespace HIDra.UI
             ShowLevel("IgnoreRepeatValue", Array.FindIndex(RepeatSteps, v => v >= _userSettings.IgnoreRepeatSeconds - 0.001f), 0, RepeatSteps.Length - 1);
             ShowLevel("DwellClickValue", _userSettings.DwellClickSeconds, 0.5, 3.0);
             ShowLevel("KeyboardSizeValue", _userSettings.KeyboardScale, UserSettings.MinKeyboardScale, UserSettings.MaxKeyboardScale);
+            ShowLevel("HighlightRepeatValue", HighlightRepeatLevel, 0, UserSettings.MaxHighlightRepeat);
             ShowLevel("KeyboardDwellValue", _userSettings.KeyboardDwellSeconds, 0.5, 3.0);
             ShowLevel("KeyboardFadeValue", _userSettings.KeyboardFadeSeconds, 1.0, 10.0);
             ShowLevel("KeyboardFadeOpacityValue", _userSettings.KeyboardFadeOpacity, 0.2, 0.6);

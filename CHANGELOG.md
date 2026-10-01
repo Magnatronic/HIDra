@@ -23,6 +23,10 @@ changed between them.
   before in a web browser or folder, without aiming at its small arrow, and harmless if
   squeezed by accident. Anyone whose LT was left on its default changes too; a job chosen
   for LT in Settings, Buttons is kept.
+- **Keep moving when held** (Settings, Keyboard): how the orange box moves while the
+  stick is held. Normal is as before. Slow waits twice as long before moving on, then
+  goes at about a third of the speed. Off moves one key per push, so letting go a
+  moment late never lands past the letter. The D-pad's up and down follow it too.
 
 ## v1.7.1
 
