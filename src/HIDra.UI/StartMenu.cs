@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
@@ -23,7 +24,7 @@ namespace HIDra.UI
         private static readonly string[] NotPrograms =
         {
             "uninstall", "help", "readme", "read me", "documentation", "release notes",
-            "manual", "licen", "website", "support", "what's new"
+            "manual", "licen", "website", "support", "what's new", "troubleshoot", "reset "
         };
 
         private static readonly Dictionary<string, AppLauncher.App?> Cache = new();
@@ -34,12 +35,114 @@ namespace HIDra.UI
         public static List<AppLauncher.App> All()
         {
             var apps = new List<AppLauncher.App>();
+            foreach (var (name, parsingName) in Programs())
+            {
+                var app = new AppLauncher.App(AppLauncher.StartPrefix + parsingName, name,
+                    $@"{AppsFolder}\{parsingName}", IconOf(parsingName));
+                Cache[app.Id] = app;
+                apps.Add(app);
+            }
+
+            return apps;
+        }
+
+        /// <summary>
+        /// Read the list of programs in the background, ready for a search, so the first
+        /// letter typed does not wait on Windows. Called each time the programs are
+        /// shown, so one installed since is found.
+        /// </summary>
+        public static void Refresh()
+        {
+            // The Shell's objects expect a single-threaded apartment, as the UI has
+            var thread = new System.Threading.Thread(() => _programs = Programs()) { IsBackground = true };
+            thread.SetApartmentState(System.Threading.ApartmentState.STA);
+            thread.Start();
+        }
+
+        /// <summary>
+        /// The programs whose name - or, from two letters on, a word in it - starts with
+        /// what was typed: the student's own programs first, then names that start with
+        /// it, then alphabetical. "po" finds PowerPoint, and "te" finds Microsoft Teams. Icons are
+        /// not read here - <see cref="Load"/> reads them for the ones on show - so
+        /// searching stays quick however many programs the PC has.
+        /// </summary>
+        public static List<(string Id, string Name)> Find(string typed, ICollection<string> ownNames)
+        {
+            string text = typed.Trim();
+            if (text.Length == 0)
+            {
+                return new List<(string Id, string Name)>();
+            }
+
+            var programs = _programs ??= Programs();
+
+            return programs
+                .Select(p => (p.Name, p.ParsingName, Rank: Rank(p.Name, text)))
+                .Where(p => p.Rank >= 0)
+                .OrderBy(p => ownNames.Contains(p.Name) ? 0 : 1)
+                .ThenBy(p => p.Rank)
+                .ThenBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase)
+                .Select(p => (AppLauncher.StartPrefix + p.ParsingName, p.Name))
+                .ToList();
+        }
+
+        /// <summary>
+        /// A program <see cref="Find"/> found, with its icon, ready to show and open
+        /// </summary>
+        public static AppLauncher.App Load(string id, string name)
+        {
+            if (Cache.TryGetValue(id, out var cached) && cached != null)
+            {
+                return cached;
+            }
+
+            string parsingName = id[AppLauncher.StartPrefix.Length..];
+            var app = new AppLauncher.App(id, name, $@"{AppsFolder}\{parsingName}", IconOf(parsingName));
+            Cache[id] = app;
+            return app;
+        }
+
+        private static volatile List<(string Name, string ParsingName)>? _programs;
+
+        // 0 when the name starts with the text, 1 when a later word does, -1 for no match.
+        // One letter only matches the start of the name: "d" lists the programs under D,
+        // not every program with a word somewhere in it starting with D.
+        private static int Rank(string name, string text)
+        {
+            if (name.StartsWith(text, StringComparison.CurrentCultureIgnoreCase))
+            {
+                return 0;
+            }
+
+            if (text.Length < 2)
+            {
+                return -1;
+            }
+
+            foreach (var word in name.Split(' ', '-', '(', '.'))
+            {
+                if (word.StartsWith(text, StringComparison.CurrentCultureIgnoreCase))
+                {
+                    return 1;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
+        /// The name and Windows' own id of every program on the Start menu, by name,
+        /// without their icons. Empty if Windows will not say.
+        /// </summary>
+        private static List<(string Name, string ParsingName)> Programs()
+        {
+            var programs = new List<(string Name, string ParsingName)>();
             try
             {
                 var shellType = Type.GetTypeFromProgID("Shell.Application");
                 if (shellType == null)
                 {
-                    return apps;
+                    return programs;
                 }
 
                 dynamic shell = Activator.CreateInstance(shellType)!;
@@ -56,10 +159,7 @@ namespace HIDra.UI
                         continue;
                     }
 
-                    var app = new AppLauncher.App(AppLauncher.StartPrefix + parsingName, name,
-                        $@"{AppsFolder}\{parsingName}", IconOf(parsingName));
-                    Cache[app.Id] = app;
-                    apps.Add(app);
+                    programs.Add((name, parsingName));
                 }
             }
             catch
@@ -67,8 +167,8 @@ namespace HIDra.UI
                 // No Start menu list is no worse than the standard programs alone
             }
 
-            apps.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
-            return apps;
+            programs.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
+            return programs;
         }
 
         /// <summary>

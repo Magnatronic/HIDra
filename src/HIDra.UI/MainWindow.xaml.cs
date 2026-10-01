@@ -579,22 +579,33 @@ namespace HIDra.UI
                     break;
 
                 case "emoji":
-                    OpenKeyboardAtEmoji();
+                    OpenKeyboardAt(keyboard => keyboard.ShowEmoji());
+                    break;
+
+                case "apps":
+                    OpenKeyboardAt(keyboard => keyboard.ShowFinder());
                     break;
             }
         }
 
         /// <summary>
-        /// Open the keyboard, if it is closed, showing its emoji
+        /// Open the keyboard, if it is closed, showing one part of it: its emoji, or the
+        /// programs on its Apps row
         /// </summary>
-        private void OpenKeyboardAtEmoji()
+        private void OpenKeyboardAt(Action<VirtualKeyboardWindow> show)
         {
             InitializeVirtualKeyboard();
             if (_virtualKeyboard!.IsVisible != true)
             {
                 OnVirtualKeyboardToggleRequested(this, EventArgs.Empty);
             }
-            Dispatcher.BeginInvoke(() => _virtualKeyboard?.ShowEmoji());
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_virtualKeyboard != null)
+                {
+                    show(_virtualKeyboard);
+                }
+            });
         }
 
         private static bool DisposeAll(System.Diagnostics.Process[] processes)
@@ -1439,6 +1450,7 @@ namespace HIDra.UI
             "voice" => '\uE720',
             "captions" => '\uE7F0',
             "emoji" => '\uE76E',
+            "my-programs" => '\uE71D',
             "snip" => '\uE7A8',
             "clipboard" => '\uE81C',
             "find" => '\uE721',
@@ -1529,7 +1541,7 @@ namespace HIDra.UI
         {
             (0, "Clicks", new[] { "click", "right-click", "double-click" }),
             (0, "Pointer", new[] { "keyboard", "swap-sticks", "zoom", "slow-pointer" }),
-            (0, "Windows", new[] { "switch-programs", "start-menu", "all-windows", "close-window",
+            (0, "Windows", new[] { "switch-programs", "start-menu", "my-programs", "all-windows", "close-window",
                 "maximise", "minimise", "snap-left", "snap-right" }),
             (0, "Editing", new[] { "undo", "redo", "copy", "paste" }),
             (0, "Keys", new[] { "escape", "enter", "tab", "nothing" }),

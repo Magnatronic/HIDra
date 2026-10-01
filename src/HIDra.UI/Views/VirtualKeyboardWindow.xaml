@@ -163,6 +163,13 @@
             <Setter Property="Margin" Value="0,0,6,0"/>
         </Style>
 
+        <!-- A program in the finder: icon and name, lighter than the keys -->
+        <Style x:Key="FinderTileStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="BorderBrush" Value="#5A5A5A"/>
+            <Setter Property="Margin" Value="4"/>
+        </Style>
+
         <Style x:Key="SuggestionKeyStyle" TargetType="Button" BasedOn="{StaticResource KeyButtonStyle}">
             <Setter Property="Background" Value="#23402A"/>
             <Setter Property="BorderBrush" Value="#4CAF50"/>
@@ -171,7 +178,52 @@
         </Style>
     </Window.Resources>
 
-    <Grid x:Name="KeyboardRoot" Margin="8">
+    <!-- The program finder sits above the keyboard, or below it when the keyboard is at
+         the top of the screen, so the orange box moves straight into it -->
+    <Grid x:Name="Root">
+    <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Finding a program to open, in place of the Start menu, whose search box brings
+         up Windows' own gamepad keyboard. Its own look - a white box showing what has
+         been typed, and big program tiles - so it is not mistaken for the keys. -->
+    <Border x:Name="FinderPanel" Grid.Row="0" Height="260" Visibility="Collapsed"
+            Background="#1A1A1A" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="0,0,0,3"
+            Padding="14,10,14,8">
+        <DockPanel>
+            <Grid DockPanel.Dock="Top" Height="58" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Find a program" Foreground="{DynamicResource AccentBrush}" FontSize="26" FontWeight="Bold"
+                           VerticalAlignment="Center" Margin="2,0,20,0"/>
+                <Border Grid.Column="1" Background="White" CornerRadius="6" Padding="16,0">
+                    <Grid>
+                        <TextBlock x:Name="FinderHint" Text="Type the start of its name" Foreground="#6A6A6A"
+                                   FontSize="22" FontStyle="Italic" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="FinderText" Foreground="Black" FontSize="32" FontWeight="SemiBold"/>
+                            <Border x:Name="FinderCaret" Width="3" Height="34" Margin="2,0,0,0" Background="{DynamicResource AccentBrush}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <TextBlock x:Name="FinderPageText" Grid.Column="2" Foreground="#CCCCCC" FontSize="18"
+                           VerticalAlignment="Center" Margin="20,0,4,0"/>
+            </Grid>
+            <Grid>
+                <UniformGrid x:Name="FinderTiles" Rows="2" Columns="6"/>
+                <TextBlock x:Name="FinderEmpty" Foreground="#CCCCCC" FontSize="22" FontStyle="Italic"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+            </Grid>
+        </DockPanel>
+    </Border>
+
+    <Grid x:Name="KeyboardRoot" Grid.Row="1" Margin="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
@@ -504,5 +556,6 @@
                 <Button x:Name="Shortcut24" Style="{StaticResource ShortcutProgramStyle}" Click="ShortcutButton_Click" Tag="24"/>
             </UniformGrid>
         </Grid>
+    </Grid>
     </Grid>
 </Window>

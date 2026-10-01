@@ -6,6 +6,23 @@ changed between them.
 
 ## Unreleased
 
+- **Find a program**, in place of the Windows Start menu: a panel joined to the
+  keyboard, above it (below when the keyboard is at the top), opened by the Apps key or
+  by **My programs**, a new button job - put it on a button not otherwise used, such as
+  LT. It opens on the person's own programs, as big tiles with their logos, the orange
+  box on the first. Typing shows the letters large in a white box and finds any program
+  on the Start menu whose name starts with them - from two letters, any word in it, so
+  "te" finds Microsoft Teams - the person's own programs first. Up to twelve at a time;
+  more are shown eleven at a time, the last tile moving on to the next. The stick moves
+  up into the tiles as into any row, and the right stick jumps there. Letters typed
+  while it is open go only to the search; Backspace takes one off, Enter opens the first
+  program, Escape clears the letters and then closes it. The Start menu's search box
+  calls up Windows' own gamepad keyboard, which cannot be switched off without admin
+  rights, and the Start menu covers HIDra's keyboard.
+- **LT is Back a page by default**, in place of Escape, which was rarely wanted: the page
+  before in a web browser or folder, without aiming at its small arrow, and harmless if
+  squeezed by accident. Anyone whose LT was left on its default changes too; a job chosen
+  for LT in Settings, Buttons is kept.
 - **Keep moving when held** (Settings, Keyboard): how the orange box moves while the
   stick is held. Normal is as before. Slow waits twice as long before moving on, then
   goes at about a third of the speed. Off moves one key per push, so letting go a
