@@ -82,6 +82,10 @@ public static class ButtonJobCatalogue
         new ButtonJob("swap-sticks", "Swap the two sticks", "Pointer on the other stick, for the other hand", "SwapStickModes"),
         new ButtonJob("switch-programs", "Show open programs", "Press again to move along; A picks one, B goes back", "TaskSwitcherBackward"),
         new ButtonJob("start-menu", "Start menu", "The Windows Start menu", "WindowsKey"),
+        // The Start menu's search box calls up Windows' own gamepad keyboard, which a
+        // controller cannot get rid of, and the Start menu covers HIDra's keyboard. The
+        // programs chosen for the Apps key are one press away without either.
+        new ButtonJob("my-programs", "My programs", "Opens the keyboard at the programs chosen in Settings, Apps", ButtonJob.HidraJob, "apps"),
         new ButtonJob("all-windows", "All windows", "Every open window at once (Task View)", "WindowsTab"),
         new ButtonJob("maximise", "Maximise window", "Makes the window fill the screen", "MaximizeWindow"),
         new ButtonJob("minimise", "Minimise window", "Hides the window on the taskbar", "MinimizeWindow"),
@@ -129,7 +133,10 @@ public static class ButtonJobCatalogue
     /// </summary>
     public static readonly IReadOnlyList<RemappableButton> Buttons = new[]
     {
-        new RemappableButton(LeftTrigger, "LT", "escape", false, "Tap: top or bottom. Hold: drag"),
+        // Back a page: big and frequent in a web browser, where the alternative is aiming at
+        // a small arrow, and harmless if the trigger is squeezed by accident. Escape, the
+        // default before, was rarely wanted.
+        new RemappableButton(LeftTrigger, "LT", "web-back", false, "Tap: top or bottom. Hold: drag"),
         new RemappableButton("ButtonA", "A", Click, false, "Type the key"),
         new RemappableButton("ButtonB", "B", "right-click", false, "Capital, or the symbol on top"),
         new RemappableButton("ButtonX", "X", Keyboard, true),

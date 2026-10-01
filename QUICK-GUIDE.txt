@@ -91,6 +91,9 @@ Open a Program:
   1. Press Back (opens Start Menu)
   2. Move Left Stick to the program
   3. Press A to open it
+  Or, without the Start Menu: open the keyboard (X) and press its Apps
+  key - or the button given "My programs". Find a program opens above
+  the keyboard with your programs; type the start of any other's name.
 
 Type Text:
   1. Click into the box you want to type in
@@ -137,8 +140,8 @@ Triggers:
   Left Trigger (LT) = While the keyboard is open: tap to move it between
                       the top and bottom of the screen, or hold LT and
                       push the left stick to drag it anywhere. While it is closed, whatever it
-                      is set to in Settings, Buttons - normally Escape (closes
-                      a menu or box)
+                      is set to in Settings, Buttons - normally Back a page
+                      (the page before, in a web browser or folder)
   Right Trigger (RT) = Click and hold (hold to drag things)
 
 Face Buttons:
@@ -223,8 +226,15 @@ VIRTUAL KEYBOARD TIPS
 - SELECT (the highlighter key) turns orange: now the arrows and word
   keys highlight text as they move. Then press Copy, Cut, Bold or
   just type. B on an arrow selects one step
-- APPS (top left) shows your programs with their logos - PowerPoint,
-  Word, Edge... - one press opens it
+- APPS (top left) opens FIND A PROGRAM above the keyboard: your
+  programs with their logos - PowerPoint, Word, Edge... Push up into
+  them and press A to open one. Give a button the "My programs" job
+  (Settings, Buttons) to open it in one press - no Start menu, so
+  Windows' own keyboard never pops up
+- Program not there? Type the start of its name (po for PowerPoint,
+  ca for Calculator). The letters show in the white box and the
+  programs that match appear; More shows the rest. Enter (Y) opens the
+  first one, Back clears the letters, then closes the panel
 - Word suggestions appear as you type, and guess the NEXT word
   after a space. They start fresh after arrows, Home, End or Tab,
   because the keyboard cannot see where the text cursor went

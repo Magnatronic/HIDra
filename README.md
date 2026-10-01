@@ -20,12 +20,12 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - Read aloud: a Read key (added per person) reads the selected text in any program, with the voices built into Windows
 - For unsteady hands: stick smoothing, ignoring a repeat press that comes too soon after letting go, and a Gentle pointer curve (slower for a small push, faster for a big one)
 - Settings can be exported from one person and imported for another, as a starting point
-- Windows' own tools can go on a button: voice typing, live captions, the Magnifier (on and off), HIDra's emoji keys, snip, clipboard history, find, save, File Explorer, show desktop, back a page, page up and down, and the volume
+- Windows' own tools can go on a button: voice typing, live captions, the Magnifier (on and off), HIDra's emoji keys, My programs (Find a program, in place of the Start menu: the person's own programs as big tiles, and typing finds any program on the Start menu), snip, clipboard history, find, save, File Explorer, show desktop, back a page, page up and down, and the volume
 - Button jobs chosen per person in Settings, Buttons, by clicking the button on a drawing of the controller and picking from a fixed list; Back + Start held together, a button that clicks and a button that opens the keyboard can never be lost, and the Guide always names the buttons this person has
 - Practice tests that measure progress: a pointer test (twelve circles in fixed places, some needing a scroll to reach, shrinking as accuracy improves; time, misses, overshoots and a Fitts's-law speed score) and a typing test (words, phrases or sentences, the box sometimes where the keyboard covers it; letters a minute, wrong letters and corrections). Every run is kept per person and can be saved as a spreadsheet for reviews
 - While the keyboard is open, the right stick jumps between its parts: up to the word row, right to the shortcuts, back to the letters
 - One main screen with three tabs: **Guide** (what opens) - a controller drawing labelled with what every button does, switching between "using the pointer" and "typing" as the keyboard opens and closes, each button lighting up orange as it is pressed, and "How do I..." for everyday tasks; **Practice** - the pointer and typing tests and a record of every run; and **Settings**, with a list down the left: Buttons, Pointer, Keyboard, Shortcut keys, Apps, Phrases and General. The screen is one fixed layout scaled to fill any screen, so it looks the same on every PC
-- LT moves the keyboard while it is open, so it never has to cover your work: a tap flips it between the top and bottom of the screen, and holding LT while pushing the left stick drags it anywhere. While it is closed, LT does a job chosen per person, from the same list as the other buttons: Escape by default
+- LT moves the keyboard while it is open, so it never has to cover your work: a tap flips it between the top and bottom of the screen, and holding LT while pushing the left stick drags it anywhere. While it is closed, LT does a job chosen per person, from the same list as the other buttons: Back a page by default
 - Y swaps cursor/scroll sticks
 - RB double-click; LB opens the window switcher (LB again moves along, A switches, B cancels)
 - Start opens Task View; Back opens Start menu
@@ -178,7 +178,7 @@ for each person, in Settings, Buttons.
 - LB: Previous app (Alt+Shift+Tab)
 - Back: Windows key, Start: Win+Tab
 - DPad: Up = Maximize, Down = Minimize, Left = Win+Left, Right = Win+Right
-- LT: Escape (move keyboard top/bottom while it is open), RT: Click & hold (drag)
+- LT: Back a page (move keyboard top/bottom while it is open), RT: Click & hold (drag)
 - Left/Right Stick Click: Undo (Ctrl+Z)
 
 ## System Requirements

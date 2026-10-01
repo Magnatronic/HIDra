@@ -50,6 +50,7 @@ public partial class VirtualKeyboardWindow : Window
     public VirtualKeyboardWindow()
     {
         InitializeComponent();
+        BuildFinderTiles();
         
         // Prevent window from taking focus
         this.Focusable = false;
@@ -85,6 +86,7 @@ public partial class VirtualKeyboardWindow : Window
             }
             else
             {
+                LeaveApps();
                 ResetPrediction();
                 StopDwell();
                 _fadeIdleTimer.Stop();
@@ -108,6 +110,12 @@ public partial class VirtualKeyboardWindow : Window
     /// </summary>
     public void MoveToEdge(bool atTop)
     {
+        if (FinderPanel.Visibility == Visibility.Visible)
+        {
+            _finderBelow = atTop;
+            PlaceFinder();
+        }
+
         var workArea = SystemParameters.WorkArea;
         this.Left = workArea.Left + (workArea.Width - this.Width) / 2;
         this.Top = atTop ? workArea.Top + 10 : workArea.Bottom - this.Height - 10;
@@ -520,9 +528,19 @@ public partial class VirtualKeyboardWindow : Window
     private bool _wordBeganSentence;
     private bool _showingPhrases;
 
-    // The row showing programs to open instead of words
+    // The program finder is open: letters look for a program instead of being typed
     private bool _showingApps;
-    private readonly AppLauncher.App?[] _apps = new AppLauncher.App?[SuggestionCount];
+
+    // Typed while the finder is open: finds any program on the Start menu, in place of
+    // the Start menu's own search, which brings up Windows' gamepad keyboard
+    private string _appSearch = "";
+
+    private void LeaveApps()
+    {
+        _showingApps = false;
+        _appSearch = "";
+        SetFinderOpen(false);
+    }
 
     private bool CapitaliseNextLetter => AutoCapitalise && _atSentenceStart && _currentWord.Length == 0;
 
@@ -530,11 +548,24 @@ public partial class VirtualKeyboardWindow : Window
 
     private void RaiseTextEntered(string text)
     {
+        // With the programs showing, letters look for a program. They are not typed
+        // into the document behind, which is not what they were meant for.
+        if (_showingApps)
+        {
+            if (_appSearch.Length > 0 || !string.IsNullOrWhiteSpace(text))
+            {
+                _appSearch += text;
+                _finderPage = 0;
+                FillFinder();
+            }
+            return;
+        }
+
         // Phrases are a one-off choice, not a mode: typing anything means words again.
         // Otherwise one accidental press - easy with type-by-resting - left the row
         // showing phrases while the student typed on, looking as if prediction had died.
         _showingPhrases = false;
-        _showingApps = false;
+        LeaveApps();
 
         // Typing replaces any selection, so selecting is finished
         SetSelectMode(false);
@@ -577,8 +608,44 @@ public partial class VirtualKeyboardWindow : Window
 
     private void RaiseKeyPressed(VirtualKey key)
     {
+        // While the finder is open: Backspace takes a letter off, Enter opens the first
+        // program found, and Escape clears the letters, or closes the finder once there
+        // are none. None of them reach the document behind. Any other key closes the
+        // finder and acts as usual.
+        if (_showingApps)
+        {
+            switch (key)
+            {
+                case VirtualKey.Back:
+                    if (_appSearch.Length > 0)
+                    {
+                        _appSearch = _appSearch[..^1];
+                        _finderPage = 0;
+                        FillFinder();
+                    }
+                    return;
+
+                case VirtualKey.Return:
+                    OpenApp(0);
+                    return;
+
+                case VirtualKey.Escape:
+                    if (_appSearch.Length > 0)
+                    {
+                        _appSearch = "";
+                        _finderPage = 0;
+                        FillFinder();
+                    }
+                    else
+                    {
+                        LeaveApps();
+                    }
+                    return;
+            }
+        }
+
         _showingPhrases = false;
-        _showingApps = false;
+        LeaveApps();
 
         if (Array.IndexOf(MovementKeys, key) >= 0 && (_selectMode || _shiftPressed))
         {
@@ -675,7 +742,7 @@ public partial class VirtualKeyboardWindow : Window
         ClearContext();
         _atSentenceStart = true;
         _showingPhrases = false;
-        _showingApps = false;
+        LeaveApps();
         AfterContextChanged();
     }
 
@@ -693,12 +760,6 @@ public partial class VirtualKeyboardWindow : Window
     private async void RefreshSuggestions()
     {
         int request = ++_suggestionRequest;
-
-        if (_showingApps)
-        {
-            ShowApps();
-            return;
-        }
 
         IReadOnlyList<string> items;
         if (_showingPhrases)
@@ -763,77 +824,263 @@ public partial class VirtualKeyboardWindow : Window
     private void ShowRowKeyLabels()
     {
         PhrasesKey.Content = _showingPhrases ? "Words" : "Phrases";
-        AppsKey.Content = _showingApps ? "Words" : "Apps";
+        AppsKey.Content = _showingApps ? "Close" : "Apps";
     }
 
-    /// <summary>
-    /// Fill the row with the installed programs, each with its own icon
-    /// </summary>
     /// <summary>
     /// This student's choice of programs for the Apps key, as app ids; null for the
     /// standard choice
     /// </summary>
     public IList<string>? AppKeys { get; set; }
 
-    private void ShowApps()
+    // ---------------------------------------------------------------------------
+    // Program finder
+    //
+    // Opened by the Apps key, or a button with the My programs job. It shows the
+    // student's own programs; typing finds any program on the Start menu. It is part
+    // of this window, so the orange box moves into it like any other key.
+    // ---------------------------------------------------------------------------
+
+    private const int FinderTileCount = 12;
+
+    // The finder's height before scaling, added to the keyboard's while it is open
+    private const double FinderBaseHeight = 260;
+
+    private readonly Button[] _finderTiles = new Button[FinderTileCount];
+    private readonly AppLauncher.App?[] _finderApps = new AppLauncher.App?[FinderTileCount];
+    private int _finderPage;
+    private int _finderPages = 1;
+    private int _finderMoreTile = -1;
+
+    // Below the keyboard when the keyboard is in the top half of the screen
+    private bool _finderBelow;
+
+    private void BuildFinderTiles()
     {
-        var apps = AppLauncher.Chosen(AppKeys, SuggestionCount);
-        bool none = apps.All(a => a == null);
-
-        for (int i = 0; i < SuggestionCount; i++)
+        for (int i = 0; i < FinderTileCount; i++)
         {
-            _suggestions[i] = null;
-            _apps[i] = apps[i];
-
-            if (FindName($"Suggestion{i}") is not Button button)
-            {
-                continue;
-            }
-
-            if (_apps[i] is not AppLauncher.App app)
-            {
-                button.Content = i == 0 && none
-                    ? new TextBlock
-                    {
-                        Text = "No programs found to open",
-                        FontSize = 15,
-                        FontStyle = FontStyles.Italic,
-                        Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC)),
-                        TextWrapping = TextWrapping.Wrap
-                    }
-                    : null;
-                continue;
-            }
-
-            var content = new StackPanel { Orientation = Orientation.Horizontal };
-            if (app.Icon != null)
-            {
-                content.Children.Add(new Image
-                {
-                    Source = app.Icon,
-                    Width = 32,
-                    Height = 32,
-                    Margin = new Thickness(0, 0, 8, 0),
-                    VerticalAlignment = VerticalAlignment.Center
-                });
-            }
-            content.Children.Add(new TextBlock
-            {
-                Text = app.Name,
-                FontSize = 17,
-                VerticalAlignment = VerticalAlignment.Center
-            });
-            button.Content = content;
+            var tile = new Button { Style = (Style)FindResource("FinderTileStyle"), Tag = i, Visibility = Visibility.Hidden };
+            tile.Click += FinderTile_Click;
+            _finderTiles[i] = tile;
+            FinderTiles.Children.Add(tile);
         }
+    }
+
+    /// <summary>
+    /// Open the finder at the student's own programs, with the orange box on the first,
+    /// so one press of A opens it
+    /// </summary>
+    public void ShowFinder()
+    {
+        NotifyActivity();
+        _showingPhrases = false;
+        _showingApps = true;
+        _appSearch = "";
+        _finderPage = 0;
+        StartMenu.Refresh();
+        SetFinderOpen(true);
+        FillFinder();
+        RefreshSuggestions();
+
+        EnsureKeysCollected();
+        if (_finderApps[0] != null)
+        {
+            SetHighlight(_finderTiles[0]);
+        }
+    }
+
+    // The names of the programs chosen for this student, which a search puts first
+    private HashSet<string> OwnAppNames() =>
+        AppLauncher.Chosen(AppKeys, SuggestionCount).OfType<AppLauncher.App>()
+            .Select(app => app.Name).ToHashSet(StringComparer.CurrentCultureIgnoreCase);
+
+    /// <summary>
+    /// Show what has been typed, and the programs it finds: the student's own while
+    /// nothing is typed. Twelve fit; more than that are shown eleven at a time, the last
+    /// place moving on to the next eleven.
+    /// </summary>
+    private void FillFinder()
+    {
+        string typed = _appSearch.Trim();
+        var results = typed.Length == 0
+            ? AppLauncher.Chosen(AppKeys, SuggestionCount).OfType<AppLauncher.App>()
+                .Select(app => (app.Id, app.Name, App: (AppLauncher.App?)app)).ToList()
+            : StartMenu.Find(typed, OwnAppNames())
+                .Select(match => (match.Id, match.Name, App: (AppLauncher.App?)null)).ToList();
+
+        int total = results.Count;
+        int perPage = total > FinderTileCount ? FinderTileCount - 1 : FinderTileCount;
+        _finderPages = Math.Max(1, (total + perPage - 1) / perPage);
+        _finderPage = Math.Clamp(_finderPage, 0, _finderPages - 1);
+        _finderMoreTile = _finderPages > 1 ? FinderTileCount - 1 : -1;
+
+        for (int i = 0; i < FinderTileCount; i++)
+        {
+            var tile = _finderTiles[i];
+            _finderApps[i] = null;
+
+            if (i == _finderMoreTile)
+            {
+                tile.Content = TileText(_finderPage == _finderPages - 1 ? "Back to the first" : "More");
+                tile.Visibility = Visibility.Visible;
+                continue;
+            }
+
+            int place = _finderPage * perPage + i;
+            if (place >= total)
+            {
+                tile.Content = null;
+                tile.Visibility = Visibility.Hidden;
+                continue;
+            }
+
+            // Icons are read only for the programs on show
+            var (id, name, app) = results[place];
+            app ??= StartMenu.Load(id, name);
+            _finderApps[i] = app;
+            tile.Content = TileContent(app);
+            tile.Visibility = Visibility.Visible;
+        }
+
+        FinderText.Text = _appSearch;
+        FinderHint.Visibility = _appSearch.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        FinderPageText.Text = _finderPages > 1 ? $"Page {_finderPage + 1} of {_finderPages}" : "";
+        FinderEmpty.Text = total > 0 ? ""
+            : typed.Length == 0 ? "Type the start of a program's name to find it"
+            : $"No program starts with \"{typed}\"";
+        FinderEmpty.Visibility = total > 0 ? Visibility.Collapsed : Visibility.Visible;
+
+        // Tiles have come and gone, so the highlight's map of the keys is stale, and the
+        // highlight may be on a tile that is no longer there
+        _navigableKeys.Clear();
+        if (_highlightedKey != null && FinderPanel.IsAncestorOf(_highlightedKey)
+            && _highlightedKey.Visibility != Visibility.Visible)
+        {
+            SetHighlight(AppsKey);
+        }
+    }
+
+    private static object TileContent(AppLauncher.App app)
+    {
+        var content = new DockPanel { Margin = new Thickness(10, 0, 10, 0) };
+        if (app.Icon != null)
+        {
+            var image = new Image
+            {
+                Source = app.Icon,
+                Width = 40,
+                Height = 40,
+                Margin = new Thickness(0, 0, 10, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            DockPanel.SetDock(image, Dock.Left);
+            content.Children.Add(image);
+        }
+        content.Children.Add(new TextBlock
+        {
+            Text = app.Name,
+            FontSize = 18,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxHeight = 50,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        return content;
+    }
+
+    private static object TileText(string text) => new TextBlock
+    {
+        Text = text,
+        FontSize = 18,
+        FontWeight = FontWeights.SemiBold,
+        TextWrapping = TextWrapping.Wrap,
+        TextAlignment = TextAlignment.Center
+    };
+
+    private void FinderTile_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: int index })
+        {
+            return;
+        }
+
+        if (index == _finderMoreTile)
+        {
+            _finderPage = (_finderPage + 1) % _finderPages;
+            FillFinder();
+            return;
+        }
+
+        OpenApp(index);
+    }
+
+    /// <summary>
+    /// Open the program in this place in the finder, and close the finder, leaving the
+    /// keyboard ready for typing in the program
+    /// </summary>
+    private void OpenApp(int index)
+    {
+        if (_finderApps[index] is AppLauncher.App app)
+        {
+            AppLauncher.Launch(app);
+            LeaveApps();
+            ResetPrediction();
+        }
+    }
+
+    /// <summary>
+    /// Show or hide the finder. The keyboard stays where it is on screen: the window
+    /// grows away from it, up when the finder is above and down when it is below.
+    /// </summary>
+    private void SetFinderOpen(bool open)
+    {
+        if ((FinderPanel.Visibility == Visibility.Visible) == open)
+        {
+            return;
+        }
+
+        var workArea = SystemParameters.WorkArea;
+        if (open)
+        {
+            _finderBelow = Top + Height / 2 < workArea.Top + workArea.Height / 2;
+            PlaceFinder();
+        }
+        else if (_highlightedKey != null && FinderPanel.IsAncestorOf(_highlightedKey))
+        {
+            SetHighlight(AppsKey);
+        }
+
+        FinderPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+
+        double before = Height;
+        SetScale(_scale);
+        if (!_finderBelow)
+        {
+            Top -= Height - before;
+        }
+        Top = Math.Clamp(Top, workArea.Top, Math.Max(workArea.Top, workArea.Bottom - Height));
 
         ShowRowKeyLabels();
     }
 
+    // Above or below the keyboard, its orange edge on the side it meets the keys
+    private void PlaceFinder()
+    {
+        Grid.SetRow(FinderPanel, _finderBelow ? 2 : 0);
+        FinderPanel.BorderThickness = _finderBelow ? new Thickness(0, 3, 0, 0) : new Thickness(0, 0, 0, 3);
+    }
+
     private void AppsKey_Click(object sender, RoutedEventArgs e)
     {
-        _showingApps = !_showingApps;
-        _showingPhrases = false;
-        RefreshSuggestions();
+        if (_showingApps)
+        {
+            LeaveApps();
+        }
+        else
+        {
+            ShowFinder();
+        }
     }
 
     /// <summary>
@@ -862,7 +1109,7 @@ public partial class VirtualKeyboardWindow : Window
     private void PhrasesKey_Click(object sender, RoutedEventArgs e)
     {
         _showingPhrases = !_showingPhrases;
-        _showingApps = false;
+        LeaveApps();
         RefreshSuggestions();
     }
 
@@ -875,15 +1122,7 @@ public partial class VirtualKeyboardWindow : Window
 
         if (_showingApps)
         {
-            // Open the program, and put the row back to words ready for typing in it
-            if (_apps[index] is AppLauncher.App app)
-            {
-                AppLauncher.Launch(app);
-                _showingApps = false;
-                ResetPrediction();
-            }
-
-            return;
+            LeaveApps();
         }
 
         string? word = _suggestions[index];
@@ -897,7 +1136,7 @@ public partial class VirtualKeyboardWindow : Window
             // A phrase is typed whole, and the row goes back to suggestions for what
             // comes after it
             _showingPhrases = false;
-        _showingApps = false;
+        LeaveApps();
             RaiseTextEntered(word + " ");
             return;
         }
@@ -1291,12 +1530,15 @@ public partial class VirtualKeyboardWindow : Window
         _scale = scale;
         double baseWidth = _showShortcuts ? BaseWidth : CompactBaseWidth;
 
+        double baseHeight = BaseHeight + (FinderPanel.Visibility == Visibility.Visible ? FinderBaseHeight : 0);
+
         var workArea = SystemParameters.WorkArea;
         scale = Math.Min(scale, workArea.Width / baseWidth);
+        scale = Math.Min(scale, (workArea.Height - 20) / baseHeight);
 
-        KeyboardRoot.LayoutTransform = new ScaleTransform(scale, scale);
+        Root.LayoutTransform = new ScaleTransform(scale, scale);
         Width = baseWidth * scale;
-        Height = BaseHeight * scale;
+        Height = baseHeight * scale;
 
         // Keys have moved and changed size, so the highlight's map of them is stale
         _navigableKeys.Clear();
@@ -1345,6 +1587,7 @@ public partial class VirtualKeyboardWindow : Window
         var highlighted = _highlightedKey;
         ClearHighlight();
         _highContrast = on;
+        FinderPanel.Background = on ? Brushes.Black : new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A));
 
         foreach (var key in AllKeys(this))
         {
@@ -1547,8 +1790,13 @@ public partial class VirtualKeyboardWindow : Window
             return;
         }
 
+        bool finderOpen = FinderPanel.Visibility == Visibility.Visible;
         var to = (from, direction) switch
         {
+            (KeyboardSection.Finder, KeyboardNavigationDirection.Down) when !_finderBelow => KeyboardSection.Top,
+            (KeyboardSection.Finder, KeyboardNavigationDirection.Up) when _finderBelow => KeyboardSection.Letters,
+            (KeyboardSection.Top, KeyboardNavigationDirection.Up) when finderOpen && !_finderBelow => KeyboardSection.Finder,
+            (KeyboardSection.Letters, KeyboardNavigationDirection.Down) when finderOpen && _finderBelow => KeyboardSection.Finder,
             (KeyboardSection.Letters or KeyboardSection.Shortcuts, KeyboardNavigationDirection.Up) => KeyboardSection.Top,
             (KeyboardSection.Top, KeyboardNavigationDirection.Down) => KeyboardSection.Letters,
             (KeyboardSection.Letters or KeyboardSection.Top, KeyboardNavigationDirection.Right) => KeyboardSection.Shortcuts,
@@ -1640,10 +1888,11 @@ public partial class VirtualKeyboardWindow : Window
         return edge;
     }
 
-    private enum KeyboardSection { Top, Letters, Shortcuts }
+    private enum KeyboardSection { Finder, Top, Letters, Shortcuts }
 
     private KeyboardSection SectionOf(Button key) =>
-        TopRow.IsAncestorOf(key) ? KeyboardSection.Top
+        FinderPanel.IsAncestorOf(key) ? KeyboardSection.Finder
+        : TopRow.IsAncestorOf(key) ? KeyboardSection.Top
         : ShortcutPanel.IsAncestorOf(key) ? KeyboardSection.Shortcuts
         : KeyboardSection.Letters;
 

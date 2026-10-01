@@ -139,7 +139,7 @@ public static class UserSettingsStore
         settings.IgnoreRepeatSeconds = Math.Clamp(settings.IgnoreRepeatSeconds, 0f, 1f);
         settings.SlowPointerPercent = Math.Clamp(settings.SlowPointerPercent, 10, 80);
         // LT used to have its own setting. Carry a student's choice over, so nobody's LT
-        // changes under them now that new students start on Escape.
+        // changes under them now that LT's default is a job from the list.
         if (settings.LeftTrigger is LeftTriggerAction old)
         {
             settings.ButtonJobs ??= new Dictionary<string, string>();
