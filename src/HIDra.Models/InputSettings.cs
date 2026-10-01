@@ -80,6 +80,15 @@ public class InputSettings
     public float IgnoreRepeatSeconds { get; set; } = 0f;
 
     /// <summary>
+    /// How long the stick is held on the keyboard before the highlight starts moving on
+    /// by itself, in milliseconds. 0 is off: one key per push.
+    /// </summary>
+    public int HighlightRepeatDelayMs { get; set; } = 450;
+
+    /// <summary>Milliseconds between steps once the held highlight is moving on</summary>
+    public int HighlightRepeatIntervalMs { get; set; } = 130;
+
+    /// <summary>
     /// The pointer's response to the stick. Off (Steady) keeps one slow, even speed for
     /// almost all of the stick's travel; on (Gentle) is slower still for a small push and
     /// faster for a big one, for precision near a target and speed across the screen.
