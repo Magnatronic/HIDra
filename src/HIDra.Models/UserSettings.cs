@@ -102,6 +102,14 @@ public class UserSettings
     public const int MaxStickSmoothing = 3;
 
     /// <summary>
+    /// Whether the keyboard's orange box keeps moving while the stick is held: 0 off (one
+    /// key per push, so it can never run past the key wanted), 1 slow, 2 normal.
+    /// </summary>
+    public int HighlightRepeat { get; set; } = 2;
+
+    public const int MaxHighlightRepeat = 2;
+
+    /// <summary>
     /// Seconds after letting go of a button during which pressing it again is ignored.
     /// 0 is off.
     /// </summary>

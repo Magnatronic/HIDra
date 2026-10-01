@@ -4,6 +4,13 @@ HIDra is distributed as a folder that gets copied onto machines and USB sticks, 
 version number is often the only way to tell two copies apart. This file says what
 changed between them.
 
+## Unreleased
+
+- **Keep moving when held** (Settings, Keyboard): how the orange box moves while the
+  stick is held. Normal is as before. Slow waits twice as long before moving on, then
+  goes at about a third of the speed. Off moves one key per push, so letting go a
+  moment late never lands past the letter. The D-pad's up and down follow it too.
+
 ## v1.7.1
 
 For the PCs HIDra runs on: settings that cannot be half-saved, and ways to see why HIDra

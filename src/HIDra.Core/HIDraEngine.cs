@@ -291,8 +291,10 @@ public class HIDraEngine : IDisposable
     private int _keyRepeatCount;
 
     /// <summary>
-    /// Pause before a held direction starts repeating. Long enough that a deliberate
-    /// single step never runs on by itself.
+    /// Pause before a held D-pad left or right starts moving the text cursor on. Long
+    /// enough that a deliberate single step never runs on by itself. The highlight's own
+    /// timing is a setting (HighlightRepeatDelayMs), since how far it runs on matters
+    /// more to some students than to others.
     /// </summary>
     private const int KeyRepeatDelayMs = 450;
 
@@ -1091,9 +1093,16 @@ public class HIDraEngine : IDisposable
             return;
         }
 
+        // Repeat off: one key per push. The stick has to come back to the middle before
+        // it moves again, so holding a push too long can never overshoot.
+        if (_settings.HighlightRepeatDelayMs <= 0)
+        {
+            return;
+        }
+
         int due = _keyRepeatCount == 0
-            ? KeyRepeatDelayMs
-            : KeyRepeatIntervalMs;
+            ? _settings.HighlightRepeatDelayMs
+            : _settings.HighlightRepeatIntervalMs;
 
         if (_keyRepeatTimer.ElapsedMilliseconds >= due)
         {
