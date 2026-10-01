@@ -4,7 +4,10 @@ HIDra is distributed as a folder that gets copied onto machines and USB sticks, 
 version number is often the only way to tell two copies apart. This file says what
 changed between them.
 
-## Unreleased
+## v1.8.0
+
+Opening programs without the Windows Start menu, and an orange box that cannot run
+past the key wanted.
 
 - **Find a program**, in place of the Windows Start menu: a panel joined to the
   keyboard, above it (below when the keyboard is at the top), opened by the Apps key or
