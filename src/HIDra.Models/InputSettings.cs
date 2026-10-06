@@ -89,6 +89,12 @@ public class InputSettings
     public int HighlightRepeatIntervalMs { get; set; } = 130;
 
     /// <summary>
+    /// How long after letting go of the stick on the keyboard a push the opposite way is
+    /// taken as the stick bouncing back and ignored, in milliseconds. 0 is off.
+    /// </summary>
+    public int BounceBackIgnoreMs { get; set; } = 250;
+
+    /// <summary>
     /// The pointer's response to the stick. Off (Steady) keeps one slow, even speed for
     /// almost all of the stick's travel; on (Gentle) is slower still for a small push and
     /// faster for a big one, for precision near a target and speed across the screen.

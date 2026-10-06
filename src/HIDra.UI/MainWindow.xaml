@@ -1171,6 +1171,28 @@
                                                             <ColumnDefinition Width="200"/>
                                                         </Grid.ColumnDefinitions>
                                                         <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                            <TextBlock Text="Ignore bounce back" Style="{StaticResource SettingTitle}"/>
+                                                            <TextBlock Text="Stops the box jumping back after a push" Style="{StaticResource SettingHint}"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Button Style="{StaticResource StepButton}" Content="&#x2212;" Click="BounceBackLess_Click"/>
+                                                            <StackPanel Width="96" VerticalAlignment="Center">
+                                                                <TextBlock x:Name="BounceBackValue" Style="{StaticResource ValueText}"/>
+                                                                <Border Style="{StaticResource LevelTrack}">
+                                                                    <Border x:Name="BounceBackValueBar" Style="{StaticResource LevelFill}"/>
+                                                                </Border>
+                                                            </StackPanel>
+                                                            <Button Style="{StaticResource StepButton}" Content="+" Click="BounceBackMore_Click"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                                <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,0,0,1">
+                                                    <Grid Style="{StaticResource SettingRow}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="200"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
                                                             <TextBlock Text="Type by resting" Style="{StaticResource SettingTitle}"/>
                                                             <TextBlock Text="Types the key the orange box rests on" Style="{StaticResource SettingHint}"/>
                                                         </StackPanel>

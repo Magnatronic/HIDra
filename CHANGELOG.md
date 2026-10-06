@@ -4,6 +4,23 @@ HIDra is distributed as a folder that gets copied onto machines and USB sticks, 
 version number is often the only way to tell two copies apart. This file says what
 changed between them.
 
+## v1.8.1
+
+Typing that stopped after showing open programs, and an orange box that jumped back
+after a push.
+
+- **Ignore bounce back** (Settings, Keyboard): after a push of the stick, the stick
+  springing back past the middle - or the hand pulling back - no longer moves the orange
+  box back the other way. A push the opposite way just after letting go is ignored for a
+  moment: Short (a quarter of a second, the default) or Long (half a second), or Off as
+  before. A real change of direction still happens, once the moment has passed.
+
+- **Typing stopped working after Show open programs.** Leaving it with B, or by
+  clicking a window instead of pressing A, left the Alt key held down, so nothing typed
+  appeared - in a web address bar, say - until HIDra was restarted. Alt is now let go
+  however it is left: B, A, a click, a dwell click or any other button. Typing on
+  HIDra's keyboard also lets go of it first, as a safety net.
+
 ## v1.8.0
 
 Opening programs without the Windows Start menu, and an orange box that cannot run

@@ -74,7 +74,8 @@ namespace HIDra.UI
                 StickSmoothingSeconds = SmoothingSeconds[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)],
                 IgnoreRepeatSeconds = _userSettings.IgnoreRepeatSeconds,
                 HighlightRepeatDelayMs = HighlightRepeatTimes[HighlightRepeatLevel].DelayMs,
-                HighlightRepeatIntervalMs = HighlightRepeatTimes[HighlightRepeatLevel].IntervalMs
+                HighlightRepeatIntervalMs = HighlightRepeatTimes[HighlightRepeatLevel].IntervalMs,
+                BounceBackIgnoreMs = BounceBackTimes[BounceBackLevel]
             };
 
             // Each button's job, from a fixed list: this student's own choice where staff
@@ -2762,6 +2763,12 @@ namespace HIDra.UI
         private void HighlightRepeatMore_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.HighlightRepeat = Math.Min(UserSettings.MaxHighlightRepeat, s.HighlightRepeat + 1));
 
+        private void BounceBackLess_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.IgnoreBounceBack = Math.Max(0, s.IgnoreBounceBack - 1));
+
+        private void BounceBackMore_Click(object sender, RoutedEventArgs e) =>
+            ChangeSettings(s => s.IgnoreBounceBack = Math.Min(UserSettings.MaxIgnoreBounceBack, s.IgnoreBounceBack + 1));
+
         private void RepeatShorter_Click(object sender, RoutedEventArgs e) =>
             ChangeSettings(s => s.IgnoreRepeatSeconds = StepRepeat(s.IgnoreRepeatSeconds, longer: false));
 
@@ -2786,6 +2793,16 @@ namespace HIDra.UI
         private static readonly string[] HighlightRepeatNames = { "Off", "Slow", "Normal" };
 
         private int HighlightRepeatLevel => Math.Clamp(_userSettings.HighlightRepeat, 0, UserSettings.MaxHighlightRepeat);
+
+        /// <summary>
+        /// How long after a push the stick swinging back the other way is ignored, for
+        /// each step. A spring's bounce is over within a tenth or two of a second; Long
+        /// is for a hand that pulls back after pushing.
+        /// </summary>
+        private static readonly int[] BounceBackTimes = { 0, 250, 500 };
+        private static readonly string[] BounceBackNames = { "Off", "Short", "Long" };
+
+        private int BounceBackLevel => Math.Clamp(_userSettings.IgnoreBounceBack, 0, UserSettings.MaxIgnoreBounceBack);
 
         /// <summary>
         /// The windows a repeat press can be ignored for. A tremor or bounce comes within
@@ -2827,6 +2844,7 @@ namespace HIDra.UI
                 input.IgnoreRepeatSeconds = _userSettings.IgnoreRepeatSeconds;
                 input.HighlightRepeatDelayMs = HighlightRepeatTimes[HighlightRepeatLevel].DelayMs;
                 input.HighlightRepeatIntervalMs = HighlightRepeatTimes[HighlightRepeatLevel].IntervalMs;
+                input.BounceBackIgnoreMs = BounceBackTimes[BounceBackLevel];
                 input.PrecisionModeSensitivity = _userSettings.SlowPointerPercent / 100f;
                 _engine.SetButtonMappings(ButtonJobCatalogue.ToMappings(_userSettings.ButtonJobs));
 
@@ -2909,6 +2927,7 @@ namespace HIDra.UI
             SetSegment(CurveGentleButton, _userSettings.GentleCurve);
             SmoothingValue.Text = SmoothingNames[Math.Clamp(_userSettings.StickSmoothing, 0, UserSettings.MaxStickSmoothing)];
             HighlightRepeatValue.Text = HighlightRepeatNames[HighlightRepeatLevel];
+            BounceBackValue.Text = BounceBackNames[BounceBackLevel];
             IgnoreRepeatValue.Text = _userSettings.IgnoreRepeatSeconds <= 0 ? "Off" : $"{_userSettings.IgnoreRepeatSeconds:0.0#} s";
 
             ShowToggle(DwellClickToggle, _userSettings.DwellClickEnabled);
@@ -2928,6 +2947,7 @@ namespace HIDra.UI
             ShowLevel("DwellClickValue", _userSettings.DwellClickSeconds, 0.5, 3.0);
             ShowLevel("KeyboardSizeValue", _userSettings.KeyboardScale, UserSettings.MinKeyboardScale, UserSettings.MaxKeyboardScale);
             ShowLevel("HighlightRepeatValue", HighlightRepeatLevel, 0, UserSettings.MaxHighlightRepeat);
+            ShowLevel("BounceBackValue", BounceBackLevel, 0, UserSettings.MaxIgnoreBounceBack);
             ShowLevel("KeyboardDwellValue", _userSettings.KeyboardDwellSeconds, 0.5, 3.0);
             ShowLevel("KeyboardFadeValue", _userSettings.KeyboardFadeSeconds, 1.0, 10.0);
             ShowLevel("KeyboardFadeOpacityValue", _userSettings.KeyboardFadeOpacity, 0.2, 0.6);

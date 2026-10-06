@@ -9,7 +9,7 @@ Control Windows with an Xbox controller. Simple, reliable, zero-config.
 - X toggles onscreen keyboard (UK layout, large keys in straight columns, numbers and symbols on a second layer behind 123 #+); left stick moves the highlight, A types, B gives the shifted symbol or capital - no aiming needed
 - Six word suggestions on the keyboard, from the prediction engine built into Windows - nothing extra to install
 - Dwell: click by resting the cursor (a ring by the cursor fills as the click approaches), and type by resting the keyboard highlight (both optional)
-- Keyboard extras: how far a held stick runs on (Normal, Slow, or Off for one key per push), automatic capitals, your own phrases on a Phrases key, and an adjustable size
+- Keyboard extras: how far a held stick runs on (Normal, Slow, or Off for one key per push), ignoring the stick bouncing back after a push, automatic capitals, your own phrases on a Phrases key, and an adjustable size
 - A shortcut panel on the keyboard, with icons, in labelled rows - Edit (Undo, Copy, Paste...), Select (a Select switch for highlighting text, word moves), Sound (Play, Quieter, Louder, Mute, Captions), Tools (voice typing, Save, Snip, Find, Print) - and a row that follows the program in front (PowerPoint and Word with Bold and other formatting, web browser, File Explorer); it can be switched off
 - The keyboard is laid out like controller keyboards: equal-size keys with the letters in QWERTY order in straight columns (so up and down always go straight), the arrows as an inverted T, each symbol once on the 123 #+ layer, and an emoji key beside 123
 - The most used emoji, in colour (Microsoft Fluent Emoji, MIT licence), from the emoji key
@@ -196,7 +196,7 @@ build.bat
 Everything lands in one folder, named with the version from `HIDra.UI.csproj`:
 
 ```
-release\HIDra-v1.8.0\
+release\HIDra-v1.8.1\
   README-FIRST.txt     which one to use, for whoever installs it
   Network-share\       the exe and 5 DLLs - for shared or managed PCs running HIDra from a share (recommended)
   USB-portable\        ~480 files - for a USB stick or a PC where nothing can be installed

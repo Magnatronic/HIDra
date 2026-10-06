@@ -102,6 +102,7 @@ Type Text:
      (hold a direction to travel quickly across the keyboard)
      (going past the letter? Settings, Keyboard, "Keep moving when
       held": Slow, or Off for one key per push)
+     (jumping back after a push? "Ignore bounce back": Long)
      (D-pad up and down also move it; left and right move the text cursor)
   4. Press A to type the highlighted letter
   5. Press B for a CAPITAL letter
@@ -280,5 +281,5 @@ Need help?
 
 VERSION INFORMATION
 -------------------
-HIDra v1.8.0
+HIDra v1.8.1
 
