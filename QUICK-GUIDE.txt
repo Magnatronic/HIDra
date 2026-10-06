@@ -281,5 +281,5 @@ Need help?
 
 VERSION INFORMATION
 -------------------
-HIDra v1.8.0
+HIDra v1.8.1
 

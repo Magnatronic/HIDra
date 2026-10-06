@@ -4,7 +4,10 @@ HIDra is distributed as a folder that gets copied onto machines and USB sticks, 
 version number is often the only way to tell two copies apart. This file says what
 changed between them.
 
-## Unreleased
+## v1.8.1
+
+Typing that stopped after showing open programs, and an orange box that jumped back
+after a push.
 
 - **Ignore bounce back** (Settings, Keyboard): after a push of the stick, the stick
   springing back past the middle - or the hand pulling back - no longer moves the orange
