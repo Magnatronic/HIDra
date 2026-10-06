@@ -110,6 +110,14 @@ public class UserSettings
     public const int MaxHighlightRepeat = 2;
 
     /// <summary>
+    /// Whether the keyboard's orange box ignores the stick bouncing back the other way
+    /// just after a push: 0 off, 1 short, 2 long.
+    /// </summary>
+    public int IgnoreBounceBack { get; set; } = 1;
+
+    public const int MaxIgnoreBounceBack = 2;
+
+    /// <summary>
     /// Seconds after letting go of a button during which pressing it again is ignored.
     /// 0 is off.
     /// </summary>

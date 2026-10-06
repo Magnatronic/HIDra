@@ -37,6 +37,9 @@ public class HIDraEngine : IDisposable
     
     // Task switcher state tracking
     private bool _isTaskSwitcherOpen = false;
+
+    // The switcher's own button moved it along this frame, so the press keeps it open
+    private bool _taskSwitcherMoved;
     
     // Stick mode swap state
     private bool _useRightStickForCursor = false;
@@ -290,6 +293,10 @@ public class HIDraEngine : IDisposable
     private readonly System.Diagnostics.Stopwatch _keyRepeatTimer = new();
     private int _keyRepeatCount;
 
+    // The way the last push went, and how long ago it was let go, to tell a bounce back
+    private KeyboardNavigationDirection? _releasedDirection;
+    private readonly System.Diagnostics.Stopwatch _releaseTimer = new();
+
     /// <summary>
     /// Pause before a held D-pad left or right starts moving the text cursor on. Long
     /// enough that a deliberate single step never runs on by itself. The highlight's own
@@ -504,14 +511,18 @@ public class HIDraEngine : IDisposable
     /// </summary>
     public void SendKeyPress(VirtualKey key)
     {
+        CloseTaskSwitcher();
         _keyboardSimulator.KeyPress(key);
     }
-    
+
     /// <summary>
     /// Send text (for virtual keyboard)
     /// </summary>
     public void SendText(string text)
     {
+        // Never type with the switcher's Alt still down: each letter would be an Alt
+        // shortcut and nothing would appear
+        CloseTaskSwitcher();
         _keyboardSimulator.TypeText(text);
     }
 
@@ -520,6 +531,7 @@ public class HIDraEngine : IDisposable
     /// </summary>
     public void SendKeyCombo(params VirtualKey[] keys)
     {
+        CloseTaskSwitcher();
         _keyboardSimulator.KeyPress(keys);
     }
 
@@ -804,6 +816,9 @@ public class HIDraEngine : IDisposable
         {
             DisarmDwell();
             _mouseSimulator.LeftClick();
+
+            // A click on a window closes the switcher, so Alt must not stay down
+            CloseTaskSwitcher();
         }
     }
 
@@ -1075,8 +1090,24 @@ public class HIDraEngine : IDisposable
               : state.DpadDown ? KeyboardNavigationDirection.Down
               : null);
 
+        // Letting go, or swinging straight through the middle, ends a push: remember which
+        // way it went, so the stick springing back past the middle is not a push too
+        if (_heldDirection != null && direction != _heldDirection)
+        {
+            _releasedDirection = _heldDirection;
+            _releaseTimer.Restart();
+        }
+
         if (direction == null)
         {
+            _heldDirection = null;
+            _keyRepeatTimer.Reset();
+            return;
+        }
+
+        if (direction != _heldDirection && IsBounceBack(direction.Value))
+        {
+            // Ignored, not lost: still held once the moment has passed, it steps then
             _heldDirection = null;
             _keyRepeatTimer.Reset();
             return;
@@ -1113,6 +1144,24 @@ public class HIDraEngine : IDisposable
     }
 
     /// <summary>
+    /// A push the opposite way straight after letting go: the stick springing back past
+    /// the middle, or the hand pulling back, rather than a wish to go back a key.
+    /// </summary>
+    private bool IsBounceBack(KeyboardNavigationDirection direction) =>
+        _settings.BounceBackIgnoreMs > 0
+        && _releasedDirection == Opposite(direction)
+        && _releaseTimer.IsRunning
+        && _releaseTimer.ElapsedMilliseconds < _settings.BounceBackIgnoreMs;
+
+    private static KeyboardNavigationDirection Opposite(KeyboardNavigationDirection direction) => direction switch
+    {
+        KeyboardNavigationDirection.Up => KeyboardNavigationDirection.Down,
+        KeyboardNavigationDirection.Down => KeyboardNavigationDirection.Up,
+        KeyboardNavigationDirection.Left => KeyboardNavigationDirection.Right,
+        _ => KeyboardNavigationDirection.Left
+    };
+
+    /// <summary>
     /// Process button presses
     /// </summary>
     private void ProcessButtons(ControllerState current, ControllerState previous)
@@ -1131,11 +1180,18 @@ public class HIDraEngine : IDisposable
 
             if (_inputProcessor.IsButtonPressed(current.ButtonB, previous.ButtonB))
             {
-                _keyboardSimulator.KeyPress(VirtualKey.Escape); // Close switcher
-                _isTaskSwitcherOpen = false;
+                // Escape while Alt is still down closes the switcher without picking a
+                // window; Alt must then be let go too. It used to be left down, so every
+                // letter typed afterwards was an Alt shortcut and nothing appeared, until
+                // HIDra was restarted.
+                _keyboardSimulator.KeyPress(VirtualKey.Escape);
+                CloseTaskSwitcher();
                 return; // Don't process as right-click
             }
         }
+
+        bool switcherWasOpen = _isTaskSwitcherOpen;
+        _taskSwitcherMoved = false;
 
         // Process all button mappings
         // A presses the highlighted key while the keyboard is open. A left click is still
@@ -1202,7 +1258,33 @@ public class HIDraEngine : IDisposable
         // While typing, pressing the left stick in swaps to the numbers and symbols
         ProcessTypingButton("LeftStickClick", current.LeftStickClick, previous.LeftStickClick, KeyboardQuickKey.SymbolLayer, activeModifier);
         ProcessButton("RightStickClick", current.RightStickClick, previous.RightStickClick, activeModifier);
+
+        // Any other press while the switcher is open - a click on a window, opening the
+        // keyboard - has left it, or is about to, so Windows closes it. Alt is let go
+        // with it, or it would stay down with nothing left to let it go.
+        if (switcherWasOpen && _isTaskSwitcherOpen && !_taskSwitcherMoved && AnyNewPress(current, previous))
+        {
+            CloseTaskSwitcher();
+        }
     }
+
+    private bool AnyNewPress(ControllerState current, ControllerState previous) =>
+        _inputProcessor.IsButtonPressed(current.ButtonA, previous.ButtonA)
+        || _inputProcessor.IsButtonPressed(current.ButtonB, previous.ButtonB)
+        || _inputProcessor.IsButtonPressed(current.ButtonX, previous.ButtonX)
+        || _inputProcessor.IsButtonPressed(current.ButtonY, previous.ButtonY)
+        || _inputProcessor.IsButtonPressed(current.LeftBumper, previous.LeftBumper)
+        || _inputProcessor.IsButtonPressed(current.RightBumper, previous.RightBumper)
+        || _inputProcessor.IsButtonPressed(current.Back, previous.Back)
+        || _inputProcessor.IsButtonPressed(current.Start, previous.Start)
+        || _inputProcessor.IsButtonPressed(current.LeftStickClick, previous.LeftStickClick)
+        || _inputProcessor.IsButtonPressed(current.RightStickClick, previous.RightStickClick)
+        || _inputProcessor.IsButtonPressed(current.DpadUp, previous.DpadUp)
+        || _inputProcessor.IsButtonPressed(current.DpadDown, previous.DpadDown)
+        || _inputProcessor.IsButtonPressed(current.DpadLeft, previous.DpadLeft)
+        || _inputProcessor.IsButtonPressed(current.DpadRight, previous.DpadRight)
+        || (_inputProcessor.IsTriggerPressed(current.LeftTrigger) && !_inputProcessor.IsTriggerPressed(previous.LeftTrigger))
+        || (_inputProcessor.IsTriggerPressed(current.RightTrigger) && !_inputProcessor.IsTriggerPressed(previous.RightTrigger));
 
     /// <summary>
     /// Process a single button press using configured mappings
@@ -1243,11 +1325,13 @@ public class HIDraEngine : IDisposable
         {
             _keyboardSimulator.EnterTaskSwitcher(); // Holds Alt + presses Tab once
             _isTaskSwitcherOpen = true;
+            _taskSwitcherMoved = true;
             // Don't navigate again - EnterTaskSwitcher already moved us once
         }
         else
         {
             // Task switcher is already open, navigate to next/previous
+            _taskSwitcherMoved = true;
             if (forward)
                 _keyboardSimulator.TaskSwitcherNext();
             else
